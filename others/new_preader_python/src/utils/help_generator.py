@@ -79,7 +79,7 @@ class HelpGenerator:
     # ------------------------------------------------------------------
 
     def generate_markdown(self) -> str:
-        """生成完整的分类 Markdown 帮助文档"""
+        """生成完整的分类 Markdown 帮助文档（单文档，向后兼容）"""
         self._ensure_scanned()
 
         # 获取 i18n 翻译函数
@@ -89,21 +89,102 @@ class HelpGenerator:
         except Exception:
             t_fn = lambda k: k
 
-        lines: list[str] = []
-        lines.append(f"# {t_fn('help.sub_title')}\n\n")
+        parts: list[str] = [f"# {t_fn('help.sub_title')}\n\n"]
+        shortcuts = self._build_shortcuts(t_fn)
+        if shortcuts:
+            parts.append(shortcuts)
+        dialogs = self._build_dialogs(t_fn)
+        if dialogs:
+            parts.append(dialogs)
+        parts.append(self._build_about(t_fn))
+        return "".join(parts)
 
-        # ---- 快捷键 ----
-        lines.append(f"## {t_fn('help.keyboard_shortcuts')}\n\n")
+    def generate_structured(self) -> list[tuple[str, list[tuple[str, str]]]]:
+        """生成「标签 → 分组（可折叠）」嵌套结构，用于 HelpScreen 的 TabbedContent + Collapsible。
 
-        # 全局
+        返回:
+            [
+                (标签标题, [ (分组标题, 分组 Markdown 正文), ... ]),
+                ...
+            ]
+        """
+        self._ensure_scanned()
+
+        try:
+            from src.locales.i18n_manager import get_global_i18n
+            t_fn = get_global_i18n().t
+        except Exception:
+            t_fn = lambda k: k
+
+        tabs: list[tuple[str, list[tuple[str, str]]]] = []
+
+        shortcut_sections = self._build_shortcut_sections(t_fn)
+        if shortcut_sections:
+            tabs.append((t_fn("help.keyboard_shortcuts"), shortcut_sections))
+
+        dialog_sections = self._build_dialog_sections(t_fn)
+        if dialog_sections:
+            tabs.append((t_fn("help.dialogs"), dialog_sections))
+
+        about_md = t_fn("help.about_content").replace("[", "\\[").replace("]", "\\]")
+        tabs.append((t_fn("help.about"), [(t_fn("help.about"), about_md)]))
+        return tabs
+
+    @staticmethod
+    def _fmt_binding_line(key: str, desc: str) -> str:
+        """把一条快捷键格式化为 Textual 富文本标记（[b]键[/b] : 说明），并转义描述中的方括号"""
+        k = HelpGenerator._format_key(key)
+        d = desc.replace("[", "\\[").replace("]", "\\]")
+        return f"- [b]{k}[/b] : {d}"
+
+    def _build_shortcut_sections(self, t_fn) -> list[tuple[str, str]]:
+        """把「键盘快捷键」拆成可折叠分组：全局 + 各页面（输出 Textual 标记，便于 Collapsible 内用 Static 渲染）"""
+        sections: list[tuple[str, str]] = []
+        if self._app_bindings:
+            lines = "\n".join(
+                self._fmt_binding_line(k, d) for k, _a, d in self._app_bindings
+            )
+            sections.append((t_fn("help.global"), lines + "\n"))
+        for _group_title, screens in self._group_screens():
+            for _name, info in screens:
+                bindings = info.get("bindings", [])
+                if not bindings:
+                    continue
+                lines = "\n".join(
+                    self._fmt_binding_line(k, d) for k, _a, d in bindings
+                )
+                sections.append((info.get("title", _name), lines + "\n"))
+        return sections
+
+    def _build_dialog_sections(self, t_fn) -> list[tuple[str, str]]:
+        """把「弹窗快捷键」拆成可折叠分组：各弹窗"""
+        if not self._dialogs:
+            return []
+        sections: list[tuple[str, str]] = []
+        for _group_title, dialogs in self._group_dialogs():
+            for _name, info in dialogs:
+                bindings = info.get("bindings", [])
+                if not bindings:
+                    continue
+                lines = "\n".join(
+                    self._fmt_binding_line(k, d) for k, _a, d in bindings
+                )
+                sections.append((info.get("title", _name), lines + "\n"))
+        return sections
+
+    # ------------------------------------------------------------------
+    # 各分区构建（供 generate_markdown / generate_tabs 复用）
+    # ------------------------------------------------------------------
+
+    def _build_shortcuts(self, t_fn) -> str:
+        """构建「键盘快捷键」分区（全局 + 各页面）"""
+        lines: list[str] = [f"## {t_fn('help.keyboard_shortcuts')}\n\n"]
         if self._app_bindings:
             lines.append(f"### {t_fn('help.global')}\n\n")
             for key, _action, desc in self._app_bindings:
                 lines.append(f"- **{self._format_key(key)}** : {desc}\n")
             lines.append("\n")
-
-        # 页面分组
-        for group_title, screens in self._group_screens():
+        for _group_title, screens in self._group_screens():
             group_lines: list[str] = []
             for _name, info in screens:
                 bindings = info.get("bindings", [])
@@ -115,29 +196,32 @@ class HelpGenerator:
                 group_lines.append("\n")
             if group_lines:
                 lines.extend(group_lines)
-
-        # 弹窗分组
-        if self._dialogs:
-            dialogs_title = t_fn("help.dialogs") if t_fn("help.dialogs") != "help.dialogs" else "弹窗快捷键"
-            lines.append(f"## {dialogs_title}\n\n")
-            for group_title, dialogs in self._group_dialogs():
-                group_lines = []
-                for _name, info in dialogs:
-                    bindings = info.get("bindings", [])
-                    if not bindings:
-                        continue
-                    group_lines.append(f"### {info.get('title', _name)}\n\n")
-                    for key, _action, desc in bindings:
-                        group_lines.append(f"- **{self._format_key(key)}** : {desc}\n")
-                    group_lines.append("\n")
-                if group_lines:
-                    lines.extend(group_lines)
-
-        # ---- 关于 ----
-        lines.append(f"## {t_fn('help.about')}\n\n")
-        lines.append(f"{t_fn('help.about_content')}\n")
-
         return "".join(lines)
+
+    def _build_dialogs(self, t_fn) -> str:
+        """构建「弹窗快捷键」分区"""
+        if not self._dialogs:
+            return ""
+        lines: list[str] = []
+        dialogs_title = t_fn("help.dialogs") if t_fn("help.dialogs") != "help.dialogs" else "弹窗快捷键"
+        lines.append(f"## {dialogs_title}\n\n")
+        for _group_title, dialogs in self._group_dialogs():
+            group_lines: list[str] = []
+            for _name, info in dialogs:
+                bindings = info.get("bindings", [])
+                if not bindings:
+                    continue
+                group_lines.append(f"### {info.get('title', _name)}\n\n")
+                for key, _action, desc in bindings:
+                    group_lines.append(f"- **{self._format_key(key)}** : {desc}\n")
+                group_lines.append("\n")
+            if group_lines:
+                lines.extend(group_lines)
+        return "".join(lines)
+
+    def _build_about(self, t_fn) -> str:
+        """构建「关于」分区"""
+        return f"## {t_fn('help.about')}\n\n{t_fn('help.about_content')}\n"
 
     # ------------------------------------------------------------------
     # 扫描

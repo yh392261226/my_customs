@@ -757,6 +757,7 @@
     "title": "帮助中心",
     "sub_title": "New_Preader 快捷键完整指南",
     "keyboard_shortcuts": "键盘快捷键",
+    "dialogs": "弹窗快捷键",
     "global": "全局",
     "reading_operations": "阅读操作",
     "prev_next_page": "上一页/下一页",
@@ -791,7 +792,9 @@
     "about_content": "这是一款高级终端书籍阅读器, 支持在线下载书籍、多用户模式，支持多种主题和语言。",
     "open_bookmark_list": "书签列表",
     "back": "返回",
-    "toggle_table_of_contents": "显示/隐藏目录"
+    "toggle_table_of_contents": "显示/隐藏目录",
+    "focus_mode": "专注模式",
+    "next_tab": "切换标签"
   },
   "statistics": {
     "title": "统计",

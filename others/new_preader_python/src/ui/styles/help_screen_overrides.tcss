@@ -1,4 +1,5 @@
-/* 帮助中心页面样式 */
+/* 帮助中心页面样式（参考 Textual 官方 home 示例：干净的中心面板 + 专注最大化） */
+
 Header {
     dock: top;
     width: 100%;
@@ -20,113 +21,94 @@ HelpScreen {
     layout: vertical;
     width: 100%;
     height: 100%;
+    background: $background;
 }
 
-/* 主容器使用垂直布局 */
-#help-container {
-    width: 100%;
-    height: 100%;
-    layout: vertical;
-    min-height: 0;
-}
-
-/* 顶部标题区域 */
-#help-title {
+/* 顶部标题栏：呼应 home 示例的清爽标题条 */
+#help-banner {
     width: 100%;
     height: 3;
-    content-align: left middle;
-    text-align: left;
-    color: $accent;
-    text-style: bold;
-    background: $panel-darken-1;
-    border-bottom: solid $primary;
-    dock: top;
-}
-
-/* 中间内容区域容器 */
-#help-content-area {
-    width: 100%;
-    height: 1fr;
-    overflow-y: auto;
-    layout: horizontal;
-    align: right top;
-}
-
-/* 左侧目录容器 */
-#help-toc-container {
-    width: 25%;
-    height: 100%;
-    layout: vertical;
-    border-right: solid $primary;
-    background: $panel;
-    padding: 1;
-}
-
-/* 目录标题 */
-#toc-title {
-    width: 100%;
-    height: 2;
     content-align: center middle;
     text-align: center;
     color: $text;
     text-style: bold;
-    border-bottom: solid $primary;
-    margin-bottom: 1;
+    background: $panel-darken-1;
+    border-bottom: solid $accent;
 }
 
-/* 目录内容 */
-#help-toc {
-    width: 100%;
-    height: 85%;
-    overflow-y: auto;
-    padding: 0 1;
-    color: $text-muted;
-}
-
-/* Markdown预览区域 */
+/* 主内容：标签式（TabbedContent）面板，卡片外观 */
 #help-content {
     width: 100%;
-    height: 100%;
-    padding: 1 2;
-    overflow-y: auto;
+    height: 1fr;
+    padding: 0;
+    border: round $primary;
     background: $surface;
+    margin: 1 1;
 }
 
-MarkdownTableOfContents { 
-    width: 20%;
-    min-width: 20;
-    display: block; 
-    overflow-y: auto; 
-    padding: 0 1; 
-    border-right: solid $primary;
+/* 标签栏外观 */
+#help-content Tabs {
+    padding: 0 1;
+    height: auto;
 }
 
-/* 底部按钮区域样式 */
+/* 标签页面需填满内容区，否则内部 1fr 滚动容器无确定高度，导致 Collapsible 内容被压成 1 行 */
+#help-content TabPane {
+    height: 1fr;
+}
+
+/* 标签页面内分组容器（可滚动） */
+.help-sections {
+    height: 1fr;
+    padding: 1 2;
+}
+
+/* 关键修复：common.tcss 全局 `Container { height: 100% }` 会覆盖 Collapsible 内置的
+   `Contents { height: auto }`，导致可折叠内容高度塌陷、正文被裁掉。这里用更高优先级
+   把 Collapsible 直接子容器（即 Contents）改回自适应高度。 */
+#help-content Collapsible > Container {
+    height: auto;
+}
+
+#help-content Collapsible Static {
+    padding: 0 1;
+    height: auto;
+}
+
+/* 底部操作栏 */
 #help-controls {
     width: 100%;
-    height: 6;
+    height: auto;
     background: $panel;
     border-top: solid $primary;
-    padding: 0 1;
-    dock: bottom;
-    align: center middle;
-    margin: 0 0 1 0;
-}
-
-/* 快捷键状态栏 */
-#help-shortcuts-bar {
-    width: 100%;
-    height: 3;
-    background: $panel-darken-1;
-    border-top: solid $primary;
-    dock: bottom;
+    padding: 1 1;
     align: center middle;
 }
 
-/* 按钮样式 */
+/* 返回按钮 */
 #back-btn {
     width: auto;
     height: 3;
-    margin: 0 1 1 0;
-    min-width: 10;
+    min-width: 12;
+}
+
+/* 标签页面内 Static 正文（分组内容）配色：显式高对比，避免主题配色导致不可见 */
+#help-content Static {
+    padding: 1 2;
+    color: $text;
+    background: $surface;
+}
+
+/* 可折叠分组（标题含三角箭头，点击展开/收起）：显式文字/背景色 */
+#help-content Collapsible {
+    margin: 0 0 1 0;
+    border: round $primary;
+    background: $surface;
+    color: $text;
+}
+
+#help-content Collapsible > CollapsibleTitle {
+    color: $text;
+    background: $surface;
+    text-style: bold;
 }

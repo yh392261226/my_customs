@@ -757,6 +757,7 @@
     "title": "Help Center",
     "sub_title": "New_Preader Shortcuts",
     "keyboard_shortcuts": "Keyboard Shortcuts",
+    "dialogs": "Dialog Shortcuts",
     "global": "Global Shortcuts",
     "reading_operations": "Reading Operations",
     "prev_next_page": "Previous/Next Page",
@@ -791,7 +792,9 @@
     "about_content": "This is an advanced terminal book reader, supporting online book downloads, multi-user mode, multiple themes and languages.",
     "open_bookmark_list": "Bookmark List",
     "back": "Back",
-    "toggle_table_of_contents": "Show/Hide Table of Contents"
+    "toggle_table_of_contents": "Show/Hide Table of Contents",
+    "focus_mode": "Focus Mode",
+    "next_tab": "Switch Tab"
   },
   "statistics": {
     "title": "Statistics",

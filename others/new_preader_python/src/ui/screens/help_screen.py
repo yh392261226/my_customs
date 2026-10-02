@@ -1,5 +1,6 @@
 """
 帮助屏幕 - 自动扫描所有页面的快捷键绑定并生成分类 Markdown 帮助文档
+布局采用 TabbedContent（标签页）形式，替代原先 MarkdownViewer 的左侧目录菜单。
 """
 
 
@@ -8,8 +9,8 @@ import time
 
 from textual.app import ComposeResult
 from textual.screen import Screen
-from textual.containers import Container, Vertical, Horizontal
-from textual.widgets import Button, MarkdownViewer, Header, Footer
+from textual.containers import Horizontal, VerticalScroll
+from textual.widgets import Button, Header, Footer, Static, TabbedContent, TabPane, Collapsible
 
 from src.locales.i18n_manager import get_global_i18n, t
 from src.utils.logger import get_logger
@@ -21,6 +22,10 @@ logger = get_logger(__name__)
 _help_cache: Optional[str] = None
 _help_cache_time: float = 0.0
 _help_cache_ttl: float = 300.0  # 5 分钟缓存
+
+# 标签内容缓存
+_help_tabs_cache: Optional[list[tuple[str, str]]] = None
+_help_tabs_cache_time: float = 0.0
 
 
 def _get_help_content(force_refresh: bool = False) -> str:
@@ -55,105 +60,157 @@ def _get_help_content(force_refresh: bool = False) -> str:
         )
 
 
+def _get_help_structured(force_refresh: bool = False) -> list[tuple[str, list[tuple[str, str]]]]:
+    """获取「标签 → 可折叠分组」嵌套帮助内容（带缓存）"""
+    global _help_tabs_cache, _help_tabs_cache_time
+    now = time.time()
+    if not force_refresh and _help_tabs_cache is not None and (now - _help_tabs_cache_time) < _help_cache_ttl:
+        return _help_tabs_cache
+    try:
+        generator = HelpGenerator()
+        tabs = generator.generate_structured()
+    except Exception as e:
+        logger.error(f"自动生成分页签帮助失败: {e}")
+        tabs = [(_get_help_fallback_title(), [(_get_help_fallback_title(), _get_help_content(force_refresh))])]
+    _help_tabs_cache = tabs
+    _help_tabs_cache_time = now
+    return tabs
+
+
+def _get_help_fallback_title() -> str:
+    try:
+        return get_global_i18n().t("help.keyboard_shortcuts")
+    except Exception:
+        return "帮助"
+
+
 class HelpScreen(Screen[None]):
-    """帮助屏幕"""
+    """帮助屏幕（标签式布局）"""
     CSS_PATH = "../styles/help_screen_overrides.tcss"
+    # 专注（最大化）模式下只保留被最大化的控件，隐藏 Header/Footer/横幅/操作栏
+    ALLOW_IN_MAXIMIZED_VIEW: ClassVar[str | None] = ""
     BINDINGS: ClassVar[list[tuple[str, str, str]]] = [
-        ("t", "toggle_table_of_contents", get_global_i18n().t('help.toggle_table_of_contents')),
+        ("t", "next_tab", get_global_i18n().t('help.next_tab')),
         ("r", "refresh_help", t('statistics.refresh')),
+        ("ctrl+a", "toggle_focus", get_global_i18n().t('help.focus_mode')),
     ]
-    
+
     def __init__(self):
         """
-        初始化帮助屏幕 - 自动扫描所有页面和弹窗的快捷键
+        初始化帮助屏幕 - 自动扫描所有页面和弹窗的快捷键，按分类生成标签页
         """
         super().__init__()
         self.title = get_global_i18n().t("help.title")
-        self.help_content = _get_help_content()
-    
+        self.banner_text = f"📖 {get_global_i18n().t('help.title')}  ·  {get_global_i18n().t('help.sub_title')}"
+        self._tabs = _get_help_structured()
+
     def compose(self) -> ComposeResult:
         """
-        组合帮助屏幕界面
-        
+        组合帮助屏幕界面：清爽顶部标题栏 + 标签页主内容（每个分组可折叠）+ 底部操作栏，
+        并支持 Ctrl+A 专注/最大化效果。
+
         Returns:
             ComposeResult: 组合结果
         """
         yield Header()
-        yield Container(
-            Vertical(
-                # 顶部标题区域
-                # Label(get_global_i18n().t("help.title"), id="help-title", classes="section-title"),
-                
-                # 中间内容区域 - 目录和预览分栏
-                Horizontal(
-                    # 左侧目录区域
-                    # Vertical(
-                    #     Label("目录", id="toc-title"),
-                    #     Static(self.toc_content, id="help-toc"),
-                    #     id="help-toc-container"
-                    # ),
-                    # 右侧Markdown预览区域
-                    MarkdownViewer(self.help_content, id="help-content", show_table_of_contents=True),
-                    id="help-content-area"
-                ),
-                
-                # 底部按钮和快捷键区域
-                Horizontal(
-                    Button(get_global_i18n().t("help.back"), id="back-btn"),
-                    id="help-controls", classes="btn-row"
-                ),
-                id="help-container"
-            )
+        # 顶部标题栏（专注模式下隐藏）
+        yield Static(self.banner_text, id="help-banner", classes="help-banner")
+        # 主内容：标签式（TabbedContent），每个标签内按分组用 Collapsible 折叠展示
+        with TabbedContent(id="help-content"):
+            for ti, (tab_title, sections) in enumerate(self._tabs):
+                with TabPane(tab_title, id=f"help-tab-{ti}"):
+                    with VerticalScroll(classes="help-sections"):
+                        for si, (sec_title, sec_md) in enumerate(sections):
+                            with Collapsible(
+                                title=sec_title,
+                                id=f"help-sec-{ti}-{si}",
+                                classes="help-collapsible",
+                            ):
+                                yield Static(sec_md, markup=True, classes="help-sec-body")
+        # 底部操作栏（专注模式下隐藏）
+        yield Horizontal(
+            Button(get_global_i18n().t("help.back"), id="back-btn"),
+            id="help-controls", classes="btn-row"
         )
         yield Footer()
-    
+
     def on_mount(self) -> None:
         """屏幕挂载时的回调"""
         # 应用样式隔离
         from src.ui.styles.style_manager import apply_style_isolation
-        self.query_one("#help-container").focus()
         apply_style_isolation(self)
-    
+        try:
+            self.query_one("#help-content", TabbedContent).focus()
+        except Exception:
+            pass
+
     def on_button_pressed(self, event: Button.Pressed) -> None:
         """
         按钮按下时的回调
-        
+
         Args:
             event: 按钮按下事件
         """
         if event.button.id == "back-btn":
             self.app.pop_screen()
 
-    @property
-    def markdown_viewer(self) -> MarkdownViewer:
-        """Get the Markdown widget."""
-        return self.query_one(MarkdownViewer)
-
-    def action_toggle_table_of_contents(self) -> None:
-        if self.query_one("MarkdownTableOfContents").styles.display == 'none': 
-            self.query_one("MarkdownTableOfContents").styles.display = 'block'
-        else:
-            self.query_one("MarkdownTableOfContents").styles.display = 'none'
+    def action_next_tab(self) -> None:
+        """t 键 - 在标签之间循环切换"""
+        try:
+            tc = self.query_one("#help-content", TabbedContent)
+            panes = list(tc.query(TabPane))
+            if not panes:
+                return
+            current = tc.active
+            idx = next((i for i, p in enumerate(panes) if p.id == current), -1)
+            nxt = panes[(idx + 1) % len(panes)]
+            tc.active = nxt.id
+        except Exception:
+            pass
 
     def action_refresh_help(self) -> None:
         """刷新帮助内容（强制重新扫描所有页面）"""
-        self.help_content = _get_help_content(force_refresh=True)
+        self._tabs = _get_help_structured(force_refresh=True)
         try:
-            from textual.widgets import Markdown
-            markdown = self.query_one(Markdown)
-            markdown.update(self.help_content)
-        except Exception:
-            # 如果无法更新组件，通知用户重新进入帮助
+            md_widgets = list(self.query("#help-content Static"))
+            idx = 0
+            for _tab_title, sections in self._tabs:
+                for _sec_title, sec_md in sections:
+                    if idx < len(md_widgets):
+                        md_widgets[idx].update(sec_md)
+                    idx += 1
             self.notify(t('statistics.refresh'), timeout=2)
-    
+        except Exception as e:
+            logger.error(f"刷新帮助内容失败: {e}")
+            self.notify(t('statistics.refresh'), timeout=2)
+
+    def action_toggle_focus(self) -> None:
+        """
+        按 Ctrl+A：最大化 / 还原「当前光标所在控件」（Textual 原生专注模式）。
+
+        依赖 Textual 的 Screen.maximize/minimize：会把当前聚焦控件占满全屏、
+        自动隐藏其它控件，再次按 Ctrl+A 或 Esc 还原。
+        """
+        focused = self.focused
+        if focused is None:
+            return
+        if self.screen.maximized is not None:
+            self.screen.minimize()
+        else:
+            self.screen.maximize(focused)
+
     def on_key(self, event) -> None:
         """
         处理键盘事件
-        
+
         Args:
             event: 键盘事件
         """
         if event.key == "escape":
-            self.app.pop_screen()
+            # 专注模式下先还原最大化控件，否则关闭帮助
+            if self.screen.maximized is not None:
+                self.screen.minimize()
+            else:
+                self.app.pop_screen()
             event.stop()
             event.prevent_default()
