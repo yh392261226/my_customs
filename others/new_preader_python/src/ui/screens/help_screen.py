@@ -92,7 +92,6 @@ class HelpScreen(Screen[None]):
     BINDINGS: ClassVar[list[tuple[str, str, str]]] = [
         ("t", "next_tab", get_global_i18n().t('help.next_tab')),
         ("r", "refresh_help", t('statistics.refresh')),
-        ("ctrl+a", "toggle_focus", get_global_i18n().t('help.focus_mode')),
     ]
 
     def __init__(self):
@@ -183,21 +182,6 @@ class HelpScreen(Screen[None]):
         except Exception as e:
             logger.error(f"刷新帮助内容失败: {e}")
             self.notify(t('statistics.refresh'), timeout=2)
-
-    def action_toggle_focus(self) -> None:
-        """
-        按 Ctrl+A：最大化 / 还原「当前光标所在控件」（Textual 原生专注模式）。
-
-        依赖 Textual 的 Screen.maximize/minimize：会把当前聚焦控件占满全屏、
-        自动隐藏其它控件，再次按 Ctrl+A 或 Esc 还原。
-        """
-        focused = self.focused
-        if focused is None:
-            return
-        if self.screen.maximized is not None:
-            self.screen.minimize()
-        else:
-            self.screen.maximize(focused)
 
     def on_key(self, event) -> None:
         """

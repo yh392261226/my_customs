@@ -216,7 +216,8 @@ class NewReaderApp(App[None]):
         Binding("c", "show_statistics", get_global_i18n().t('app.bindings.statistics')),
         Binding("/", "boss_key", get_global_i18n().t('app.bindings.boss_key')),
         Binding("t", "pick_theme", get_global_i18n().t('app.bindings.theme')),
-        Binding("escape", "back", get_global_i18n().t('app.bindings.back'))
+        Binding("escape", "back", get_global_i18n().t('app.bindings.back')),
+        Binding("ctrl+a", "toggle_focus", get_global_i18n().t('help.focus_mode'))
     ]
     
     def __init__(self, config_manager: ConfigManager, book_file: Optional[str] = None, cli_password: Optional[str] = None):
@@ -898,6 +899,21 @@ class NewReaderApp(App[None]):
     def action_boss_key(self) -> None:
         """激活老板键"""
         self.push_screen(BossKeyScreen(self.theme_manager))
+
+    def action_toggle_focus(self) -> None:
+        """
+        Ctrl+A：最大化 / 还原「当前光标所在控件」（Textual 原生专注模式，全局可用）。
+
+        依赖 Screen.maximize/minimize：把当前聚焦控件占满全屏、自动隐藏其它控件，
+        再次按 Ctrl+A 或 Esc 即可还原。
+        """
+        focused = self.focused
+        if focused is None:
+            return
+        if self.screen.maximized is not None:
+            self.screen.minimize()
+        else:
+            self.screen.maximize(focused)
     
     def _open_book_file(self, book_file: str) -> None:
         """
