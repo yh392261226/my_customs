@@ -46,10 +46,30 @@ HelpScreen {
     margin: 1 1;
 }
 
-/* 标签栏外观 */
+/* 标签栏外观：显式尺寸，避免被压缩成 0 宽高导致不可见 / 不可点击 */
 #help-content Tabs {
+    width: 1fr;
+    height: 3;
     padding: 0 1;
-    height: auto;
+    background: $panel;
+    border-bottom: solid $primary;
+}
+
+/* 单个标签：常态 / 悬停 / 选中（选中态高对比，明确指示当前页） */
+#help-content Tabs Tab {
+    color: $text-muted;
+    padding: 0 2;
+}
+
+#help-content Tabs Tab:hover {
+    color: $text;
+    background: $primary 20%;
+}
+
+#help-content Tabs Tab.-active {
+    color: $text;
+    text-style: bold;
+    background: $accent 30%;
 }
 
 /* 标签页面需填满内容区，否则内部 1fr 滚动容器无确定高度，导致 Collapsible 内容被压成 1 行 */
