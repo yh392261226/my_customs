@@ -28,6 +28,7 @@ from src.utils.book_duplicate_detector_optimized import OptimizedBookDuplicateDe
 from src.utils.book_duplicate_detector_ultra import UltraBookDuplicateDetector  # 新增：超高性能检测器
 from src.utils.logger import get_logger
 from src.utils.logger import get_recent_memory_logs, is_file_logging_enabled
+from src.utils.file_helpers import read_file_preview
 from src.config.config_manager import ConfigManager
 
 logger = get_logger(__name__)
@@ -491,6 +492,7 @@ class BatchOpsDialog(ModalScreen[Dict[str, Any]]):
         ("c", "convert_traditional", get_global_i18n().t('batch_ops.shortcut_c')),
         ("r", "delete_selected", get_global_i18n().t('batch_ops.shortcut_r')),
         ("R", "remove_missing", get_global_i18n().t('batch_ops.shortcut_R')),
+        ("v", "preview_book", get_global_i18n().t('batch_ops.shortcut_v')),
     ]
     # 支持的书籍文件扩展名（从配置文件读取）
     SUPPORTED_EXTENSIONS = set(SUPPORTED_FORMATS)
@@ -631,6 +633,7 @@ class BatchOpsDialog(ModalScreen[Dict[str, Any]]):
         table.add_column(get_global_i18n().t("bookshelf.format"), key="format")
         table.add_column(get_global_i18n().t("bookshelf.tags"), key="tags")
         table.add_column(get_global_i18n().t("bookshelf.view_file"), key="view_action")  # 查看文件按钮列
+        table.add_column(get_global_i18n().t("batch_ops.preview"), key="preview_action")  # 预览按钮列
         table.add_column(get_global_i18n().t("batch_ops.selected"), key="selected")
         
         # 启用隔行变色效果
@@ -739,7 +742,9 @@ class BatchOpsDialog(ModalScreen[Dict[str, Any]]):
             
             # 添加查看文件按钮
             view_file_button = f"[{get_global_i18n().t('bookshelf.view_file')}]"
-            
+            # 添加预览按钮
+            preview_button = f"[{get_global_i18n().t('batch_ops.preview')}]"
+
             table.add_row(
                 str(index),  # 序号
                 book.title,
@@ -747,6 +752,7 @@ class BatchOpsDialog(ModalScreen[Dict[str, Any]]):
                 book.format.upper() if book.format else "",
                 tags_display,
                 view_file_button,  # 查看文件按钮
+                preview_button,  # 预览按钮
                 selection_marker,  # 根据选中状态显示不同的标记
                 key=book.path
             )
@@ -974,11 +980,17 @@ class BatchOpsDialog(ModalScreen[Dict[str, Any]]):
             total_columns = 0
         
         # 列索引映射：
-        # 0=索引, 1=书名, 2=作者, 3=格式, 4=标签, 5=查看文件按钮, 6=已选择列
+        # 0=索引, 1=书名, 2=作者, 3=格式, 4=标签, 5=查看文件按钮, 6=预览按钮, 7=已选择列
         
         # 处理查看文件按钮列的点击（索引5）
         if event.coordinate.column == 5:
             self._view_file(book.path)
+            event.stop()
+            return
+        
+        # 处理预览按钮列的点击（索引6）
+        if event.coordinate.column == 6:
+            self._preview_book(book.path)
             event.stop()
             return
         
@@ -1392,6 +1404,62 @@ class BatchOpsDialog(ModalScreen[Dict[str, Any]]):
             last_btn.disabled = self._current_page >= self._total_pages
         except Exception as e:
             logger.error(f"更新分页按钮状态失败: {e}")
+
+    def _preview_book(self, book_path: str) -> None:
+        """预览书籍内容（显示前2000字，复用统一预览弹窗）"""
+        try:
+            if not os.path.exists(book_path):
+                self.notify(get_global_i18n().t('crawler.file_not_exists'), severity="warning")
+                return
+
+            # 获取书籍信息
+            book = self.bookshelf.get_book(book_path)
+            if not book:
+                self.notify(get_global_i18n().t("bookshelf.find_book_failed"), severity="error")
+                return
+
+            # 读取文件前2000字，自动检测编码（支持 GBK/GB2312/Big5 等，避免乱码）
+            content = read_file_preview(book_path, max_chars=2000)
+            if not content.strip():
+                self.notify(get_global_i18n().t("crawler.preview_empty"), severity="information")
+                return
+
+            # 弹出预览对话框（附带书籍元数据，用于左侧信息面板展示）
+            from src.ui.screens.crawler_management_screen import BookPreviewDialog
+            theme_manager = getattr(self.app, 'theme_manager', None) if hasattr(self.app, 'theme_manager') else ThemeManager()
+
+            self.app.push_screen(
+                BookPreviewDialog(
+                    theme_manager,
+                    book.title,
+                    content,
+                    metadata={
+                        "author": getattr(book, "author", ""),
+                        "format": getattr(book, "format", ""),
+                        "size": getattr(book, "size", 0),
+                        "tags": getattr(book, "tags", ""),
+                        "path": getattr(book, "path", ""),
+                    },
+                )
+            )
+        except Exception as e:
+            logger.error(f"预览书籍失败: {e}")
+            self.notify(f"{get_global_i18n().t('crawler.preview_failed')}: {str(e)}", severity="error")
+
+    def action_preview_book(self) -> None:
+        """v 键 - 预览当前光标所在行的书籍"""
+        table = self.query_one("#batch-ops-table", DataTable)
+        row_index = getattr(table, 'cursor_row', None)
+        if row_index is None or row_index < 0 or row_index >= len(table.rows):
+            self.notify(get_global_i18n().t('batch_ops.preview_no_row'), severity="warning")
+            return
+        try:
+            row_key = list(table.rows.keys())[row_index]
+        except Exception:
+            return
+        if not row_key or not getattr(row_key, "value", None):
+            return
+        self._preview_book(str(row_key.value))
 
     # 通过 BINDINGS 触发的动作（保留 on_key 作为过渡）
     def action_toggle_row(self) -> None:

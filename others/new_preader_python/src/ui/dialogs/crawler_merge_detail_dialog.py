@@ -15,8 +15,8 @@ from typing import Dict, Any, List, Optional, ClassVar
 from send2trash import send2trash
 from textual.screen import ModalScreen
 from textual.app import ComposeResult
-from textual.containers import Container, Vertical, Horizontal
-from textual.widgets import Header, Footer, Button, Label, DataTable, Input, Static, Select
+from textual.containers import Container, Vertical, Horizontal, VerticalScroll
+from textual.widgets import Header, Footer, Button, Label, DataTable, Input, Static, Select, RichLog
 from textual import on
 
 from src.locales.i18n_manager import get_global_i18n
@@ -32,34 +32,63 @@ logger = get_logger(__name__)
 
 
 class _MergePreviewDialog(ModalScreen[None]):
-    """合并详情弹窗内部使用的书籍预览弹窗（避免循环导入）"""
+    """合并详情弹窗内部使用的书籍预览弹窗（避免循环导入）
+    布局与样式参考 Textual 官方 code_browser 示例（侧栏信息面板 + 内容阅读区）"""
 
     CSS_PATH = "../styles/crawler_management_bookpreview_dialog_overrides.tcss"
     BINDINGS: ClassVar[list[tuple[str, str, str]]] = [
         ("escape", "close", get_global_i18n().t('common.close')),
+        ("j", "scroll_down", get_global_i18n().t('common.scroll_down')),
+        ("k", "scroll_up", get_global_i18n().t('common.scroll_up')),
     ]
 
     def action_close(self) -> None:
         self.dismiss()
 
-    def __init__(self, theme_manager: ThemeManager, title: str, content: str):
+    def action_scroll_down(self) -> None:
+        self.query_one("#preview-content", RichLog).scroll_down()
+
+    def action_scroll_up(self) -> None:
+        self.query_one("#preview-content", RichLog).scroll_up()
+
+    def __init__(self, theme_manager: ThemeManager, title: str, content: str,
+                 metadata: Optional[Dict[str, Any]] = None):
         super().__init__()
         self.theme_manager = theme_manager
         self.title = title
         self.content = content
+        self.metadata = metadata or {}
         self.i18n = get_global_i18n()
 
     def compose(self) -> ComposeResult:
         yield Header()
         yield Container(
             Vertical(
-                Label(f"📖 {self.i18n.t('crawler.preview_title')}", id="preview-title", classes="section-title"),
-                Label(f"{self.content} ......", id="preview-content", classes="preview-text", markup=False),
+                Static(
+                    f"📖 {self.i18n.t('crawler.preview_title')}",
+                    id="preview-header",
+                    classes="preview-header",
+                ),
+                Horizontal(
+                    VerticalScroll(
+                        Static(id="preview-info", classes="preview-info"),
+                        id="preview-sidebar",
+                        classes="preview-sidebar",
+                    ),
+                    RichLog(
+                        id="preview-content",
+                        classes="preview-text",
+                        wrap=True,
+                        markup=False,
+                    ),
+                    id="preview-body",
+                ),
                 Horizontal(
                     Button(self.i18n.t('common.close'), id="preview-close-btn", variant="primary"),
-                    id="preview-buttons", classes="btn-row",
+                    id="preview-buttons",
+                    classes="btn-row",
                 ),
-                id="preview-container",
+                id="preview-dialog",
             ),
             id="preview-window",
         )
@@ -67,13 +96,117 @@ class _MergePreviewDialog(ModalScreen[None]):
 
     def on_mount(self) -> None:
         self.theme_manager.apply_theme_to_screen(self)
-        preview_content = self.query_one("#preview-content")
+        self.query_one("#preview-info", Static).update(self._build_info_text())
+        preview_content = self.query_one("#preview-content", RichLog)
         preview_content.border_title = self.title
-        preview_content.border_subtitle = self.title
+        from rich.text import Text
+        try:
+            preview_content.write(Text(self.content))
+            note = Text()
+            note.append("\n\n" + "─" * 40 + "\n", style="dim")
+            note.append(self.i18n.t("crawler.preview_truncated"), style="italic dim")
+            preview_content.write(note)
+        except Exception as e:
+            logger.warning(f"写入预览内容失败: {e}")
+            preview_content.write(self.i18n.t("crawler.preview_failed", error=str(e)))
         try:
             self.query_one("#preview-close-btn", Button).focus()
         except Exception:
             pass
+
+    def _build_info_text(self) -> "Text":
+        from rich.text import Text
+
+        def _human_size(n: object) -> str:
+            try:
+                n = int(n)  # type: ignore[arg-type]
+            except (TypeError, ValueError):
+                return "-"
+            if n < 1024:
+                return f"{n} B"
+            if n < 1024 * 1024:
+                return f"{n / 1024:.1f} KB"
+            if n < 1024 * 1024 * 1024:
+                return f"{n / 1024 / 1024:.1f} MB"
+            return f"{n / 1024 / 1024 / 1024:.2f} GB"
+
+        T = self.i18n.t
+        meta = self.metadata
+        t = Text()
+
+        def field(label: str, value: str, value_style: str = "default") -> None:
+            t.append(f"{label}\n", style="dim")
+            t.append(f"{value}\n\n", style=value_style)
+
+        t.append("书籍信息\n", style="bold underline")
+        t.append("\n")
+
+        # 书名（始终显示）
+        field(T('crawler.preview_field_title'), self.title or "-", "bold")
+
+        # 作者（书库书籍）
+        author = meta.get("author")
+        if author:
+            field(T('crawler.preview_field_author'), str(author))
+
+        # 类型/格式：优先 book_type（爬取），否则文件格式 format
+        book_type = meta.get("book_type") or meta.get("format")
+        if book_type:
+            field(T('crawler.preview_field_type'), str(book_type))
+
+        # 状态（仅爬取记录）
+        status = meta.get("status", "")
+        if status:
+            if status == "success":
+                status_text = "✓ " + T('crawler.status_success')
+                status_style = "bold green"
+            elif status == "failed":
+                status_text = "✗ " + T('crawler.status_failed')
+                status_style = "bold red"
+            else:
+                status_text = str(status)
+                status_style = "default"
+            field(T('crawler.preview_field_status'), status_text, status_style)
+
+        # 章节数（爬取记录）
+        chapter_count = meta.get("chapter_count")
+        if chapter_count:
+            field(T('crawler.preview_field_chapters'), str(chapter_count))
+
+        # 最新章节（爬取记录）
+        last_chapter = meta.get("last_chapter_title")
+        if last_chapter:
+            field(T('crawler.preview_field_last_chapter'), str(last_chapter))
+
+        # 大小（书库书籍，字节）
+        size = meta.get("size")
+        if size:
+            field(T('crawler.preview_field_size'), _human_size(size))
+
+        # 标签（书库书籍）
+        tags = meta.get("tags")
+        if tags:
+            field(T('crawler.preview_field_tags'), str(tags))
+
+        # 预览字数（始终显示）
+        field(T('crawler.preview_field_preview_chars'), str(len(self.content)))
+
+        # 小说ID（爬取记录）
+        novel_id = meta.get("novel_id")
+        if novel_id:
+            field(T('crawler.preview_field_novel_id'), str(novel_id))
+
+        # 爬取时间（爬取记录）
+        crawl_time = meta.get("crawl_time")
+        if crawl_time:
+            field(T('crawler.preview_field_crawl_time'), str(crawl_time))
+
+        # 文件路径（始终显示，若存在）
+        file_path = meta.get("file_path") or meta.get("path")
+        if file_path:
+            field(T('crawler.preview_field_path'), str(file_path))
+
+        return t
 
     def on_button_pressed(self, event: Button.Pressed) -> None:
         if event.button.id == "preview-close-btn":
@@ -1100,6 +1233,7 @@ class CrawlerMergeDetailDialog(ModalScreen[Dict[str, Any]]):
                     self.theme_manager,
                     book.get('novel_title', ''),
                     content,
+                    metadata=book,
                 )
             )
         except Exception as e:

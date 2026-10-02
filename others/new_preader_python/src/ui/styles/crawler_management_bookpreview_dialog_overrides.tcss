@@ -1,50 +1,81 @@
-/* 确认对话框专用样式 */
+/* 书籍预览弹窗样式
+   参考 Textual 官方 code_browser 示例：
+   - 左侧 dock 风格的信息面板（$panel 背景 + 右侧 hatch 纹理分隔，呼应 #code-view 的 hatch: right $panel）
+   - 右侧内容阅读区（干净的 $surface 背景，与侧栏形成层次）
+   - 稳定的滚动条槽（scrollbar-gutter: stable，同 code_browser 的 #tree-view）
+*/
 
 #preview-window {
     align: center middle;
-    width: 90%;
-    height: 85%;
+    width: 92%;
+    height: 88%;
 }
 
-#preview-container {
-    align: center middle;
-    background: $surface 30%;
-    border: round $primary;
-    height: 100%;
+#preview-dialog {
     width: 100%;
+    height: 100%;
+    border: round $primary;
+    background: $background;
+    padding: 0;
+}
+
+/* 顶部标题条：清爽居中，底部以粗线分隔（仿 code_browser 极简标题感） */
+#preview-header {
+    width: 100%;
+    height: 3;
+    content-align: center middle;
+    text-style: bold;
+    color: auto;
+    background: $primary;
+    border-bottom: thick $primary-darken-1;
+}
+
+#preview-body {
+    width: 100%;
+    height: 1fr;
+}
+
+/* 左侧信息面板：固定宽度、dock 风格，背景 $panel，右侧 hatch 纹理分隔 */
+#preview-sidebar {
+    width: 32%;
+    height: 100%;
+    background: $panel;
+    hatch: right $panel-darken-1;
+    padding: 1 2;
+    scrollbar-gutter: stable;
     overflow-y: auto;
 }
 
-#preview-title {
+/* 信息面板内的文本（由 Python 端以带样式 Text 渲染） */
+.preview-info {
     width: 100%;
     height: auto;
-}
-
-#preview-content {
-    width: 100%;
     content-align: left top;
-    padding: 5;
-    text-wrap: wrap;
-    border: ascii $text;
-    overflow-y: auto;
-    overflow-x: hidden;
-    border-title-align: right;
-    border-title-color: $text;
-    border-title-background: $warning;
-    border-title-style: italic;
-    border-subtitle-align: left;
-    border-subtitle-color: $text;
-    border-subtitle-background: $warning;
-    border-subtitle-style: italic;
 }
 
+/* 右侧内容阅读区：干净的 $surface 背景 + 细边框，占满剩余空间 */
+#preview-content {
+    width: 1fr;
+    height: 100%;
+    background: $surface;
+    border: round $panel;
+    padding: 1 2;
+    scrollbar-gutter: stable;
+    overflow-y: auto;
+    border-title-align: center;
+    border-title-color: $text;
+    border-title-style: bold;
+}
+
+/* 底部按钮行：以粗线与主体分隔，沿用通用 .btn-row 的布局对齐 */
 #preview-buttons {
     width: 100%;
-    height: auto;
+    height: 3;
+    background: $panel;
+    border-top: thick $primary-darken-1;
 }
 
 #preview-close-btn {
-    margin: 1;
-    min-width: 10;
-    align: center bottom;
+    margin: 0 1;
+    min-width: 12;
 }

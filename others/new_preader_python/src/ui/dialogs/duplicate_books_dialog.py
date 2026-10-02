@@ -1165,7 +1165,14 @@ class DuplicateBooksDialog(ModalScreen[Dict[str, Any]]):
                 BookPreviewDialog(
                     self.theme_manager,
                     book.title,
-                    content
+                    content,
+                    metadata={
+                        "author": getattr(book, "author", ""),
+                        "format": getattr(book, "format", ""),
+                        "size": getattr(book, "size", 0),
+                        "tags": getattr(book, "tags", ""),
+                        "path": getattr(book, "path", ""),
+                    },
                 )
             )
             

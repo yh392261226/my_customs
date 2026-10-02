@@ -15,7 +15,7 @@ from textual.screen import Screen
 
 from src.locales import i18n
 from src.ui.dialogs.crawler_merge_mode_dialog import normalize_book_title
-from textual.containers import Container, Vertical, Horizontal
+from textual.containers import Container, Vertical, Horizontal, VerticalScroll
 from textual.widgets import Static, Button, Label, Input, Link, Header, Footer, LoadingIndicator, Select, Switch
 from textual.widgets import DataTable, Log, RichLog
 from textual.app import ComposeResult
@@ -434,55 +434,88 @@ class LogViewerPopup(ModalScreen):
 
 
 class BookPreviewDialog(ModalScreen):
-    """书籍预览弹窗"""
-    
+    """书籍预览弹窗（参考 Textual code_browser 示例的「侧边栏 + 内容面板」分区与 hatch 风格）"""
+
     CSS_PATH = "../styles/crawler_management_bookpreview_dialog_overrides.tcss"
     BINDINGS: ClassVar[list[tuple[str, str, str]]] = [
         ("escape", "close", get_global_i18n().t('common.close')),
+        ("j", "scroll_down", get_global_i18n().t('common.scroll_down')),
+        ("k", "scroll_up", get_global_i18n().t('common.scroll_up')),
     ]
 
     def action_close(self) -> None:
         # 立即关闭对话框（不等待后台线程）
         self.dismiss()
-    
-    def __init__(self, theme_manager: ThemeManager, title: str, content: str):
+
+    def action_scroll_down(self) -> None:
+        self.query_one("#preview-content", RichLog).scroll_down()
+
+    def action_scroll_up(self) -> None:
+        self.query_one("#preview-content", RichLog).scroll_up()
+
+    def __init__(self, theme_manager: ThemeManager, title: str, content: str,
+                 metadata: Optional[Dict[str, Any]] = None):
         super().__init__()
         self.theme_manager = theme_manager
         self.title = title
         self.content = content
-    
+        self.metadata = metadata or {}
+
     def compose(self) -> ComposeResult:
         yield Header()
         yield Container(
             Vertical(
-                Label(f"📖 {get_global_i18n().t('crawler.preview_title')}", id="preview-title", classes="section-title"),
-                # 使用 RichLog 替代 Label：wrap=True 让长行自动换行，
-                # markup=False + 以 Text 对象写入，完全避免 Markup 解析错误
-                RichLog(id="preview-content", classes="preview-text", wrap=True, markup=False),
+                # 顶部标题栏：仿 code_browser 的清爽标题条，底部以粗线分隔
+                Static(
+                    f"📖 {get_global_i18n().t('crawler.preview_title')}",
+                    id="preview-header",
+                    classes="preview-header",
+                ),
+                # 主体：左侧信息面板（dock 风格）+ 右侧内容阅读区
+                Horizontal(
+                    VerticalScroll(
+                        Static(id="preview-info", classes="preview-info"),
+                        id="preview-sidebar",
+                        classes="preview-sidebar",
+                    ),
+                    # 使用 RichLog：wrap=True 自动换行；markup=False + 以 Text 写入，避免 Markup 错误
+                    RichLog(
+                        id="preview-content",
+                        classes="preview-text",
+                        wrap=True,
+                        markup=False,
+                    ),
+                    id="preview-body",
+                ),
                 Horizontal(
                     Button(get_global_i18n().t('common.close'), id="preview-close-btn", variant="primary"),
-                    id="preview-buttons", classes="btn-row"
+                    id="preview-buttons",
+                    classes="btn-row",
                 ),
-                id="preview-container"
+                id="preview-dialog",
             ),
-            id="preview-window"
+            id="preview-window",
         )
         yield Footer()
-    
+
     def on_mount(self) -> None:
         """弹窗挂载时的回调"""
         self.theme_manager.apply_theme_to_screen(self)
+
+        # 左侧信息面板：以带样式的 Text 渲染元数据（避免 Markup 注入风险）
+        self.query_one("#preview-info", Static).update(self._build_info_text())
+
         preview_content = self.query_one("#preview-content", RichLog)
         preview_content.border_title = self.title
-        preview_content.border_subtitle = self.title
-        
-        # 将预览内容写入 RichLog（以 Text 对象写入，不受 Markup 解析影响，
-        # RichLog 的 wrap=True 会让超长文字自动换行）
+
         from rich.text import Text
         try:
-            preview_content.write(Text(self.content + " ......"))
+            preview_content.write(Text(self.content))
+            note = Text()
+            note.append("\n\n" + "─" * 40 + "\n", style="dim")
+            note.append(get_global_i18n().t("crawler.preview_truncated"), style="italic dim")
+            preview_content.write(note)
         except Exception as e:
-            # 如果写入失败，显示提示信息
             logger.warning(f"写入预览内容失败: {e}")
             preview_content.write(get_global_i18n().t("crawler.preview_failed", error=str(e)))
 
@@ -490,7 +523,106 @@ class BookPreviewDialog(ModalScreen):
             self.query_one("#preview-close-btn", Button).focus()
         except Exception:
             pass
-    
+
+    def _build_info_text(self) -> "Text":
+        """构建左侧信息面板内容（带样式的富文本）
+
+        自适应元数据：仅展示有实际值的字段。爬取记录会显示类型/状态/章节数等，
+        书库书籍则显示作者/格式/大小/标签等，避免出现无意义的占位符。
+        """
+        from rich.text import Text
+
+        def _human_size(n: object) -> str:
+            try:
+                n = int(n)  # type: ignore[arg-type]
+            except (TypeError, ValueError):
+                return "-"
+            if n < 1024:
+                return f"{n} B"
+            if n < 1024 * 1024:
+                return f"{n / 1024:.1f} KB"
+            if n < 1024 * 1024 * 1024:
+                return f"{n / 1024 / 1024:.1f} MB"
+            return f"{n / 1024 / 1024 / 1024:.2f} GB"
+
+        T = get_global_i18n().t
+        meta = self.metadata
+        t = Text()
+
+        def field(label: str, value: str, value_style: str = "default") -> None:
+            t.append(f"{label}\n", style="dim")
+            t.append(f"{value}\n\n", style=value_style)
+
+        t.append("书籍信息\n", style="bold underline")
+        t.append("\n")
+
+        # 书名（始终显示）
+        field(T('crawler.preview_field_title'), self.title or "-", "bold")
+
+        # 作者（书库书籍）
+        author = meta.get("author")
+        if author:
+            field(T('crawler.preview_field_author'), str(author))
+
+        # 类型/格式：优先 book_type（爬取），否则文件格式 format
+        book_type = meta.get("book_type") or meta.get("format")
+        if book_type:
+            field(T('crawler.preview_field_type'), str(book_type))
+
+        # 状态（仅爬取记录）
+        status = meta.get("status", "")
+        if status:
+            if status == "success":
+                status_text = "✓ " + T('crawler.status_success')
+                status_style = "bold green"
+            elif status == "failed":
+                status_text = "✗ " + T('crawler.status_failed')
+                status_style = "bold red"
+            else:
+                status_text = str(status)
+                status_style = "default"
+            field(T('crawler.preview_field_status'), status_text, status_style)
+
+        # 章节数（爬取记录）
+        chapter_count = meta.get("chapter_count")
+        if chapter_count:
+            field(T('crawler.preview_field_chapters'), str(chapter_count))
+
+        # 最新章节（爬取记录）
+        last_chapter = meta.get("last_chapter_title")
+        if last_chapter:
+            field(T('crawler.preview_field_last_chapter'), str(last_chapter))
+
+        # 大小（书库书籍，字节）
+        size = meta.get("size")
+        if size:
+            field(T('crawler.preview_field_size'), _human_size(size))
+
+        # 标签（书库书籍）
+        tags = meta.get("tags")
+        if tags:
+            field(T('crawler.preview_field_tags'), str(tags))
+
+        # 预览字数（始终显示）
+        field(T('crawler.preview_field_preview_chars'), str(len(self.content)))
+
+        # 小说ID（爬取记录）
+        novel_id = meta.get("novel_id")
+        if novel_id:
+            field(T('crawler.preview_field_novel_id'), str(novel_id))
+
+        # 爬取时间（爬取记录）
+        crawl_time = meta.get("crawl_time")
+        if crawl_time:
+            field(T('crawler.preview_field_crawl_time'), str(crawl_time))
+
+        # 文件路径（始终显示，若存在）
+        file_path = meta.get("file_path") or meta.get("path")
+        if file_path:
+            field(T('crawler.preview_field_path'), str(file_path))
+
+        return t
+
     def on_button_pressed(self, event: Button.Pressed) -> None:
         """按钮按下事件处理"""
         if event.button.id == "preview-close-btn":
@@ -5505,12 +5637,21 @@ class CrawlerManagementScreen(Screen[None]):
                 self._update_status(get_global_i18n().t('crawler.preview_empty'), "information")
                 return
             
-            # 弹出预览对话框
+            # 弹出预览对话框（附带元数据，用于左侧信息面板展示）
             self.app.push_screen(
                 BookPreviewDialog(
                     self.theme_manager,
                     history_item.get('novel_title', ''),
-                    content
+                    content,
+                    metadata={
+                        "book_type": history_item.get('book_type'),
+                        "novel_id": history_item.get('novel_id'),
+                        "status": history_item.get('status'),
+                        "chapter_count": history_item.get('chapter_count', 0),
+                        "last_chapter_title": history_item.get('last_chapter_title'),
+                        "crawl_time": history_item.get('crawl_time'),
+                        "file_path": file_path,
+                    },
                 )
             )
             
