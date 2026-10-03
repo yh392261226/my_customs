@@ -634,6 +634,8 @@
     "asc": "正序",
     "desc": "倒序",
     "exit": "退出",
+    "scroll_up": "向上滚动",
+    "scroll_down": "向下滚动",
     "cancel_all": "取消全部"
   },
   "reader": {

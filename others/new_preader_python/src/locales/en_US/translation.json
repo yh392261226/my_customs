@@ -634,6 +634,8 @@
     "asc": "Asc",
     "desc": "Desc",
     "exit": "Exit",
+    "scroll_up": "Scroll Up",
+    "scroll_down": "Scroll Down",
     "cancel_all": "Cancel All"
   },
   "reader": {

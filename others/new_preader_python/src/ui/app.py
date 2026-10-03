@@ -217,7 +217,7 @@ class NewReaderApp(App[None]):
         Binding("/", "boss_key", get_global_i18n().t('app.bindings.boss_key')),
         Binding("t", "pick_theme", get_global_i18n().t('app.bindings.theme')),
         Binding("escape", "back", get_global_i18n().t('app.bindings.back')),
-        Binding("ctrl+a", "toggle_focus", get_global_i18n().t('help.focus_mode'))
+        Binding("ctrl+a", "toggle_focus", get_global_i18n().t('help.focus_mode'), priority=True)
     ]
     
     def __init__(self, config_manager: ConfigManager, book_file: Optional[str] = None, cli_password: Optional[str] = None):
