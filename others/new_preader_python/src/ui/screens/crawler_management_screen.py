@@ -18,6 +18,7 @@ from src.ui.dialogs.crawler_merge_mode_dialog import normalize_book_title
 from textual.containers import Container, Vertical, Horizontal, VerticalScroll
 from textual.widgets import Static, Button, Label, Input, Link, Header, Footer, LoadingIndicator, Select, Switch
 from textual.widgets import DataTable, Log, RichLog
+from src.ui.components.paging_data_table import PagingDataTable
 from textual.app import ComposeResult
 from textual import events, on
 from textual.screen import ModalScreen
@@ -687,11 +688,11 @@ class CrawlerManagementScreen(Screen[None]):
         """打开日志查看器弹窗"""
         self._open_log_viewer()
 
-    def action_prev_page(self) -> None:
-        self._go_to_prev_page()
+    def action_prev_page(self) -> bool:
+        return self._go_to_prev_page()
 
-    def action_next_page(self) -> None:
-        self._go_to_next_page()
+    def action_next_page(self) -> bool:
+        return self._go_to_next_page()
 
     def action_back(self) -> None:
         self.app.pop_screen()
@@ -1243,7 +1244,7 @@ class CrawlerManagementScreen(Screen[None]):
                     # 爬取历史区域
                     Vertical(
                         # Label(get_global_i18n().t('crawler.crawl_history'), id="crawl-history-title"),
-                        DataTable(id="crawl-history-table"),
+                        PagingDataTable(id="crawl-history-table"),
                         id="crawl-history-section"
                     ),
                     id="crawler-scroll", classes="scroll-y"
@@ -1655,7 +1656,18 @@ class CrawlerManagementScreen(Screen[None]):
             # 只有在不是来自搜索时才设置表格焦点
             if not from_search:
                 table.focus()
-            
+
+            # 边界翻页后，将光标定位到新页首行/末行（兼容行坐标异步刷新，带重试）。
+            pending = getattr(self, "_pending_page_cursor", None)
+            if pending is not None:
+                self._pending_page_cursor = None
+                try:
+                    # 本页实际行数（同步可知），用于稳定计算目标行并带重试移动光标
+                    page_n = end_index - start_index
+                    PagingDataTable.move_pending(table, pending, page_n, self.app)
+                except Exception:
+                    pass
+
         except Exception as e:
             logger.debug(f"更新历史记录表格失败: {e}")
             # 延迟重试
@@ -3549,18 +3561,26 @@ class CrawlerManagementScreen(Screen[None]):
             self.current_page = 1
             self._update_history_table()
     
-    def _go_to_prev_page(self) -> None:
-        """跳转到上一页"""
+    def _go_to_prev_page(self) -> bool:
+        """跳转到上一页；返回是否成功翻页（已是第一页则False）。"""
+        self._pending_page_cursor = None
         if self.current_page > 1:
             self.current_page -= 1
+            self._pending_page_cursor = "last"
             self._update_history_table()
-    
-    def _go_to_next_page(self) -> None:
-        """跳转到下一页"""
+            return True
+        return False
+
+    def _go_to_next_page(self) -> bool:
+        """跳转到下一页；返回是否成功翻页（已是最后一页则False）。"""
+        self._pending_page_cursor = None
         total_pages = max(1, (len(self.crawler_history) + self.items_per_page - 1) // self.items_per_page)
         if self.current_page < total_pages:
             self.current_page += 1
+            self._pending_page_cursor = "first"
             self._update_history_table()
+            return True
+        return False
     
     def _go_to_last_page(self) -> None:
         """跳转到最后一页"""
@@ -4878,28 +4898,8 @@ class CrawlerManagementScreen(Screen[None]):
         # 动态计算总页数
         total_pages = max(1, (len(self.crawler_history) + self.items_per_page - 1) // self.items_per_page)
         
-        # 方向键翻页功能
-        if event.key == "down":
-            # 下键：如果到达当前页底部且有下一页，则翻到下一页
-            if (table.cursor_row == len(table.rows) - 1 and 
-                self.current_page < total_pages):
-                self._go_to_next_page()
-                # 将光标移动到新页面的第一行
-                table.move_cursor(row=0, column=0)  # 直接移动到第一行第一列
-                event.prevent_default()
-                event.stop()
-                return
-        elif event.key == "up":
-            # 上键：如果到达当前页顶部且有上一页，则翻到上一页
-            if table.cursor_row == 0 and self.current_page > 1:
-                self._go_to_prev_page()
-                # 将光标移动到新页面的最后一行
-                last_row_index = len(table.rows) - 1
-                table.move_cursor(row=last_row_index, column=0)  # 直接移动到最后一行第一列
-                event.prevent_default()
-                event.stop()
-                return
-        
+        # 上下方向键的边界自动翻页已由 PagingDataTable 统一处理
+
         if event.key == "escape":
             # ESC键返回 - 爬取继续在后台运行
             self.app.pop_screen()

@@ -15,6 +15,7 @@ from textual.screen import Screen
 from textual.containers import Container, Vertical, Horizontal, Grid, VerticalScroll
 from textual.widgets import Static, Button, Label, Header, Footer, LoadingIndicator, Input, Select, Switch
 from textual.widgets import DataTable
+from src.ui.components.paging_data_table import PagingDataTable
 from textual.reactive import reactive
 from textual import on, events
 
@@ -48,6 +49,9 @@ class BookshelfScreen(Screen[None]):
     
     TITLE: ClassVar[Optional[str]] = None  # 在运行时设置
     CSS_PATH="../styles/bookshelf_overrides.tcss"
+    # 挂载后把焦点交给书籍表格，确保方向键边界翻页可用
+    # （避免被搜索框/筛选 Select 抢走焦点导致翻页失效）
+    auto_focus = "#books-table"
     BINDINGS: ClassVar[list[tuple[str, str, str]]] = [
         ("a", "add_book", get_global_i18n().t('common.add')),
         ("D", "scan_directory", get_global_i18n().t('bookshelf.scan_directory')),
@@ -275,7 +279,7 @@ class BookshelfScreen(Screen[None]):
                 ),
                 # 中间数据表区域
                 Vertical(
-                    DataTable(id="books-table"),
+                    PagingDataTable(id="books-table"),
                 ),
                 # 书籍统计信息区域
                 Vertical(
@@ -1301,7 +1305,11 @@ class BookshelfScreen(Screen[None]):
         """
         try:
             table = self.query_one("#books-table", DataTable)
-            
+
+            # 每次加载页面都用最新 _all_books 重算总页数，
+            # 避免挂载时数据未就绪导致 _total_pages 过时（卡在第一页末行）。
+            self._recompute_total_pages()
+
             # 获取当前页的书籍
             start_index = (self._current_page - 1) * self._books_per_page
             end_index = min(start_index + self._books_per_page, len(self._all_books))
@@ -1390,7 +1398,16 @@ class BookshelfScreen(Screen[None]):
             # 只有在不是来自搜索时才设置表格焦点
             if not from_search:
                 table.focus()
-                
+
+            # 边界翻页后，将光标定位到新页首行/末行（兼容行坐标异步刷新，带重试）。
+            pending = getattr(self, "_pending_page_cursor", None)
+            if pending is not None:
+                self._pending_page_cursor = None
+                try:
+                    PagingDataTable.move_pending(table, pending, len(current_page_books), self.app)
+                except Exception:
+                    pass
+
         except Exception as e:
             logger.error(f"加载当前页失败: {e}")
             self.notify("加载当前页失败", severity="error")
@@ -2106,30 +2123,8 @@ class BookshelfScreen(Screen[None]):
             # ESC键或Q键返回（仅一次 pop，并停止冒泡）
             self.app.pop_screen()
             event.stop()
-        elif event.key == "down":
-            # 下键：如果到达当前页底部且有下一页，则翻到下一页
-            table = self.query_one("#books-table", DataTable)
-            if (table.cursor_row == len(table.rows) - 1 and 
-                self._current_page < self._total_pages):
-                self._go_to_next_page()
-                # 将光标移动到新页面的第一行
-                table.move_cursor(row=0, column=0)  # 直接移动到第一行第一列
-                event.prevent_default()
-                event.stop()
-                return
-        elif event.key == "up":
-            # 上键：如果到达当前页顶部且有上一页，则翻到上一页
-            table = self.query_one("#books-table", DataTable)
-            if table.cursor_row == 0 and self._current_page > 1:
-                self._go_to_prev_page()
-                # 将光标移动到新页面的最后一行
-                last_row_index = len(table.rows) - 1
-                table.move_cursor(row=last_row_index, column=0)  # 直接移动到最后一行第一列
-                event.prevent_default()
-                event.stop()
-                return
 
-        # 方向键翻页功能（在N/P键之前检查，确保优先处理）
+        # 上下方向键的边界自动翻页已由 PagingDataTable 统一处理
         elif event.key == "n":
             # N键下一页
             self._go_to_next_page()
@@ -2890,37 +2885,78 @@ class BookshelfScreen(Screen[None]):
             self.notify(f"{get_global_i18n().t('crawler.preview_failed')}: {str(e)}", severity="error")
 
     # 分页导航方法
-    def _go_to_first_page(self) -> None:
+    def _recompute_total_pages(self) -> None:
+        """根据已加载的书籍列表重新计算总页数。
+
+        挂载时书架数据可能尚未就绪，_total_pages 被算成 1，
+        导致翻页闸门 self._current_page < self._total_pages 永远不成立而卡住。
+        每次翻页前用最新 _all_books 重算即可避免。
+        """
+        try:
+            books = getattr(self, "_all_books", None)
+            if books is not None:
+                self._total_pages = max(
+                    1,
+                    (len(books) + self._books_per_page - 1) // self._books_per_page,
+                )
+        except Exception:
+            pass
+
+    def _go_to_first_page(self) -> bool:
         """跳转到第一页"""
+        self._pending_page_cursor = None
+        self._recompute_total_pages()
         if self._current_page != 1:
-            self._show_loading_animation(get_global_i18n().t("bookshelf.page_first"), progress=0)
             self._current_page = 1
-            self._load_books(self._search_keyword, self._search_format, self._search_author)
-            self._hide_loading_animation()
+            self._pending_page_cursor = "first"
+            self._load_current_page()
+            self._update_pagination_controls()
+            return True
+        return False
 
-    def _go_to_prev_page(self) -> None:
+    def _go_to_prev_page(self) -> bool:
         """跳转到上一页"""
+        self._pending_page_cursor = None
+        self._recompute_total_pages()
         if self._current_page > 1:
-            self._show_loading_animation(get_global_i18n().t("bookshelf.page_prev"), progress=0)
             self._current_page -= 1
-            self._load_books(self._search_keyword, self._search_format, self._search_author)
-            self._hide_loading_animation()
+            self._pending_page_cursor = "last"
+            self._load_current_page()
+            self._update_pagination_controls()
+            return True
+        return False
 
-    def _go_to_next_page(self) -> None:
+    def _go_to_next_page(self) -> bool:
         """跳转到下一页"""
+        self._pending_page_cursor = None
+        self._recompute_total_pages()
         if self._current_page < self._total_pages:
-            self._show_loading_animation(get_global_i18n().t("bookshelf.page_next"), progress=0)
             self._current_page += 1
-            self._load_books(self._search_keyword, self._search_format, self._search_author)
-            self._hide_loading_animation()
+            self._pending_page_cursor = "first"
+            self._load_current_page()
+            self._update_pagination_controls()
+            return True
+        return False
 
-    def _go_to_last_page(self) -> None:
+    def _go_to_last_page(self) -> bool:
         """跳转到最后一页"""
+        self._pending_page_cursor = None
+        self._recompute_total_pages()
         if self._current_page != self._total_pages:
-            self._show_loading_animation(get_global_i18n().t("bookshelf.page_last"), progress=0)
             self._current_page = self._total_pages
-            self._load_books(self._search_keyword, self._search_format, self._search_author)
-            self._hide_loading_animation()
+            self._pending_page_cursor = "last"
+            self._load_current_page()
+            self._update_pagination_controls()
+            return True
+        return False
+
+    def action_next_page(self) -> bool:
+        """供 BoardView 边界翻页回调调用（需返回是否真翻页）。"""
+        return self._go_to_next_page()
+
+    def action_prev_page(self) -> bool:
+        """供 BoardView 边界翻页回调调用（需返回是否真翻页）。"""
+        return self._go_to_prev_page()
 
     def _show_jump_dialog(self) -> None:
         """显示跳转页码对话框"""

@@ -19,8 +19,9 @@ except Exception:
 from textual.binding import Binding
 from textual.containers import Container
 from textual.screen import Screen, ModalScreen
-from textual.widgets import Header, Footer, OptionList, RichLog
+from textual.widgets import Header, Footer, OptionList, RichLog, DataTable
 from textual import on, events
+from src.ui.widgets.board_view import BoardView
 import asyncio
 from textual.message import Message
 from typing import Optional as _Optional
@@ -217,7 +218,8 @@ class NewReaderApp(App[None]):
         Binding("/", "boss_key", get_global_i18n().t('app.bindings.boss_key')),
         Binding("t", "pick_theme", get_global_i18n().t('app.bindings.theme')),
         Binding("escape", "back", get_global_i18n().t('app.bindings.back')),
-        Binding("ctrl+a", "toggle_focus", get_global_i18n().t('help.focus_mode'), priority=True)
+        Binding("ctrl+a", "toggle_focus", get_global_i18n().t('help.focus_mode'), priority=True),
+        Binding("V", "toggle_view", "表格⇄看板"),
     ]
     
     def __init__(self, config_manager: ConfigManager, book_file: Optional[str] = None, cli_password: Optional[str] = None):
@@ -914,7 +916,80 @@ class NewReaderApp(App[None]):
             self.screen.minimize()
         else:
             self.screen.maximize(focused)
-    
+
+    async def action_toggle_view(self) -> None:
+        """
+        全局 ``V``：在「当前光标所在（或首个可见）表格」与「看板视图」之间切换。
+
+        实现方式：保留原 ``DataTable`` 完全不动，仅是隐藏它并挂载一个只读的
+        ``BoardView`` 镜像组件；再次按下则卸载看板、恢复表格。因此 144+ 处
+        ``query_one("#id", DataTable)``、相关事件与方法调用均不受影响。
+        """
+        screen = self.screen
+        focused = self.focused
+
+        # 1) 若当前已处于看板模式：优先取「焦点所在（或其祖先链上）的看板」，
+        #    从中拿回它镜像的源表并切回。注意：源表此时 display=none，不能
+        #    再用「找可见表格」的逻辑，否则会漏判导致切不回去。
+        board: Optional[BoardView] = None
+        if focused is not None:
+            node = focused
+            while node is not None:
+                if isinstance(node, BoardView):
+                    board = node
+                    break
+                node = node.parent
+        if board is None:
+            board = next(iter(screen.query(BoardView)), None)
+        if board is not None:
+            table = board.source
+            board.remove()
+            table.styles.display = "block"
+            table.focus()
+            return
+
+        # 2) 否则处于表格模式，找要切换的表格：优先光标所在（含祖先链）的表
+        table: Optional[DataTable] = None
+        node = focused
+        while node is not None:
+            if isinstance(node, DataTable):
+                table = node
+                break
+            node = node.parent
+
+        # 3) 否则取当前屏幕上首个可见（非看板模式）的表格
+        if table is None:
+            for dt in screen.query(DataTable):
+                if dt.styles.display != "none":
+                    table = dt
+                    break
+
+        if table is None or table.id is None:
+            return
+
+        board_id = BoardView.board_id_for(table)
+        existing = next(iter(screen.query(f"#{board_id}")), None)
+        if existing is not None:
+            # 切回表格模式（兜底分支，正常不会走到这里）
+            existing.remove()
+            table.styles.display = "block"
+            table.focus()
+        else:
+            # 切入看板模式
+            table.styles.display = "none"
+            # 若当前屏幕支持分页（有翻页 action），把翻页方法传给看板，
+            # 使方向键在页边界能自动翻页并对焦到新页首/末张。
+            on_reach_next = getattr(screen, "action_next_page", None)
+            on_reach_prev = getattr(screen, "action_prev_page", None)
+            board = BoardView(
+                source=table,
+                id=board_id,
+                on_reach_next=on_reach_next,
+                on_reach_prev=on_reach_prev,
+            )
+            await table.parent.mount(board, before=table)
+            board.focus()
+
     def _open_book_file(self, book_file: str) -> None:
         """
         直接打开指定的书籍文件

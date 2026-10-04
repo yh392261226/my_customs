@@ -19,6 +19,7 @@ from src.utils.logger import get_logger
 from src.core.database_manager import DatabaseManager
 from src.ui.styles.universal_style_isolation import apply_universal_style_isolation, remove_universal_style_isolation
 from src.ui.dialogs.note_dialog import NoteDialog
+from src.ui.widgets.site_search_box import SiteSearchBox
 
 logger = get_logger(__name__)
 
@@ -135,10 +136,10 @@ class NovelSitesManagementScreen(Screen[None]):
                     
                     # 搜索栏
                     Horizontal(
-                        Input(
-                            placeholder=get_global_i18n().t('search.site_placeholder'), 
-                            id="novel-sites-search-input", 
-                            classes="novel-sites-search-input"
+                        SiteSearchBox(
+                            placeholder=get_global_i18n().t('search.site_placeholder'),
+                            sites_provider=lambda: self.database_manager.get_novel_sites(),
+                            id="novel-sites-search-box",
                         ),
                         Select(
                             id="novel-sites-parser-filter",
@@ -303,6 +304,13 @@ class NovelSitesManagementScreen(Screen[None]):
                 filtered_sites.append(site)
 
         self.novel_sites = filtered_sites
+
+        # 自动补全候选源同步刷新（复用已加载的全量站点，避免重复查库）
+        try:
+            box = self.query_one(SiteSearchBox)
+            box.set_sites(all_sites)
+        except Exception:
+            pass
 
         # 应用自定义排序（如果用户点击了表头进行排序）
         if self._sort_column is not None:

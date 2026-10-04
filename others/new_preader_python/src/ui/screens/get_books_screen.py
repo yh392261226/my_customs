@@ -8,6 +8,8 @@ from textual.screen import Screen
 from textual.containers import Container, Vertical, Horizontal, Grid
 from textual.widgets import Static, Button, Label, Input, Select, Header, Footer, DataTable
 from textual.widgets import DataTable
+from src.ui.components.paging_data_table import PagingDataTable
+from src.ui.widgets.site_search_box import SiteSearchBox
 from textual.app import ComposeResult
 from textual.reactive import reactive
 from textual import events, on
@@ -110,10 +112,10 @@ class GetBooksScreen(Screen[None]):
                     
                     # 搜索栏
                     Horizontal(
-                        Input(
+                        SiteSearchBox(
                             placeholder=get_global_i18n().t('search.site_placeholder'),
-                            id="novel-sites-search-input",
-                            classes="novel-sites-search-input"
+                            sites_provider=lambda: self.database_manager.get_novel_sites(),
+                            id="novel-sites-search-box",
                         ),
                         Select(
                             id="novel-sites-parser-filter",
@@ -172,7 +174,7 @@ class GetBooksScreen(Screen[None]):
                 
                 # 中间区域：书籍网站列表
                 Vertical(
-                    DataTable(id="novel-sites-table"),
+                    PagingDataTable(id="novel-sites-table"),
                     id="novel-sites-preview"
                 ),
                 
@@ -480,6 +482,17 @@ class GetBooksScreen(Screen[None]):
         self._update_pagination_info()
         self._update_pagination_buttons()
 
+        # 边界翻页后，将光标定位到新页首行/末行。
+        # 用本页已知行数作为目标并带重试地移动，兼容行坐标异步刷新的情况。
+        pending = getattr(self, "_pending_page_cursor", None)
+        if pending is not None:
+            self._pending_page_cursor = None
+            try:
+                tbl = self.query_one("#novel-sites-table", DataTable)
+                PagingDataTable.move_pending(tbl, pending, len(current_page_sites), self.app)
+            except Exception:
+                pass
+
     def _update_pagination_info(self) -> None:
         """更新分页信息显示"""
         try:
@@ -590,29 +603,45 @@ class GetBooksScreen(Screen[None]):
         self._load_novel_sites(self._search_keyword, self._search_parser, self._search_proxy_enabled, self._search_status, self._search_rating, from_search=True)
 
     # 分页导航方法
-    def _go_to_first_page(self) -> None:
+    def _go_to_first_page(self) -> bool:
         """跳转到第一页"""
+        self._pending_page_cursor = None
         if self._current_page != 1:
             self._current_page = 1
+            self._pending_page_cursor = "first"
             self._load_novel_sites(self._search_keyword, self._search_parser, self._search_proxy_enabled, self._search_status, self._search_rating)
+            return True
+        return False
 
-    def _go_to_prev_page(self) -> None:
+    def _go_to_prev_page(self) -> bool:
         """跳转到上一页"""
+        self._pending_page_cursor = None
         if self._current_page > 1:
             self._current_page -= 1
+            self._pending_page_cursor = "last"
             self._load_novel_sites(self._search_keyword, self._search_parser, self._search_proxy_enabled, self._search_status, self._search_rating)
+            return True
+        return False
 
-    def _go_to_next_page(self) -> None:
+    def _go_to_next_page(self) -> bool:
         """跳转到下一页"""
+        self._pending_page_cursor = None
         if self._current_page < self._total_pages:
             self._current_page += 1
+            self._pending_page_cursor = "first"
             self._load_novel_sites(self._search_keyword, self._search_parser, self._search_proxy_enabled, self._search_status, self._search_rating)
+            return True
+        return False
 
-    def _go_to_last_page(self) -> None:
+    def _go_to_last_page(self) -> bool:
         """跳转到最后一页"""
+        self._pending_page_cursor = None
         if self._current_page != self._total_pages:
             self._current_page = self._total_pages
+            self._pending_page_cursor = "last"
             self._load_novel_sites(self._search_keyword, self._search_parser, self._search_proxy_enabled, self._search_status, self._search_rating)
+            return True
+        return False
 
     def _sort_sites(self, column_key: str, reverse: bool) -> None:
         """根据指定列对网站进行排序
@@ -1255,11 +1284,11 @@ class GetBooksScreen(Screen[None]):
     def action_back(self) -> None:
         self.app.pop_screen()
     
-    def action_prev_page(self) -> None:
-        self._go_to_prev_page()
+    def action_prev_page(self) -> bool:
+        return self._go_to_prev_page()
 
-    def action_next_page(self) -> None:
-        self._go_to_next_page()
+    def action_next_page(self) -> bool:
+        return self._go_to_next_page()
 
     def action_jump_to(self) -> None:
         self._show_jump_dialog()
@@ -1521,27 +1550,7 @@ class GetBooksScreen(Screen[None]):
             event.prevent_default()
             return
 
-        # 方向键翻页功能
-        if event.key == "down":
-            # 下键：如果到达当前页底部且有下一页，则翻到下一页
-            if (table.cursor_row == len(table.rows) - 1 and 
-                self._current_page < self._total_pages):
-                self._go_to_next_page()
-                # 将光标移动到新页面的第一行
-                table.move_cursor(row=0, column=0)  # 直接移动到第一行第一列
-                event.prevent_default()
-                event.stop()
-                return
-        elif event.key == "up":
-            # 上键：如果到达当前页顶部且有上一页，则翻到上一页
-            if table.cursor_row == 0 and self._current_page > 1:
-                self._go_to_prev_page()
-                # 将光标移动到新页面的最后一行
-                last_row_index = len(table.rows) - 1
-                table.move_cursor(row=last_row_index, column=0)  # 直接移动到最后一行第一列
-                event.prevent_default()
-                event.stop()
-                return
+        # 上下方向键的边界自动翻页已由 PagingDataTable 统一处理
 
         if event.key == "escape":
             # ESC键返回（仅一次）
