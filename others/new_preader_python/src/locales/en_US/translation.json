@@ -753,7 +753,13 @@
     "pager": "Page {current}/{total}",
     "pager_without_statistics": "Page {current}/{total} (Statistics Disabled)",
     "reminder_message": "Already read {minutes} minutes {seconds} seconds，have a reset {interval} minutes to protect your eyes",
-    "vocabulary_info": "In vocabulary: Press Delete key to delete word"
+    "vocabulary_info": "In vocabulary: Press Delete key to delete word",
+    "pagenation_async": "Paginating asynchronously...",
+    "aloud_finished": "Reading aloud finished",
+    "browser_read_error": "Browser reader error: {error}",
+    "browser_read_failed": "Failed to open browser reader",
+    "browser_read_file_missing": "File does not exist",
+    "browser_read_opened": "Opened in browser"
   },
   "help": {
     "title": "Help Center",

@@ -753,7 +753,13 @@
     "pager": "第{current}/{total}页",
     "pager_without_statistics": "第{current}/{total}页 (统计已关闭)",
     "reminder_message": "您已连续阅读 {minutes}分{seconds}秒，建议休息{interval}分钟，保护眼睛健康",
-    "vocabulary_info": "已进入单词本中: 按删除键删除单词"
+    "vocabulary_info": "已进入单词本中: 按删除键删除单词",
+    "pagenation_async": "正在异步分页...",
+    "aloud_finished": "朗读已完成",
+    "browser_read_error": "浏览器阅读出错: {error}",
+    "browser_read_failed": "打开浏览器阅读失败",
+    "browser_read_file_missing": "文件不存在",
+    "browser_read_opened": "已在浏览器中打开"
   },
   "help": {
     "title": "帮助中心",
