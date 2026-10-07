@@ -281,7 +281,8 @@
     "shortcut_f": "查看文件",
     "shortcut_d": "删除书籍",
     "shortcut_b": "浏览器阅读",
-    "shortcut_B": "浏览器阅读(B)"
+    "shortcut_B": "浏览器阅读(B)",
+    "path": "路径"
   },
   "batch_ops": {
     "title": "批量操作",
@@ -379,7 +380,11 @@
     "shortcut_T": "清空标签",
     "shortcut_c": "繁体转简体",
     "shortcut_r": "删除选中",
-    "shortcut_R": "清理无效"
+    "shortcut_R": "清理无效",
+    "cancel_merge": "取消合并",
+    "merge_submitted": "已提交合并",
+    "no_data": "无数据",
+    "no_selected_rows": "未选择任何行"
   },
   "search": {
     "title": "搜索",
@@ -402,7 +407,8 @@
     "no_results": "未找到结果",
     "all_formats": "所有格式",
     "file_format": "文件格式",
-    "book": "书籍"
+    "book": "书籍",
+    "results_found": "找到 {count} 条结果"
   },
   "sort": {
     "title": "排序",
@@ -422,7 +428,7 @@
     "translation": "翻译",
     "browser": "浏览器",
     "advanced": "高级",
-    "paths": "路径",
+    "paths": "路径设置",
     "theme": "主题",
     "theme_filter_title": "主题选择",
     "theme_filter_placeholder": "输入关键词筛选主题...",
@@ -506,7 +512,6 @@
     "config_dir": "配置目录",
     "database": "数据库路径",
     "library": "书籍库路径",
-    "paths": "路径设置",
     "browse": "浏览...",
     "library_updated": "书籍库路径已更新",
     "reset_success": "重置成功",
@@ -582,7 +587,8 @@
     "maintenance_tips_title": "维护说明",
     "maintenance_tip_vacuum": "• 启用自动清理可避免数据库文件变得臃肿",
     "maintenance_tip_backup": "• 定期备份可保护重要数据安全",
-    "maintenance_tip_location": "• 备份文件将保存到下载文件夹"
+    "maintenance_tip_location": "• 备份文件将保存到下载文件夹",
+    "library_desc": "默认书籍存储目录"
   },
   "common": {
     "close": "关闭",
@@ -872,7 +878,8 @@
     "reset_all_confirm": "确定要重置所有统计信息吗？",
     "reset_user_confirm": "确定要重置当前用户的统计信息吗？",
     "reset_success": "统计信息已重置",
-    "reset_failed": "重置失败"
+    "reset_failed": "重置失败",
+    "no_reading_record": "暂无阅读记录"
   },
   "error": {
     "error": "错误",
@@ -965,7 +972,8 @@
     "context": "上下文",
     "pages": "第 {page} 页",
     "select_result_first": "请先选择一个搜索结果",
-    "found_results": "找到 {results} 个结果"
+    "found_results": "找到 {results} 个结果",
+    "page": "第 {page} 页"
   },
   "search_results_screen": {
     "title": "搜索结果",
@@ -1235,7 +1243,10 @@
     "shortcut_e": "E: 编辑代理",
     "shortcut_d": "D: 删除代理",
     "shortcut_enter": "Enter: 选择代理",
-    "shortcut_esc": "ESC: 返回"
+    "shortcut_esc": "ESC: 返回",
+    "act_failed": "操作失败",
+    "act_success": "操作成功",
+    "enable_proxy": "启用代理"
   },
   "novel_sites": {
     "title": "书籍网站管理",
@@ -1280,7 +1291,12 @@
     "status": "状态",
     "change_status": "切换状态",
     "crawl_page_unavailable": "爬取管理页面不可用",
-    "already_selected": "已选中 {count} 个网站"
+    "already_selected": "已选中 {count} 个网站",
+    "add_failed": "添加站点失败",
+    "batch_deleted_partial": "部分站点删除成功",
+    "delete_failed": "删除站点失败",
+    "edit_failed": "编辑站点失败",
+    "site_not_found": "未找到站点"
   },
   "novel_site_dialog": {
     "add_title": "添加书籍网站",
@@ -1651,7 +1667,19 @@
     "search_url_not_configured": "未配置搜索连接",
     "search_url_opened": "已在浏览器打开搜索：{keyword}",
     "search_url_open_failed": "打开搜索连接失败：{error}",
-    "search_title_empty": "书籍名称为空，无法搜索"
+    "search_title_empty": "书籍名称为空，无法搜索",
+    "batch_crawl_exception": "批量爬取异常",
+    "continue_crawl_failed": "继续爬取失败",
+    "continuing_crawl": "正在继续爬取...",
+    "crawl_completed": "爬取完成",
+    "crawl_exception": "爬取异常",
+    "failed": "失败",
+    "np_delete_file": "删除文件失败",
+    "np_delete_record": "删除记录失败",
+    "parser_not_found": "未找到解析器",
+    "site_not_found": "未找到站点",
+    "success": "成功",
+    "unknown_error": "未知错误"
   },
   "merge_mode": {
     "title": "合并模式",
@@ -1865,7 +1893,8 @@
     "clear_title": "清空标题",
     "copy_title_shortcut": "复制书名",
     "copy_title_success": "已复制书名：{title}",
-    "copy_title_no_book": "未定位到可复制的书籍标题"
+    "copy_title_no_book": "未定位到可复制的书籍标题",
+    "smart_title_applied": "已应用智能标题"
   },
   "note": {
     "save": "保存",
@@ -1935,7 +1964,12 @@
     "delete_confirm_message": "确定要将选中的 {count} 个文件移动到回收站吗？",
     "delete_success": "已将 {count} 个文件移到回收站",
     "delete_partial": "已完成：成功 {success} 个，失败 {failed} 个",
-    "delete_failed": "删除文件失败"
+    "delete_failed": "删除文件失败",
+    "cannot_open_multiple": "无法同时打开多个",
+    "no_files_selected": "未选择任何文件",
+    "root": "根目录",
+    "select_directory_only": "仅可选择目录",
+    "select_files": "选择文件"
   },
   "lock_screen": {
     "placeholder": "请输入密码以继续",
@@ -2421,5 +2455,11 @@
     "scroll_up": "上翻",
     "scroll_down": "下翻",
     "exit": "退出对比"
-  }
+  },
+  "boss_key": {
+    "exec_command_failed": "执行命令失败"
+  },
+  "cannot_copy": "无法复制",
+  "fill_invalid_line_number": "行号无效",
+  "update_stats_failed": "更新统计失败: {error}"
 }

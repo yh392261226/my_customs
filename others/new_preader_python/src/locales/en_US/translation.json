@@ -281,7 +281,8 @@
     "shortcut_f": "View File",
     "shortcut_d": "Delete Book",
     "shortcut_b": "Browser Read",
-    "shortcut_B": "Browser Read (B)"
+    "shortcut_B": "Browser Read (B)",
+    "path": "Path"
   },
   "batch_ops": {
     "title": "Batch Operations",
@@ -379,7 +380,11 @@
     "shortcut_T": "Clear Tags",
     "shortcut_c": "Traditional to Simplified",
     "shortcut_r": "Delete Selected",
-    "shortcut_R": "Remove Invalid"
+    "shortcut_R": "Remove Invalid",
+    "cancel_merge": "Cancel Merge",
+    "merge_submitted": "Merge Submitted",
+    "no_data": "No Data",
+    "no_selected_rows": "No rows selected"
   },
   "search": {
     "title": "Search",
@@ -402,7 +407,8 @@
     "no_results": "No results found",
     "all_formats": "All Formats",
     "file_format": "File Format",
-    "book": "Book"
+    "book": "Book",
+    "results_found": "Found {count} results"
   },
   "sort": {
     "title": "Sort",
@@ -422,7 +428,7 @@
     "translation": "Translation",
     "browser": "Browser",
     "advanced": "Advanced",
-    "paths": "Paths",
+    "paths": "Path Settings",
     "theme": "Theme",
     "theme_filter_title": "Select Theme",
     "theme_filter_placeholder": "Type to filter themes...",
@@ -506,7 +512,6 @@
     "config_dir": "Config Directory",
     "database": "Database Path",
     "library": "Book Library Path",
-    "paths": "Path Settings",
     "browse": "Browse...",
     "library_updated": "Library path updated",
     "reset_success": "Reset successful",
@@ -582,7 +587,8 @@
     "maintenance_tips_title": "Maintenance Tips",
     "maintenance_tip_vacuum": "• Auto-vacuum prevents database bloat",
     "maintenance_tip_backup": "• Regular backups ensure data safety",
-    "maintenance_tip_location": "• Backups are saved to the Downloads folder"
+    "maintenance_tip_location": "• Backups are saved to the Downloads folder",
+    "library_desc": "Default book storage directory"
   },
   "common": {
     "close": "Close",
@@ -872,7 +878,8 @@
     "reset_all_confirm": "Are you sure to reset all statistics?",
     "reset_user_confirm": "Are you sure to reset your statistics?",
     "reset_success": "Statistics reset successfully",
-    "reset_failed": "Reset Failed"
+    "reset_failed": "Reset Failed",
+    "no_reading_record": "No reading records yet"
   },
   "error": {
     "error": "Error",
@@ -965,7 +972,8 @@
     "context": "Context",
     "pages": "Page {page}",
     "select_result_first": "Please select a search result first",
-    "found_results": "Found {results} results"
+    "found_results": "Found {results} results",
+    "page": "Page {page}"
   },
   "search_results_screen": {
     "title": "Search Results",
@@ -1152,7 +1160,10 @@
     "shortcut_e": "E: Edit Proxy",
     "shortcut_d": "D: Delete Proxy",
     "shortcut_enter": "Enter: Select Proxy",
-    "shortcut_esc": "ESC: Back"
+    "shortcut_esc": "ESC: Back",
+    "act_failed": "Operation failed",
+    "act_success": "Operation succeeded",
+    "enable_proxy": "Enable proxy"
   },
   "novel_sites": {
     "title": "Book Sites Management",
@@ -1197,7 +1208,12 @@
     "status": "Status",
     "change_status": "Toggle Status",
     "crawl_page_unavailable": "Crawl page unavailable",
-    "already_selected": "Selected {count}"
+    "already_selected": "Selected {count}",
+    "add_failed": "Failed to add site",
+    "batch_deleted_partial": "Some sites deleted",
+    "delete_failed": "Failed to delete site",
+    "edit_failed": "Failed to edit site",
+    "site_not_found": "Site not found"
   },
   "novel_site_dialog": {
     "add_title": "Add Book Site",
@@ -1568,7 +1584,19 @@
     "search_url_not_configured": "Search URL not configured",
     "search_url_opened": "Opened search in browser: {keyword}",
     "search_url_open_failed": "Failed to open search URL: {error}",
-    "search_title_empty": "Book title is empty, cannot search"
+    "search_title_empty": "Book title is empty, cannot search",
+    "batch_crawl_exception": "Batch crawl exception",
+    "continue_crawl_failed": "Failed to continue crawling",
+    "continuing_crawl": "Continuing crawl...",
+    "crawl_completed": "Crawl completed",
+    "crawl_exception": "Crawl exception",
+    "failed": "Failed",
+    "np_delete_file": "Failed to delete file",
+    "np_delete_record": "Failed to delete record",
+    "parser_not_found": "Parser not found",
+    "site_not_found": "Site not found",
+    "success": "Success",
+    "unknown_error": "Unknown error"
   },
   "merge_mode": {
     "title": "Merge Mode",
@@ -1677,7 +1705,8 @@
     "new_books_added": "Added {count} new books to end of list, please confirm selection manually",
     "copy_title": "Copy Title",
     "preview": "Preview",
-    "delete_current": "Delete Row"
+    "delete_current": "Delete Row",
+    "batch_delete_unmarked": "Deleted {count} unmarked items"
   },
   "fill_missing": {
     "title": "🔧 Fill Missing",
@@ -1781,7 +1810,10 @@
     "clear_title": "Clear Title",
     "copy_title_shortcut": "Copy Title",
     "copy_title_success": "Title copied: {title}",
-    "copy_title_no_book": "No book title found at cursor"
+    "copy_title_no_book": "No book title found at cursor",
+    "smart_title_applied": "Smart title applied",
+    "backward": "Backward",
+    "forward": "Forward"
   },
   "note": {
     "save": "Save",
@@ -1851,7 +1883,12 @@
     "delete_confirm_message": "Move {count} selected file(s) to the recycle bin?",
     "delete_success": "Moved {count} file(s) to the recycle bin",
     "delete_partial": "Done: {success} succeeded, {failed} failed",
-    "delete_failed": "Failed to delete files"
+    "delete_failed": "Failed to delete files",
+    "cannot_open_multiple": "Cannot open multiple at once",
+    "no_files_selected": "No files selected",
+    "root": "Root",
+    "select_directory_only": "Select directory only",
+    "select_files": "Select files"
   },
   "lock_screen": {
     "placeholder": "Please enter password to continue",
@@ -2420,5 +2457,11 @@
     "scroll_up": "Scroll Up",
     "scroll_down": "Scroll Down",
     "exit": "Exit Compare"
-  }
+  },
+  "boss_key": {
+    "exec_command_failed": "Failed to execute command"
+  },
+  "cannot_copy": "Cannot copy",
+  "fill_invalid_line_number": "Invalid line number",
+  "update_stats_failed": "Failed to update statistics: {error}"
 }
