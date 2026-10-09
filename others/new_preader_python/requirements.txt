@@ -20,11 +20,24 @@ requests>=2.28.0
 requests[socks]>=2.28.0
 PySocks>=1.7.1
 aiohttp>=3.8.0
+# 注意：cloudscraper 在 Python 3.12+ / 新版 urllib3 下会因
+#   "Cannot set verify_mode to CERT_NONE when check_hostname is enabled"
+# 在 verify=False 时崩溃。已在 src/spiders/base_parser_v2.py 的
+# _patch_cloudscraper_ssl() 中通过运行时打补丁规避，无需锁版本。
 cloudscraper>=1.2.71
 selenium>=4.15.0
 webdriver-manager>=4.0.1
 playwright>=1.40.0
+# 注意：scrapling 依赖 browserforge 在导入期随机采样生成请求头，
+# browserforge 1.2.x 的模型数据下经常抛
+#   "No headers based on this input can be generated"
+# 导致 Scrapling 兜底层在 import 阶段崩溃。已在 base_parser_v2.py 的
+# _patch_browserforge_headers() 中通过运行时打补丁规避。
+# 建议将 browserforge 显式锁定为已验证可用的版本，避免未来升级再次触发：
+browserforge==1.2.4
 scrapling>=0.4.0
+# 兼容性提示：scrapling 0.4.x 与 browserforge 1.2.x 存在上述头生成冲突，
+# 若升级 scrapling/browserforge 后再次复现 "No headers" 报错，需复查补丁。
 click>=8.1.7
 
 # 语音和语言处理

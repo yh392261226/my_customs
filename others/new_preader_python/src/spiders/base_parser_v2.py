@@ -545,6 +545,86 @@ class BaseParser:
             logger.warning(f"CloakBrowser 总体异常: {e}", exc_info=True)
             return None
 
+    def _patch_cloudscraper_ssl(self) -> bool:
+        """
+        修复 cloudscraper 在 Python 3.12+ / 新版 urllib3 下的 SSL 兼容性问题。
+
+        cloudscraper 的 CipherSuiteAdapter.wrap_socket 在 server_hostname 为空时，
+        会把 ssl_context.check_hostname 重新设为 True。而当会话以 verify=False 运行时，
+        底层 SSLContext 的 verify_mode 已被设为 CERT_NONE，此时再设置 check_hostname=True
+        会触发 CPython 报错：
+            Cannot set verify_mode to CERT_NONE when check_hostname is enabled.
+
+        这里在每次建立连接前强制关闭主机名校验，让 verify=False 的链路正常工作。
+        只修补一次（幂等）。
+        """
+        try:
+            import cloudscraper
+        except ImportError:
+            return False
+
+        adapter = getattr(cloudscraper, "CipherSuiteAdapter", None)
+        if adapter is None or getattr(adapter.wrap_socket, "_cs_patched", False):
+            return bool(adapter)
+
+        def wrap_socket(self, *args, **kwargs):
+            try:
+                self.ssl_context.check_hostname = False
+            except Exception:
+                pass
+            return self.ssl_context.orig_wrap_socket(*args, **kwargs)
+
+        wrap_socket._cs_patched = True
+        adapter.wrap_socket = wrap_socket
+        return True
+
+    def _patch_browserforge_headers(self) -> bool:
+        """
+        修复 Scrapling 依赖的 browserforge 在随机采样时抛出的
+        "No headers based on this input can be generated" 错误。
+
+        scrapling 在导入 fetchers 时会触发 fingerprints 模块级调用
+        generate_headers()，该方法基于写死的浏览器版本（chrome/firefox/edge）
+        随机采样，在 browserforge 1.2.x 的模型数据下经常无解而直接抛 ValueError，
+        导致整个 Scrapling 兜底层在 import 阶段就崩溃。
+
+        这里给 browserforge 的 HeaderGenerator.generate 打补丁：无解时先放宽约束
+        重试，最后回退到一个固定的 Chrome UA，保证永不抛错。只修补一次（幂等）。
+        """
+        try:
+            from browserforge.headers import HeaderGenerator, Browser
+        except Exception:
+            return False
+
+        if getattr(HeaderGenerator.generate, "_bf_patched", False):
+            return True
+
+        _orig_generate = HeaderGenerator.generate
+        _FALLBACK_UA = (
+            "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 "
+            "(KHTML, like Gecko) Chrome/125.0.0.0 Safari/537.36"
+        )
+
+        def _safe_generate(self, *args, **kwargs):
+            try:
+                return _orig_generate(self, *args, **kwargs)
+            except ValueError:
+                # 放宽约束后重试：仅桌面 chrome，放宽 os
+                try:
+                    gen = HeaderGenerator(
+                        browser=[Browser(name="chrome", min_version=100, max_version=140)],
+                        os=("windows", "macos", "linux"),
+                        device="desktop",
+                    )
+                    return gen.generate()
+                except Exception:
+                    # 最终兜底：返回带 User-Agent 的基础头，确保不抛错
+                    return {"User-Agent": _FALLBACK_UA}
+
+        _safe_generate._bf_patched = True
+        HeaderGenerator.generate = _safe_generate
+        return True
+
     def _get_url_content_with_cloudscraper(self, url: str, proxies: Optional[Dict[str, str]] = None) -> Optional[str]:
         """
         使用cloudscraper绕过反爬虫限制获取URL内容
@@ -564,7 +644,10 @@ class BaseParser:
             
             # 禁用SSL警告
             urllib3.disable_warnings(urllib3.exceptions.InsecureRequestWarning)
-            
+
+            # 修复 Python 3.12+ / 新版 urllib3 下的 SSL 兼容性问题
+            self._patch_cloudscraper_ssl()
+
             # 创建cloudscraper会话，使用最简单的配置
             try:
                 # 使用最简单的方法创建cloudscraper，避免SSL配置问题
@@ -636,7 +719,10 @@ class BaseParser:
             
             # 禁用SSL警告
             urllib3.disable_warnings(urllib3.exceptions.InsecureRequestWarning)
-            
+
+            # 修复 Python 3.12+ / 新版 urllib3 下的 SSL 兼容性问题
+            self._patch_cloudscraper_ssl()
+
             # 使用最简单的cloudscraper配置
             scraper = cloudscraper.create_scraper()
             
@@ -886,8 +972,13 @@ class BaseParser:
             页面内容或None
         """
         try:
+            # 修复 Scrapling 在导入期（browserforge 1.2.x 随机采样无解）抛出的
+            # "No headers based on this input can be generated" 错误，必须在
+            # import scrapling.fetchers 之前打补丁
+            self._patch_browserforge_headers()
             from scrapling.fetchers import Fetcher, StealthyFetcher
             
+
             # 构建 Scrapling 的代理配置
             scrapling_proxies = None
             if self.proxy_config.get('enabled', False):
