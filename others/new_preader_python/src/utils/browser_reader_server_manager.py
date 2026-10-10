@@ -306,7 +306,30 @@ class BrowserReaderServerManager:
                         "highlights": data.get("highlights", []),
                         "notes": data.get("notes", []),
                         "bookmarks": data.get("bookmarks", [])
-                    }, ensure_ascii=False).encode('utf-8'))
+                        }, ensure_ascii=False).encode('utf-8'))
+                elif self.path.split('?')[0] == '/load_vocab':
+                    # 加载书籍单词本（与终端阅读器共用 VocabularyManager，按 book_id 过滤）
+                    parsed = urlparse(self.path)
+                    query = parse_qs(parsed.query)
+                    book_id = query.get('book_id', [''])[0]
+                    try:
+                        from src.core.vocabulary_manager import get_vocabulary_manager
+                        manager = get_vocabulary_manager()
+                        words = manager.get_words_by_book(book_id)
+                        data = [w.to_dict() for w in words]
+                        self.send_response(200)
+                        self.send_header('Content-type', 'application/json')
+                        self.send_header('Access-Control-Allow-Origin', '*')
+                        self.end_headers()
+                        self.wfile.write(json.dumps({"success": True, "words": data}, ensure_ascii=False).encode('utf-8'))
+                    except Exception as e:
+                        import traceback
+                        logger.error(f"加载单词本出错: {e}", exc_info=True)
+                        self.send_response(500)
+                        self.send_header('Content-type', 'application/json')
+                        self.send_header('Access-Control-Allow-Origin', '*')
+                        self.end_headers()
+                        self.wfile.write(json.dumps({"success": False, "error": str(e)}, ensure_ascii=False).encode('utf-8'))
                 else:
                     self.send_response(404)
                     self.end_headers()
@@ -494,6 +517,45 @@ class BrowserReaderServerManager:
                             "success": False,
                             "error": str(e)
                         }, ensure_ascii=False).encode('utf-8'))
+                elif self.path == '/save_vocab':
+                    # 保存单词到单词本（与终端阅读器共用 VocabularyManager）
+                    content_length = int(self.headers['Content-Length'])
+                    post_data = self.rfile.read(content_length)
+                    try:
+                        data = json.loads(post_data.decode('utf-8'))
+                        word = (data.get('word') or '').strip()
+                        translation = data.get('translation', '') or ''
+                        context = data.get('context', '') or ''
+                        book_id = data.get('book_id', '') or ''
+                        position = int(data.get('position', 0) or 0)
+                        if not word:
+                            self.send_response(400)
+                            self.send_header('Content-type', 'application/json')
+                            self.send_header('Access-Control-Allow-Origin', '*')
+                            self.end_headers()
+                            self.wfile.write(json.dumps({"success": False, "error": "word 不能为空"}, ensure_ascii=False).encode('utf-8'))
+                        else:
+                            from src.core.vocabulary_manager import get_vocabulary_manager
+                            manager = get_vocabulary_manager()
+                            item = manager.add_word(
+                                word=word, translation=translation, language='en',
+                                context=context, book_id=book_id, position=position
+                            )
+                            self.send_response(200)
+                            self.send_header('Content-type', 'application/json')
+                            self.send_header('Access-Control-Allow-Origin', '*')
+                            self.end_headers()
+                            self.wfile.write(json.dumps(
+                                {"success": item is not None, "word": item.to_dict() if item else None},
+                                ensure_ascii=False).encode('utf-8'))
+                    except Exception as e:
+                        import traceback
+                        logger.error(f"保存单词出错: {e}", exc_info=True)
+                        self.send_response(500)
+                        self.send_header('Content-type', 'application/json')
+                        self.send_header('Access-Control-Allow-Origin', '*')
+                        self.end_headers()
+                        self.wfile.write(json.dumps({"success": False, "error": str(e)}, ensure_ascii=False).encode('utf-8'))
                 else:
                     self.send_response(404)
                     self.end_headers()
@@ -507,8 +569,10 @@ class BrowserReaderServerManager:
                 self.end_headers()
         
         try:
-            from http.server import HTTPServer
-            server = HTTPServer((host, port), CustomProgressHandler)
+            # 使用多线程服务器：避免慢请求（如 /translate 调用外部翻译API）
+            # 占满单线程，把 /save_vocab 等普通写入请求堵住
+            from http.server import ThreadingHTTPServer
+            server = ThreadingHTTPServer((host, port), CustomProgressHandler)
             # 使用守护线程，这样Python退出时不会等待
             server_thread = threading.Thread(target=server.serve_forever, daemon=True)
             server_thread.start()

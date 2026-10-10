@@ -56,6 +56,12 @@ EXTRA_READER_CSS = r"""
 .translation-bubble .tb-translated { font-weight: 500; word-break: break-all; }
 .translation-bubble .tb-close { position: absolute; top: 4px; right: 8px; cursor: pointer; color: #999; font-size: 16px; }
 .translation-bubble .tb-loading { color: #888; }
+.translation-bubble .tb-add-vocab {{
+  margin-top: 8px; display: inline-block; padding: 4px 10px;
+  background: #2e7d32; color: #fff; border: none; border-radius: 5px;
+  cursor: pointer; font-size: 12px;
+}}
+.translation-bubble .tb-add-vocab:hover {{ background: #256528; }}
 .image-zoom-overlay {
   position: fixed; inset: 0; background: rgba(0,0,0,0.85); z-index: 10003;
   display: none; align-items: center; justify-content: center; cursor: zoom-out;
@@ -113,6 +119,9 @@ EXTRA_READER_JS = r"""
     return fetch(base + path, { method:'GET', headers:{'Content-Type':'application/json'} })
       .then(function(r){ return r.json(); }).catch(function(){ return null; });
   }
+  // 暴露到 window，供不同作用域的模块（如生词本）调用
+  window.apiPost = apiPost;
+  window.apiGet = apiGet;
   function getContentEl(){ return document.getElementById('content'); }
   function notify(msg){ if (typeof showNotification==='function') showNotification(msg); else alert(msg); }
 
@@ -208,7 +217,8 @@ EXTRA_READER_JS = r"""
     '<button data-act="copy">复制</button>' +
     '<button data-act="cite">引用</button>' +
     '<button data-act="translate">翻译</button>' +
-    '<button data-act="search">搜索</button>';
+    '<button data-act="search">搜索</button>' +
+    '<button data-act="vocab">生词</button>';
   document.body.appendChild(selToolbar);
   selToolbar.addEventListener('mousedown', function(e){ e.preventDefault(); });
   selToolbar.addEventListener('click', function(e){
@@ -221,6 +231,7 @@ EXTRA_READER_JS = r"""
     else if (act === 'cite') { if (txt) copyCitation(txt); }
     else if (act === 'translate') { if (txt) translateAndShow(txt, selToolbar); }
     else if (act === 'search') { if (txt) doSearchFromText(txt); }
+    else if (act === 'vocab') { if (txt) addVocabFromSelection(txt); }
     hideSelToolbar();
   });
   function showSelToolbar(){
@@ -277,8 +288,22 @@ EXTRA_READER_JS = r"""
   function translateAndShow(text, anchorEl){
     var rect = anchorEl ? anchorEl.getBoundingClientRect() : {left: window.innerWidth/2, top: window.innerHeight/2, bottom: window.innerHeight/2};
     transBubble.innerHTML = '<span class="tb-close" onclick="this.parentNode.style.display=\'none\'">×</span>' +
-      '<div class="tb-original"></div><div class="tb-translated tb-loading">翻译中...</div>';
+      '<div class="tb-original"></div><div class="tb-translated tb-loading">翻译中...</div>' +
+      '<button class="tb-add-vocab">' + t('browser_reader.vocab_add') + '</button>';
     transBubble.querySelector('.tb-original').textContent = text;
+    const vb = transBubble.querySelector('.tb-add-vocab');
+    if (vb) vb.addEventListener('click', function() {{
+        const oEl = transBubble.querySelector('.tb-original');
+        const tEl = transBubble.querySelector('.tb-translated');
+        const word = oEl ? oEl.textContent.trim() : '';
+        if (!word) {{ showNotification(t('browser_reader.vocab_empty')); return; }}
+        let translation = tEl ? tEl.textContent.trim() : '';
+        // 译文尚未就绪或失败时只记录原文
+        if (!translation || translation.indexOf('翻译中') === 0 || translation.indexOf('翻译失败') === 0) {{
+            translation = '';
+        }}
+        addVocabFromTranslation(word, translation);
+    }});
     transBubble.style.display = 'block';
     var left = Math.max(5, rect.left);
     var top = (rect.top - 140 < 5) ? (rect.bottom + 10) : (rect.top - 140);
@@ -913,7 +938,30 @@ class BrowserReader:
                         "jump_25_success": "已跳转到 25% 位置",
                         "jump_50_success": "跳转到 50% 位置",
                         "jump_75_success": "跳转到 75% 位置"
-                    }
+                    },
+                    "paragraph_spacing_label": "段落间距：",
+                    "paragraph_spacing_changed": "段落间距已调整为 {value}",
+                    "view_file_button": "查看文件",
+                    "view_file_title": "文件信息",
+                    "view_file_name": "文件名",
+                    "view_file_path": "路径",
+                    "view_file_size": "大小",
+                    "view_file_format": "格式",
+                    "view_file_download": "下载文件",
+                    "view_file_no_path": "无文件路径信息",
+                    "view_file_unknown": "未知",
+                    "view_file_cannot_open": "无法在浏览器中直接打开本地文件",
+                    "vocab_button": "生词本",
+                    "vocab_title": "生词本",
+                    "vocab_empty": "请先选中文本",
+                    "vocab_exists": "该生词已存在",
+                    "vocab_added": "已加入生词本",
+                    "vocab_empty_list": "生词本为空",
+                    "vocab_add": "加入生词本",
+                    "vocab_add_failed": "添加失败",
+                    "shortcut_paragraph_spacing": "段落间距",
+                    "shortcut_view_file": "查看文件",
+                    "shortcut_vocab": "生词本"
                 }
             
             # 返回带有browser_reader命名空间的翻译
@@ -1167,6 +1215,10 @@ class BrowserReader:
     # 合并终端阅读器主题，使浏览器阅读器与终端样式保持同步，并增加可选主题数量
     _merge_terminal_reader_themes_into(THEMES)
 
+    # 确保所有主题都包含段落间距默认值（避免段落默认紧贴，单位 px）
+    for _theme in THEMES.values():
+        _theme.setdefault('paragraph_spacing', '12')
+
     @staticmethod
     def create_reader_html(content: str, title: str = "书籍阅读", theme: str = "light", 
                         custom_settings: Optional[Dict[str, str]] = None,
@@ -1175,7 +1227,8 @@ class BrowserReader:
                         book_id: Optional[str] = None,
                         initial_progress: Optional[float] = None,
                         browser_server_host: str = "localhost",
-                        browser_server_port: int = 54321) -> str:
+                        browser_server_port: int = 54321,
+                        file_path: Optional[str] = None) -> str:
         """
         创建浏览器阅读器HTML
         
@@ -1267,6 +1320,9 @@ class BrowserReader:
         # 应用自定义设置
         if custom_settings:
             settings.update(custom_settings)
+        
+        # 段落间距默认值（避免段落默认紧贴，单位 px）
+        settings.setdefault('paragraph_spacing', '12')
 
         # 生成主题下拉选项（内置主题 + 与终端同步的主题）
         theme_options_html = ""
@@ -1282,7 +1338,11 @@ class BrowserReader:
         # 获取翻译文本
         browser_reader_translations = BrowserReader.get_translations()
         browser_reader_title = browser_reader_translations.get('browser_reader', {}).get('title', '浏览器阅读器')
-        
+
+        # 将文件路径安全地序列化为 JS 字符串（用于「查看文件」功能）
+        import json as _json
+        file_path_js = _json.dumps(file_path or "")
+
         # 生成HTML
         html = f"""<!DOCTYPE html>
 <html lang="zh-CN">
@@ -3589,6 +3649,151 @@ class BrowserReader:
             padding: 40px;
             color: rgba(128, 128, 128, 0.6);
         }}
+        
+        /* 段落间距（对应终端阅读器的段落间距调节） */
+        #content p,
+        #content h1, #content h2, #content h3,
+        #content blockquote,
+        #content li {{
+            margin-bottom: var(--paragraph-spacing, 0px);
+        }}
+        
+        /* 选区工具条「生词本」按钮 */
+        .reader-selection-toolbar button[data-act="vocab"] {{
+            background: #2e7d32;
+            color: #fff;
+        }}
+        
+        /* 查看文件弹窗 */
+        .file-view-modal {{
+            position: fixed;
+            top: 50%;
+            left: 50%;
+            transform: translate(-50%, -50%);
+            width: 90%;
+            max-width: 520px;
+            background: var(--reader-bg, #fff);
+            color: var(--reader-text, #222);
+            border-radius: 8px;
+            box-shadow: 0 8px 40px rgba(0,0,0,0.35);
+            z-index: 2000;
+            padding: 20px 22px;
+        }}
+        .file-view-modal h3 {{
+            margin-bottom: 14px;
+            font-size: 18px;
+        }}
+        .file-view-modal .file-info-row {{
+            display: flex;
+            justify-content: space-between;
+            padding: 6px 0;
+            border-bottom: 1px solid rgba(128,128,128,0.2);
+            font-size: 14px;
+            word-break: break-all;
+        }}
+        .file-view-modal .file-info-row span:first-child {{
+            color: rgba(128,128,128,0.8);
+            flex: 0 0 auto;
+            margin-right: 12px;
+        }}
+        .file-view-modal .file-info-row span:last-child {{
+            text-align: right;
+        }}
+        .file-view-modal .file-actions {{
+            margin-top: 16px;
+            display: flex;
+            gap: 10px;
+            flex-wrap: wrap;
+        }}
+        .file-view-modal .file-actions button {{
+            padding: 8px 14px;
+            border: none;
+            border-radius: 5px;
+            background: rgba(128,128,128,0.25);
+            color: inherit;
+            cursor: pointer;
+        }}
+        .file-view-modal .file-actions button:hover {{
+            background: rgba(128,128,128,0.4);
+        }}
+        
+        /* 生词本面板 */
+        .vocab-panel {{
+            position: fixed;
+            top: 0;
+            right: 0;
+            width: 360px;
+            height: 100%;
+            background: var(--reader-bg, #fff);
+            color: var(--reader-text, #222);
+            box-shadow: -4px 0 20px rgba(0,0,0,0.3);
+            z-index: 1900;
+            display: none;
+            flex-direction: column;
+        }}
+        .vocab-panel.show {{
+            display: flex;
+        }}
+        .vocab-panel .vocab-header {{
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+            padding: 14px 16px;
+            border-bottom: 1px solid rgba(128,128,128,0.3);
+        }}
+        .vocab-panel .vocab-header h3 {{
+            font-size: 16px;
+            margin: 0;
+        }}
+        .vocab-panel .vocab-close {{
+            background: none;
+            border: none;
+            font-size: 20px;
+            cursor: pointer;
+            color: inherit;
+        }}
+        .vocab-panel .vocab-list {{
+            flex: 1;
+            overflow-y: auto;
+            padding: 8px 16px;
+        }}
+        .vocab-panel .vocab-item {{
+            padding: 10px;
+            margin-bottom: 8px;
+            border-radius: 6px;
+            background: rgba(128,128,128,0.12);
+            position: relative;
+        }}
+        .vocab-panel .vocab-item .vocab-word {{
+            font-weight: bold;
+            font-size: 15px;
+        }}
+        .vocab-panel .vocab-item .vocab-meta {{
+            font-size: 12px;
+            color: rgba(128,128,128,0.8);
+            margin-top: 4px;
+        }}
+        .vocab-panel .vocab-item .vocab-trans {{
+            font-size: 13px;
+            color: #2e7d32;
+            margin-top: 4px;
+            word-break: break-all;
+        }}
+        .vocab-panel .vocab-item .vocab-del {{
+            position: absolute;
+            top: 8px;
+            right: 8px;
+            background: none;
+            border: none;
+            cursor: pointer;
+            color: rgba(200,60,60,0.9);
+            font-size: 14px;
+        }}
+        .vocab-panel .vocab-empty {{
+            padding: 30px;
+            text-align: center;
+            color: rgba(128,128,128,0.7);
+        }}
     </style>
 </head>
 <body>
@@ -3768,6 +3973,9 @@ class BrowserReader:
             <li><kbd>g</kbd> <script>document.write(t('browser_reader.shortcut_font_settings'));</script></li>
             <li><kbd>n</kbd> <script>document.write(t('browser_reader.shortcut_notes'));</script></li>
             <li><kbd>m</kbd> <script>document.write(t('browser_reader.shortcut_minimap'));</script></li>
+            <li><kbd>]</kbd>/<kbd>[</kbd> <script>document.write(t('browser_reader.shortcut_paragraph_spacing'));</script></li>
+            <li><kbd>o</kbd> <script>document.write(t('browser_reader.shortcut_view_file'));</script></li>
+            <li><kbd>w</kbd> <script>document.write(t('browser_reader.shortcut_vocab'));</script></li>
             <li><kbd>/</kbd> 老板键</li>
             <li><kbd>ESC</kbd> <script>document.write(t('browser_reader.shortcut_escape'));</script></li>
         </ul>
@@ -3844,6 +4052,12 @@ class BrowserReader:
             <input type="range" min="1.2" max="2.5" step="0.1" value="{settings['line_height']}" onchange="changeLineHeight(this.value)">
         </label>
 
+        <label>
+            <script>document.write(t('browser_reader.paragraph_spacing_label'));</script>
+            <input type="range" id="paragraphSpacingInput" min="0" max="40" step="1" value="{settings['paragraph_spacing']}" oninput="setParagraphSpacing(this.value)" onchange="setParagraphSpacing(this.value)">
+            <span id="paragraphSpacingValue">0</span> <script>document.write(t('browser_reader.pixel_unit'));</script>
+        </label>
+
         <button onclick="if(checkPermission('settings.write')) toggleFontSettings()"><script>document.write(t('browser_reader.font_button'));</script></button>
         <button onclick="if(checkPermission('bookmark.write')) toggleHighlightMode()"><script>document.write(t('browser_reader.highlight_button'));</script></button>
         <button onclick="if(checkPermission('bookmark.write')) toggleNotesMode()"><script>document.write(t('browser_reader.notes_button'));</script></button>
@@ -3865,6 +4079,8 @@ class BrowserReader:
         <button onclick="if(checkPermission('book.write')) toggleProgressSync()" id="progressSyncBtn"><script>document.write(t('browser_reader.progress_sync'));</script></button>
         <button onclick="if(checkPermission('book.add')) toggleFileImport()" id="fileImportBtn"><script>document.write(t('browser_reader.import_file'));</script></button>
         <button onclick="toggleBookLibrary()" id="bookLibraryBtn"><script>document.write(t('browser_reader.book_library'));</script></button>
+        <button onclick="toggleVocabPanel()" id="vocabBtn"><script>document.write(t('browser_reader.vocab_button'));</script></button>
+        <button onclick="if(checkPermission('book.read')) showFileView()" id="viewFileBtn"><script>document.write(t('browser_reader.view_file_button'));</script></button>
     </div>
 
     <!-- 工具栏收缩/展开按钮 -->
@@ -3928,6 +4144,12 @@ class BrowserReader:
                 <label><script>document.write(t('browser_reader.word_spacing_label'));</script></label>
                 <input type="range" min="-2" max="10" step="1" value="{settings['word_spacing']}" onchange="changeWordSpacing(this.value)">
                 <span id="wordSpacingValue">{settings['word_spacing']}</span> <script>document.write(t('browser_reader.pixel_unit'));</script>
+            </div>
+
+            <div class="setting-item">
+                <label><script>document.write(t('browser_reader.paragraph_spacing_label'));</script></label>
+                <input type="range" id="paragraphSpacingInputPanel" min="0" max="40" step="1" value="{settings['paragraph_spacing']}" oninput="setParagraphSpacing(this.value)" onchange="setParagraphSpacing(this.value)">
+                <span id="paragraphSpacingValuePanel">0</span> <script>document.write(t('browser_reader.pixel_unit'));</script>
             </div>
 
             <div class="setting-item">
@@ -4379,6 +4601,9 @@ class BrowserReader:
         
         // 书籍ID（用于区分不同书籍的进度）
         let BOOK_ID = '{book_id or title}';
+        
+        // 书籍文件路径（用于「查看文件」功能）
+        const BOOK_FILE_PATH = {file_path_js};
         
         // 初始进度（从Python端传递）
         const INITIAL_PROGRESS = {initial_progress if initial_progress is not None else 'null'};
@@ -5568,6 +5793,44 @@ class BrowserReader:
             updateProgress();
         }}
         
+        // 直接对内容块级元素应用段落间距（使用 inline style，避免被其它 CSS 覆盖）
+        function applyParagraphSpacing(value) {{
+            const px = Math.max(0, parseFloat(value) || 0);
+            document.documentElement.style.setProperty('--paragraph-spacing', px + 'px');
+            const sel = '#content p, #content h1, #content h2, #content h3, #content blockquote, #content li';
+            document.querySelectorAll(sel).forEach(function (el) {{
+                el.style.marginBottom = px + 'px';
+            }});
+            const v1 = document.getElementById('paragraphSpacingValue');
+            if (v1) v1.textContent = px;
+            const v2 = document.getElementById('paragraphSpacingValuePanel');
+            if (v2) v2.textContent = px;
+            const i1 = document.getElementById('paragraphSpacingInput');
+            if (i1 && i1.value != px) i1.value = px;
+            const i2 = document.getElementById('paragraphSpacingInputPanel');
+            if (i2 && i2.value != px) i2.value = px;
+        }}
+        
+        // 段落间距调节（对应终端阅读器 ] 增大 / [ 减小）
+        function changeParagraphSpacing(delta) {{
+            const current = parseFloat(currentSettings.paragraph_spacing || 0);
+            const newValue = Math.max(0, current + delta);
+            currentSettings.paragraph_spacing = String(newValue);
+            applyParagraphSpacing(newValue);
+            saveSettings();
+            if (typeof showNotification === 'function') {{
+                showNotification(t('browser_reader.paragraph_spacing_changed', {{ value: newValue }}));
+            }}
+        }}
+        
+        // 通过滑块直接设置段落间距绝对值
+        function setParagraphSpacing(value) {{
+            const newValue = Math.max(0, parseFloat(value) || 0);
+            currentSettings.paragraph_spacing = String(newValue);
+            applyParagraphSpacing(newValue);
+            saveSettings();
+        }}
+        
         // 切换位置跳转弹窗显示/隐藏
         function togglePositionJump() {{
             const modal = document.getElementById('positionJumpModal');
@@ -5950,6 +6213,9 @@ class BrowserReader:
             document.body.style.letterSpacing = settings.letter_spacing + 'px';
             document.body.style.wordSpacing = settings.word_spacing + 'px';
             document.body.style.textAlign = settings.text_align;
+
+            // 段落间距（对应终端阅读器的 ] / [ 调节）
+            applyParagraphSpacing(parseFloat(settings.paragraph_spacing || 0));
 
             // 更新翻页模式的样式
             updatePaginationStyles(settings);
@@ -7851,6 +8117,24 @@ class BrowserReader:
                     toggleBossMode();
                     e.preventDefault();
                     break;
+                case ']':
+                    if (checkPermission('settings.write')) changeParagraphSpacing(1);
+                    e.preventDefault();
+                    break;
+                case '[':
+                    if (checkPermission('settings.write')) changeParagraphSpacing(-1);
+                    e.preventDefault();
+                    break;
+                case 'o':
+                case 'O':
+                    if (checkPermission('book.read')) showFileView();
+                    e.preventDefault();
+                    break;
+                case 'w':
+                case 'W':
+                    toggleVocabPanel();
+                    e.preventDefault();
+                    break;
                 case 'Escape':
                     if (document.fullscreenElement) {{
                         document.exitFullscreen();
@@ -7890,6 +8174,16 @@ class BrowserReader:
                     // 退出高亮模式
                     if (isHighlightMode) {{
                         toggleHighlightMode();
+                    }}
+                    // 关闭生词本面板
+                    const vocabPanel = document.getElementById('vocabPanel');
+                    if (vocabPanel && vocabPanel.classList.contains('show')) {{
+                        vocabPanel.classList.remove('show');
+                    }}
+                    // 关闭查看文件弹窗
+                    const fileViewModal = document.getElementById('fileViewModal');
+                    if (fileViewModal && fileViewModal.style.display !== 'none') {{
+                        fileViewModal.style.display = 'none';
                     }}
                     break;
             }}
@@ -9644,6 +9938,191 @@ class BrowserReader:
             }}
         }}
         
+        /* ---------- 查看文件（对应终端阅读器 o 键） ---------- */
+        function showFileView() {{
+            const modal = document.getElementById('fileViewModal');
+            if (!modal) return;
+            const path = BOOK_FILE_PATH || '';
+            const name = path ? path.split(/[\\/]/).pop() : (BOOK || '');
+            const ext = name.indexOf('.') >= 0 ? name.split('.').pop().toUpperCase() : '未知';
+            document.getElementById('fileViewName').textContent = name;
+            document.getElementById('fileViewPath').textContent = path || t('browser_reader.view_file_no_path');
+            let sizeText = t('browser_reader.view_file_unknown');
+            if (path) {{
+                try {{
+                    // 通过进度同步服务器获取文件大小（若可用）
+                    const size = (typeof getFileSizeFromServer === 'function') ? getFileSizeFromServer() : null;
+                    sizeText = size != null ? formatFileSize(size) : t('browser_reader.view_file_unknown');
+                }} catch (e) {{ sizeText = t('browser_reader.view_file_unknown'); }}
+            }}
+            document.getElementById('fileViewSize').textContent = sizeText;
+            document.getElementById('fileViewFormat').textContent = ext;
+            modal.style.display = 'block';
+        }}
+        
+        function closeFileView() {{
+            const modal = document.getElementById('fileViewModal');
+            if (modal) modal.style.display = 'none';
+        }}
+        
+        function downloadCurrentFile() {{
+            const path = BOOK_FILE_PATH || '';
+            if (!path) {{ showNotification(t('browser_reader.view_file_no_path')); return; }}
+            // 浏览器无法直接访问本地文件，尝试通过进度同步服务器下载
+            if (typeof DOWNLOAD_URL !== 'undefined' && DOWNLOAD_URL) {{
+                window.open(DOWNLOAD_URL, '_blank');
+            }} else {{
+                showNotification(t('browser_reader.view_file_cannot_open'));
+            }}
+        }}
+        
+        function formatFileSize(bytes) {{
+            if (!bytes && bytes !== 0) return t('browser_reader.view_file_unknown');
+            if (bytes < 1024) return bytes + ' B';
+            if (bytes < 1024 * 1024) return (bytes / 1024).toFixed(1) + ' KB';
+            return (bytes / 1024 / 1024).toFixed(2) + ' MB';
+        }}
+        
+        /* ---------- 生词本（对应终端阅读器 w 键） ---------- */
+        function getVocabKey() {{
+            return 'reader_vocabulary_' + BOOK_ID;
+        }}
+        
+        // 仅读取本地缓存（不触发后端同步），供内部合并使用
+        function loadVocabularyLocal() {{
+            try {{ return JSON.parse(localStorage.getItem(getVocabKey()) || '[]'); }} catch (e) {{ return []; }}
+        }}
+
+        function loadVocabulary() {{
+            // 同步返回本地缓存（保证即时可用），并后台与后端单词本同步
+            try {{ syncVocabFromServer(); }} catch (e) {{}}
+            return loadVocabularyLocal();
+        }}
+
+        // 与后端 VocabularyManager（与终端阅读器共用同一 SQLite）同步单词本
+        var _vocabSyncing = false;
+        function syncVocabFromServer() {{
+            if (typeof window.apiGet !== 'function' || _vocabSyncing) return;
+            var bookId = (typeof BOOK_FILE_PATH !== 'undefined' && BOOK_FILE_PATH) ? BOOK_FILE_PATH : BOOK_ID;
+            if (!bookId) return;
+            _vocabSyncing = true;
+            window.apiGet('/load_vocab?book_id=' + encodeURIComponent(bookId)).then(function (res) {{
+                _vocabSyncing = false;
+                if (!res || !res.success || !Array.isArray(res.words)) return;
+                var local = loadVocabularyLocal();
+                var seen = {{}};
+                local.forEach(function (v) {{ seen[v.word] = true; }});
+                res.words.forEach(function (w) {{
+                    if (!seen[w.word]) {{
+                        local.unshift({{
+                            word: w.word,
+                            translation: w.translation || '',
+                            context: w.context || '',
+                            position: w.position || 0,
+                            time: w.created_at || ''
+                        }});
+                        seen[w.word] = true;
+                    }}
+                }});
+                saveVocabulary(local);
+                updateVocabList();
+            }}).catch(function () {{ _vocabSyncing = false; }});
+        }}
+        
+        function saveVocabulary(list) {{
+            try {{ localStorage.setItem(getVocabKey(), JSON.stringify(list)); }} catch (e) {{}}
+        }}
+        
+        // 核心：加入生词本（word 必填，translation 可选，来自翻译结果）
+        function addVocabCore(word, translation) {{
+            word = (word || '').trim();
+            if (!word) {{ showNotification(t('browser_reader.vocab_empty')); return; }}
+            if (word.length > 40) word = word.substring(0, 40);
+            const list = loadVocabulary();
+            if (list.some(function (v) {{ return v.word === word; }})) {{
+                showNotification(t('browser_reader.vocab_exists'));
+                return;
+            }}
+            list.unshift({{
+                word: word,
+                translation: translation || '',
+                context: word,
+                position: Math.floor(window.scrollY),
+                time: new Date().toLocaleString()
+            }});
+            saveVocabulary(list);
+            updateVocabList();
+            showNotification(t('browser_reader.vocab_added'));
+            // 同时写入后端单词本（与终端阅读器共用 VocabularyManager，book_id 用书籍绝对路径保持一致）
+            try {{
+                var bookId = (typeof BOOK_FILE_PATH !== 'undefined' && BOOK_FILE_PATH) ? BOOK_FILE_PATH : BOOK_ID;
+                window.apiPost('/save_vocab', {{
+                    word: word,
+                    translation: translation || '',
+                    context: word,
+                    position: 0,
+                    book_id: bookId
+                }});
+            }} catch (e) {{}}
+        }}
+
+        // 从划词工具条的「生词」按钮添加（仅原文，无译文）
+        function addVocabFromSelection(txt) {{
+            addVocabCore(txt, '');
+        }}
+
+        // 从翻译气泡添加（原文 + 译文），由翻译气泡内的闭包传入具体值
+        function addVocabFromTranslation(word, translation) {{
+            addVocabCore(word || '', translation || '');
+        }}
+        
+        function deleteVocab(index) {{
+            const list = loadVocabularyLocal();
+            if (index >= 0 && index < list.length) {{
+                list.splice(index, 1);
+                saveVocabulary(list);
+                updateVocabList();
+            }}
+        }}
+        
+        // 确保全局 escapeHtml 可用（部分环境下它定义在局部作用域，导致全局调用失败）
+        var escapeHtml = (typeof escapeHtml !== 'undefined') ? escapeHtml : function(s) {{
+            return String(s).replace(/[&<>"']/g, function(c) {{ return {{'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}}[c]; }});
+        }};
+
+        function updateVocabList() {{
+            const listEl = document.getElementById('vocabList');
+            if (!listEl) return;
+            const list = loadVocabularyLocal();
+            if (list.length === 0) {{
+                listEl.innerHTML = '<div class="vocab-empty">' + t('browser_reader.vocab_empty_list') + '</div>';
+                return;
+            }}
+            listEl.innerHTML = '';
+            list.forEach(function (v, idx) {{
+                const item = document.createElement('div');
+                item.className = 'vocab-item';
+                const meta = (v.time ? ('<div class="vocab-meta">' + escapeHtml(v.time) + '</div>') : '') +
+                    (v.translation ? ('<div class="vocab-trans">' + escapeHtml(v.translation) + '</div>') : '');
+                item.innerHTML = '<div class="vocab-word">' + escapeHtml(v.word) + '</div>' + meta +
+                    '<button class="vocab-del" onclick="deleteVocab(' + idx + ')">✕</button>';
+                listEl.appendChild(item);
+            }});
+        }}
+        
+        function toggleVocabPanel() {{
+            const panel = document.getElementById('vocabPanel');
+            if (!panel) return;
+            if (panel.classList.contains('show')) {{
+                panel.classList.remove('show');
+            }} else {{
+                // 打开时与后端单词本（终端阅读器共用）同步，确保看到所有来源的词
+                try {{ syncVocabFromServer(); }} catch (e) {{}}
+                updateVocabList();
+                panel.classList.add('show');
+            }}
+        }}
+        
         function switchLibraryTab(tab) {{
             const historyTab = document.getElementById('historyTab');
             const importedTab = document.getElementById('importedTab');
@@ -10910,6 +11389,28 @@ class BrowserReader:
         }}
     </script>
 
+    <!-- 查看文件信息弹窗 -->
+    <div class="file-view-modal" id="fileViewModal" style="display: none;">
+        <h3 id="fileViewTitle"><script>document.write(t('browser_reader.view_file_title'));</script></h3>
+        <div class="file-info-row"><span><script>document.write(t('browser_reader.view_file_name'));</script></span><span id="fileViewName"></span></div>
+        <div class="file-info-row"><span><script>document.write(t('browser_reader.view_file_path'));</script></span><span id="fileViewPath"></span></div>
+        <div class="file-info-row"><span><script>document.write(t('browser_reader.view_file_size'));</script></span><span id="fileViewSize"></span></div>
+        <div class="file-info-row"><span><script>document.write(t('browser_reader.view_file_format'));</script></span><span id="fileViewFormat"></span></div>
+        <div class="file-actions">
+            <button onclick="downloadCurrentFile()"><script>document.write(t('browser_reader.view_file_download'));</script></button>
+            <button onclick="closeFileView()"><script>document.write(t('browser_reader.close_button'));</script></button>
+        </div>
+    </div>
+
+    <!-- 生词本面板 -->
+    <div class="vocab-panel" id="vocabPanel">
+        <div class="vocab-header">
+            <h3 id="vocabTitle"><script>document.write(t('browser_reader.vocab_title'));</script></h3>
+            <button class="vocab-close" onclick="toggleVocabPanel()">×</button>
+        </div>
+        <div class="vocab-list" id="vocabList"></div>
+    </div>
+
     
 </body>
 </html>"""
@@ -11388,7 +11889,8 @@ class BrowserReader:
             # 创建HTML
             html = BrowserReader.create_reader_html(
                 content, title, theme, custom_settings, save_url, load_url,
-                book_id, initial_progress, browser_server_host, browser_server_port
+                book_id, initial_progress, browser_server_host, browser_server_port,
+                file_path
             )
             
             # 创建临时HTML文件
