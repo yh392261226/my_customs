@@ -49,6 +49,8 @@ class Bookshelf:
         self.db_manager = DatabaseManager()
         # 当前登录用户ID（伪用户系统）
         self.current_user_id: Optional[int] = None
+        # 站点名缓存（用于导入时剔除「网站名_书名」文件名前缀）
+        self._site_names_cache: Optional[List[str]] = None
         self.current_user_role: str = "user"
         # 应用实例，用于获取配置
         self.app = app
@@ -186,6 +188,12 @@ class Bookshelf:
                 logger.warning(f"书籍已存在于书架中: {abs_path}")
                 return existing_book
             
+            # 未显式提供标题时，从文件名推断并剔除「网站名_」前缀
+            # （爬取落盘文件名形如 网站名_书名.txt，导入时不应把网站名带进书名）
+            if not title:
+                title = os.path.splitext(os.path.basename(abs_path))[0]
+                title = self._strip_site_prefix(title)
+            
             # 创建书籍对象
             book = Book(abs_path, title, author, tags=tags)
             
@@ -212,7 +220,27 @@ class Bookshelf:
         except Exception as e:
             logger.error(f"添加书籍时出错: {e}")
             return None
-    
+
+    def _strip_site_prefix(self, title: str) -> str:
+        """剔除标题开头的「网站名_」前缀（爬取落盘文件名 网站名_书名.txt 导入时用到）。
+
+        仅在标题确实以某个已知书籍网站名 + 下划线开头时才剥离，避免误伤正常书名。
+        """
+        if not title:
+            return title
+        if self._site_names_cache is None:
+            try:
+                self._site_names_cache = [
+                    s.get("name", "") for s in self.db_manager.get_novel_sites()
+                    if s.get("name")
+                ]
+            except Exception:
+                self._site_names_cache = []
+        for site in self._site_names_cache:
+            if site and title.startswith(site + "_"):
+                return title[len(site) + 1:]
+        return title
+
     @debug_logged
     def remove_book(self, path: str, delete_file: bool = False) -> bool:
         """
