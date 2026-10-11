@@ -123,6 +123,7 @@ EXTRA_READER_JS = r"""
   window.apiPost = apiPost;
   window.apiGet = apiGet;
   function getContentEl(){ return document.getElementById('content'); }
+  window.getContentEl = getContentEl;
   function notify(msg){ if (typeof showNotification==='function') showNotification(msg); else alert(msg); }
 
   /* ---------- 顶部阅读进度条 ---------- */
@@ -199,6 +200,7 @@ EXTRA_READER_JS = r"""
       speakText(sp.textContent, function(){ sp.classList.remove('speech-active'); idx++; next(); });
     })();
   }
+  window.speakText = speakText;
   window.speakCurrentParagraph = function(){
     if (typeof paragraphs === 'undefined' || currentParagraphIndex >= paragraphs.length) { stopSpeech(); notify('朗读完成'); return; }
     var paragraph = paragraphs[currentParagraphIndex];
@@ -222,6 +224,7 @@ EXTRA_READER_JS = r"""
   document.body.appendChild(selToolbar);
   selToolbar.addEventListener('mousedown', function(e){ e.preventDefault(); });
   selToolbar.addEventListener('click', function(e){
+    e.stopPropagation();
     var act = e.target.getAttribute('data-act'); if(!act) return;
     var sel = window.getSelection();
     var txt = sel ? sel.toString().trim() : '';
@@ -269,11 +272,17 @@ EXTRA_READER_JS = r"""
     copyText(cite);
   }
   function addNoteFromSelection(txt){
-    var note = { id: Date.now(), text: txt, position: Math.floor(window.scrollY), time: new Date().toLocaleString() };
-    try { notes.push(note); localStorage.setItem('reader_notes', JSON.stringify(notes)); } catch(e){}
-    if (typeof updateNotesList==='function') updateNotesList();
-    scheduleAnnotationSync();
-    notify('已添加笔记');
+    var sel = window.getSelection();
+    if (!sel || sel.rangeCount === 0) { notify('未选中文本'); return; }
+    var range = sel.getRangeAt(0).cloneRange();
+    var rect = range.getBoundingClientRect();
+    if (typeof openNoteEditor === 'function') { openNoteEditor(range, rect, txt); }
+    else if (typeof notes !== 'undefined') {
+      var note = { id: Date.now(), quote: txt, text: '', position: Math.floor(window.scrollY), time: new Date().toLocaleString() };
+      try { notes.push(note); saveBookArr('reader_notes', notes); } catch(e){}
+      if (typeof updateNotesList==='function') updateNotesList();
+      scheduleAnnotationSync();
+    }
   }
   function doSearchFromText(txt){
     var inp = document.getElementById('searchInput');
@@ -331,9 +340,9 @@ EXTRA_READER_JS = r"""
   }
   function collectAnnotations(){
     return {
-      highlights: JSON.parse(localStorage.getItem('reader_highlights')||'[]'),
-      notes: JSON.parse(localStorage.getItem('reader_notes')||'[]'),
-      bookmarks: JSON.parse(localStorage.getItem('reader_bookmarks')||'[]')
+      highlights: loadBookArr('reader_highlights'),
+      notes: loadBookArr('reader_notes'),
+      bookmarks: loadBookArr('reader_bookmarks')
     };
   }
   function syncAnnotationsToCloud(){
@@ -355,9 +364,9 @@ EXTRA_READER_JS = r"""
       var hl = res.highlights||[], nt = res.notes||[], bm = res.bookmarks||[];
       var cur = collectAnnotations();
       function merge(arr, key){ var m={}; arr.concat(cur[key]).forEach(function(x){ if(x&&x.id!=null) m[x.id]=x; }); return Object.keys(m).map(function(k){return m[k];}); }
-      localStorage.setItem('reader_highlights', JSON.stringify(merge(hl,'highlights')));
-      localStorage.setItem('reader_notes', JSON.stringify(merge(nt,'notes')));
-      localStorage.setItem('reader_bookmarks', JSON.stringify(merge(bm,'bookmarks')));
+      saveBookArr('reader_highlights', merge(hl,'highlights'));
+      saveBookArr('reader_notes', merge(nt,'notes'));
+      saveBookArr('reader_bookmarks', merge(bm,'bookmarks'));
       if (typeof updateHighlightsList==='function') updateHighlightsList();
       if (typeof updateNotesList==='function') updateNotesList();
       if (typeof updateBookmarksList==='function') updateBookmarksList();
@@ -377,7 +386,7 @@ EXTRA_READER_JS = r"""
     md += '## 高亮\n';
     d.highlights.forEach(function(h){ md += '- ' + (h.text||'') + '  (位置' + (h.position||0) + ')\n'; });
     md += '\n## 笔记\n';
-    d.notes.forEach(function(n){ md += '- ' + (n.text||'') + '\n'; });
+    d.notes.forEach(function(n){ md += '- ' + (n.text||'') + (n.quote? '  （批注于：“' + n.quote + '”）':'') + '\n'; });
     md += '\n## 书签\n';
     d.bookmarks.forEach(function(b){ md += '- ' + (b.name||'书签') + '  (位置' + (b.position||0) + ')\n'; });
     var blob = new Blob([md], { type:'text/markdown' });
@@ -405,22 +414,23 @@ EXTRA_READER_JS = r"""
   window.exportAnnotations = exportAnnotations;
   window.exportAnnotationsMarkdown = exportAnnotationsMarkdown;
   window.importAnnotations = importAnnotations;
+  window.scheduleAnnotationSync = scheduleAnnotationSync;
 
   /* ---------- 书签增强：命名 + 统一到列表 ---------- */
   window.addBookmark = function(){
     if (typeof checkPermission==='function' && !checkPermission('bookmark.write')) return;
     var name = window.prompt('书签名称（可留空）:', '');
     if (name === null) return;
-    var saved = JSON.parse(localStorage.getItem('reader_bookmarks')||'[]');
+    var saved = loadBookArr('reader_bookmarks');
     var bm = { id: Date.now(), name: name || ('书签' + (saved.length+1)), position: Math.floor(window.scrollY), time: Date.now() };
-    saved.push(bm); localStorage.setItem('reader_bookmarks', JSON.stringify(saved));
+    saved.push(bm); saveBookArr('reader_bookmarks', saved);
     if (typeof updateBookmarksList==='function') updateBookmarksList();
     scheduleAnnotationSync();
     notify('书签已添加：' + bm.name);
   };
   window.updateBookmarksList = function(){
     var list = document.getElementById('bookmarksList'); if(!list) return;
-    var saved = JSON.parse(localStorage.getItem('reader_bookmarks')||'[]');
+    var saved = loadBookArr('reader_bookmarks');
     list.innerHTML = '';
     saved.forEach(function(bm, index){
       var item = document.createElement('div'); item.className='note-item';
@@ -436,16 +446,16 @@ EXTRA_READER_JS = r"""
   window.toggleBookmark = function(){
     var btn = document.getElementById('bookmarkBtn');
     var pos = Math.floor(window.scrollY);
-    var saved = JSON.parse(localStorage.getItem('reader_bookmarks')||'[]');
+    var saved = loadBookArr('reader_bookmarks');
     var existing = saved.find(function(b){ return Math.abs((b.position||0) - pos) < 10; });
     if (existing){
       var filtered = saved.filter(function(b){ return b.id !== existing.id; });
-      localStorage.setItem('reader_bookmarks', JSON.stringify(filtered));
+      saveBookArr('reader_bookmarks', filtered);
       if (btn) btn.classList.remove('bookmarked');
       notify('书签已移除');
     } else {
       var bm = { id: Date.now(), name: '书签'+(saved.length+1), position: pos, time: Date.now() };
-      saved.push(bm); localStorage.setItem('reader_bookmarks', JSON.stringify(saved));
+      saved.push(bm); saveBookArr('reader_bookmarks', saved);
       if (btn) btn.classList.add('bookmarked');
       notify('书签已添加');
     }
@@ -456,7 +466,7 @@ EXTRA_READER_JS = r"""
     try {
       var btn = document.getElementById('bookmarkBtn'); if(!btn) return;
       var pos = Math.floor(window.scrollY);
-      var saved = JSON.parse(localStorage.getItem('reader_bookmarks')||'[]');
+      var saved = loadBookArr('reader_bookmarks');
       if (saved.some(function(b){ return Math.abs((b.position||0)-pos)<10; })) btn.classList.add('bookmarked');
     } catch(e){}
   })();
@@ -503,7 +513,7 @@ EXTRA_READER_JS = r"""
     window.scrollTo({ top: best-100, behavior:'smooth' });
   }
   document.addEventListener('keydown', function(e){
-    if (e.target && (e.target.tagName==='INPUT'||e.target.tagName==='TEXTAREA')) return;
+    if (isEditableTarget(e)) return;
     if (e.key===']'){ jumpToHighlight(1); }
     else if (e.key==='['){ jumpToHighlight(-1); }
   });
@@ -704,6 +714,8 @@ EXTRA_READER_JS = r"""
     setupPrintButton();
     setupAnnotationBar();
     setupSearchOptions();
+    if (typeof reapplyAllNoteAnchors === 'function') reapplyAllNoteAnchors();
+    if (typeof reapplyAllHighlights === 'function') reapplyAllHighlights();
   }
   if (document.readyState==='loading') document.addEventListener('DOMContentLoaded', initReaderExtras);
   else initReaderExtras();
@@ -1265,8 +1277,9 @@ class BrowserReader:
             // 初始化工具栏位置
             updateToolbarTogglePosition();
             
-            // 添加键盘快捷键监听
-            document.addEventListener('keydown', handleKeyboardShortcuts);
+            // 添加键盘快捷键监听（主处理器已在下方统一注册并做了输入框防护；
+            // 此处仅做安全兜底，避免引用未定义函数导致后续初始化中断）
+            if (typeof handleKeyboardShortcuts === 'function') document.addEventListener('keydown', handleKeyboardShortcuts);
             
             // 初始化老板键模式
             initBossMode();
@@ -2435,6 +2448,87 @@ class BrowserReader:
 
         .highlight.active {{
             background-color: rgba(255, 255, 0, 0.7);
+        }}
+
+        /* 笔记锚点：在正文中某位置显示一个可点击的笔记图标 */
+        .note-anchor {{
+            cursor: pointer;
+        }}
+        .note-anchor .note-marker {{
+            font-size: 0.8em;
+            color: #e67e22;
+            vertical-align: super;
+            margin-left: 2px;
+            padding: 0 2px;
+            border-radius: 3px;
+            background: rgba(230, 126, 34, 0.15);
+            pointer-events: none;
+        }}
+
+        /* 笔记编辑/查看弹窗 */
+        #notePopover {{
+            position: fixed;
+            z-index: 3200;
+            width: 280px;
+            background: #fff;
+            color: #222;
+            border: 1px solid #ccc;
+            border-radius: 8px;
+            box-shadow: 0 6px 24px rgba(0,0,0,0.25);
+            padding: 12px;
+            display: none;
+            font-size: 14px;
+        }}
+        #notePopover .np-quote {{
+            font-size: 12px;
+            color: #888;
+            border-left: 3px solid #e67e22;
+            padding-left: 8px;
+            margin-bottom: 8px;
+            max-height: 80px;
+            overflow: auto;
+            white-space: pre-wrap;
+            word-break: break-word;
+        }}
+        #notePopover textarea.np-input {{
+            width: 100%;
+            box-sizing: border-box;
+            min-height: 64px;
+            resize: vertical;
+            margin-bottom: 8px;
+        }}
+        #notePopover .np-text {{
+            white-space: pre-wrap;
+            word-break: break-word;
+            margin-bottom: 8px;
+        }}
+        #notePopover .np-actions {{
+            display: flex;
+            justify-content: flex-end;
+            gap: 8px;
+        }}
+        #notePopover button {{
+            cursor: pointer;
+            border: 1px solid #ccc;
+            background: #f4f4f4;
+            border-radius: 4px;
+            padding: 4px 12px;
+        }}
+        #notePopover button.np-primary {{
+            background: #e67e22;
+            color: #fff;
+            border-color: #e67e22;
+        }}
+
+        /* 笔记列表中引用的原文 */
+        .note-quote {{
+            font-size: 12px;
+            color: #e67e22;
+            border-left: 3px solid #e67e22;
+            padding-left: 6px;
+            margin-bottom: 4px;
+            font-style: italic;
+            word-break: break-word;
         }}
 
         /* 动画 */
@@ -5462,9 +5556,28 @@ class BrowserReader:
             showNotification(t('browser_reader.font_settings_reset'));
         }}
 
+        // 标注（高亮/笔记/书签）按书籍隔离存储
+        function bookStorageKey(base) {{
+            var id = (typeof BOOK_ID !== 'undefined' && BOOK_ID) ? BOOK_ID
+                     : ((typeof BOOK !== 'undefined' && BOOK) ? BOOK : 'book');
+            return base + '__' + id;
+        }}
+        function loadBookArr(base) {{
+            var k = bookStorageKey(base);
+            if (localStorage.getItem(k) === null) {{
+                // 一次性迁移：把旧的全局数据并入当前书籍
+                var old = localStorage.getItem(base);
+                if (old !== null) {{ try {{ localStorage.setItem(k, old); localStorage.removeItem(base); }} catch(e){{}} }}
+            }}
+            try {{ return JSON.parse(localStorage.getItem(k) || '[]'); }} catch(e) {{ return []; }}
+        }}
+        function saveBookArr(base, arr) {{
+            try {{ localStorage.setItem(bookStorageKey(base), JSON.stringify(arr)); }} catch(e){{}}
+        }}
+
         // 高亮模式
         let isHighlightMode = false;
-        let highlights = JSON.parse(localStorage.getItem('reader_highlights') || '[]');
+        let highlights = loadBookArr('reader_highlights');
 
         function toggleHighlightMode() {{
             isHighlightMode = !isHighlightMode;
@@ -5485,30 +5598,85 @@ class BrowserReader:
             if (selection.rangeCount > 0 && !selection.isCollapsed) {{
                 const range = selection.getRangeAt(0);
                 const text = selection.toString();
-                const highlight = document.createElement('span');
-                highlight.className = 'highlight';
-                highlight.textContent = text;
-
+                const content = getContentEl();
+                // 记录选中文字在正文中的“纯净”字符偏移，供刷新后重绘
+                const start = content ? getCleanOffset(content, range.startContainer, range.startOffset) : null;
+                const end = content ? getCleanOffset(content, range.endContainer, range.endOffset) : null;
+                const id = Date.now();
                 try {{
-                    range.surroundContents(highlight);
-                    selection.removeAllRanges();
-
-                    const highlightData = {{
-                        id: Date.now(),
-                        text: text,
-                        position: Math.floor(window.scrollY)
-                    }};
-
-                    highlights.push(highlightData);
-                    localStorage.setItem('reader_highlights', JSON.stringify(highlights));
-
-                    updateHighlightsList();
-                    showNotification(t('browser_reader.highlight_added'));
+                    if (wrapRangeWithHighlight(range, id)) {{
+                        selection.removeAllRanges();
+                        highlights.push({{
+                            id: id,
+                            text: text,
+                            start: start,
+                            end: end,
+                            position: Math.floor(window.scrollY)
+                        }});
+                        saveBookArr('reader_highlights', highlights);
+                        updateHighlightsList();
+                        showNotification(t('browser_reader.highlight_added'));
+                    }} else {{
+                        showNotification(t('browser_reader.highlight_add_failed'));
+                    }}
                 }} catch (e) {{
                     console.error('添加高亮失败:', e);
                     showNotification(t('browser_reader.highlight_add_failed'));
                 }}
             }}
+        }}
+
+        // 创建高亮元素
+        function buildHighlightEl(id) {{
+            const span = document.createElement('span');
+            span.className = 'highlight';
+            span.dataset.id = id;
+            return span;
+        }}
+
+        // 将一段 Range 包裹为高亮（沿用 surroundContents：跨块选区会安全抛错跳过）
+        function wrapRangeWithHighlight(range, id) {{
+            const span = buildHighlightEl(id);
+            try {{
+                range.surroundContents(span);
+                return true;
+            }} catch (e) {{
+                console.warn('高亮包裹跳过（不支持跨块选区）:', e);
+                return false;
+            }}
+        }}
+
+        // 依据字符偏移在正文重绘单条高亮
+        function reapplyHighlight(h) {{
+            const content = getContentEl();
+            if (!content || h.start == null || h.end == null) return;
+            const text = content.textContent || '';
+            if (h.end > text.length) return;
+            // 校验原文匹配，避免把其他内容错套高亮
+            if (h.text) {{
+                const at = text.slice(h.start, h.end).replace(/\\s+/g, '');
+                if (at !== h.text.replace(/\\s+/g, '')) return;
+            }}
+            const startPos = getNodeAtOffset(content, h.start);
+            const endPos = getNodeAtOffset(content, h.end);
+            if (!startPos.node || !endPos.node) return;
+            let range;
+            try {{
+                range = document.createRange();
+                range.setStart(startPos.node, startPos.offset);
+                range.setEnd(endPos.node, endPos.offset);
+            }} catch (e) {{ return; }}
+            wrapRangeWithHighlight(range, h.id);
+        }}
+
+        // 重绘全部高亮（幂等：先移除已有高亮包裹）
+        function reapplyAllHighlights() {{
+            const content = getContentEl();
+            if (!content) return;
+            content.querySelectorAll('.highlight').forEach(el => {{ el.outerHTML = el.textContent; }});
+            highlights.filter(h => h.start != null && h.end != null)
+                      .sort((a, b) => b.start - a.start)
+                      .forEach(reapplyHighlight);
         }}
 
         function updateHighlightsList() {{
@@ -5520,11 +5688,11 @@ class BrowserReader:
                 const item = document.createElement('div');
                 item.className = 'note-item';
                 item.innerHTML = '<div class="note-text">' + h.text.substring(0, 50) + '...</div>' +
-                                    '<div class="note-time">位置: ' + h.position + 'px</div>' +
                                     '<span class="note-delete" onclick="deleteHighlight(' + h.id + ')">×</span>';
                 item.onclick = (e) => {{
                     if (e.target.className !== 'note-delete') {{
-                        window.scrollTo({{ top: h.position, behavior: 'smooth' }});
+                        const el = document.querySelector('.highlight[data-id="' + h.id + '"]');
+                        if (el) el.scrollIntoView({{ behavior: 'smooth', block: 'center' }});
                     }}
                 }};
                 list.appendChild(item);
@@ -5533,23 +5701,18 @@ class BrowserReader:
 
         function deleteHighlight(id) {{
             highlights = highlights.filter(h => h.id !== id);
-            localStorage.setItem('reader_highlights', JSON.stringify(highlights));
-            showNotification(t('browser_reader.highlight_deleted'));
+            saveBookArr('reader_highlights', highlights);
 
-            const highlightElements = document.querySelectorAll('.highlight');
-            highlightElements.forEach(el => {{
-                const text = el.textContent;
-                if (highlights.find(h => h.text === text) === undefined) {{
-                    el.outerHTML = text;
-                }}
+            document.querySelectorAll('.highlight[data-id="' + id + '"]').forEach(el => {{
+                el.outerHTML = el.textContent;
             }});
 
             updateHighlightsList();
-            showNotification('高亮已删除');
+            showNotification(t('browser_reader.highlight_deleted'));
         }}
 
         // 笔记功能
-        let notes = JSON.parse(localStorage.getItem('reader_notes') || '[]');
+        let notes = loadBookArr('reader_notes');
         let currentNoteTab = 'highlights';
 
         function toggleNotesMode() {{
@@ -5583,6 +5746,7 @@ class BrowserReader:
         }}
 
         function addNote() {{
+            // 面板里的“随手记”：不锚定原文，只记录一段想法
             const input = document.getElementById('noteInput');
             const text = input.value.trim();
 
@@ -5593,17 +5757,257 @@ class BrowserReader:
 
             const note = {{
                 id: Date.now(),
+                quote: '',
                 text: text,
                 position: Math.floor(window.scrollY),
                 time: new Date().toLocaleString()
             }};
 
             notes.push(note);
-            localStorage.setItem('reader_notes', JSON.stringify(notes));
+            saveBookArr('reader_notes', notes);
 
             input.value = '';
             updateNotesList();
             showNotification(t('browser_reader.note_added'));
+        }}
+
+        function ensureNotePopover() {{
+            let pop = document.getElementById('notePopover');
+            if (!pop) {{
+                pop = document.createElement('div');
+                pop.id = 'notePopover';
+                document.body.appendChild(pop);
+            }}
+            return pop;
+        }}
+
+        function closeNotePopover() {{
+            const pop = document.getElementById('notePopover');
+            if (pop) pop.style.display = 'none';
+        }}
+
+        function positionNotePopover(pop, rect) {{
+            pop.style.display = 'block';
+            const h = pop.offsetHeight || 160;
+            let top = (rect && rect.top > 0) ? (rect.top - h - 8) : (window.innerHeight / 2);
+            if (top < 10) top = (rect ? (rect.bottom + 8) : 80);
+            let left = (rect ? rect.left : (window.innerWidth / 2)) - 140;
+            left = Math.max(10, Math.min(left, window.innerWidth - 300));
+            pop.style.top = top + 'px';
+            pop.style.left = left + 'px';
+        }}
+
+        // 计算 (node, offset) 在 container 内的“纯净”字符偏移（忽略已插入的笔记图标）
+        function getCleanOffset(container, node, offset) {{
+            let total = 0;
+            const walker = document.createTreeWalker(container, NodeFilter.SHOW_ALL, null);
+            let n;
+            while ((n = walker.nextNode())) {{
+                if (n === node) {{
+                    if (n.nodeType === 3) total += offset;
+                    break;
+                }}
+                if (n.nodeType === 3) {{
+                    if (n.parentNode && n.parentNode.closest && n.parentNode.closest('.note-anchor')) continue;
+                    total += n.textContent.length;
+                }}
+            }}
+            return total;
+        }}
+
+        // 根据纯净字符偏移，找到对应的文本节点与节点内偏移
+        function getNodeAtOffset(container, target) {{
+            let total = 0;
+            const walker = document.createTreeWalker(container, NodeFilter.SHOW_TEXT, null);
+            let n, last = null;
+            while ((n = walker.nextNode())) {{
+                // 跳过笔记图标标记，保持与 getCleanOffset 一致的“纯净”偏移
+                if (n.parentNode && n.parentNode.closest && n.parentNode.closest('.note-anchor')) continue;
+                const len = n.textContent.length;
+                if (total + len >= target) {{ return {{ node: n, offset: target - total }}; }}
+                total += len;
+                last = n;
+            }}
+            return {{ node: last, offset: last ? last.textContent.length : 0 }};
+        }}
+
+        // 创建笔记图标元素（不含位置偏移）
+        function buildNoteAnchorEl(id) {{
+            const span = document.createElement('span');
+            span.className = 'note-anchor';
+            span.dataset.noteId = id;
+            const marker = document.createElement('sup');
+            marker.className = 'note-marker';
+            marker.textContent = '✎';
+            span.appendChild(marker);
+            return span;
+        }}
+
+        // 在选中位置插入笔记图标，返回其纯净字符偏移（供持久化）
+        function applyNoteAnchor(range, id) {{
+            const content = getContentEl();
+            const r = range.cloneRange();
+            r.collapse(false); // 折叠到选区末尾，让图标紧跟在被批注文字之后
+            const offset = content ? getCleanOffset(content, r.startContainer, r.startOffset) : null;
+            const span = buildNoteAnchorEl(id);
+            try {{ r.insertNode(span); }} catch (e) {{ console.error('笔记锚点插入失败', e); }}
+            return offset;
+        }}
+
+        // 在正文里按纯净文本定位引用文字的起始（节点+偏移），用于 offset 缺失时的兜底重绘
+        function findQuotePosition(container, quote) {{
+            const norm = function(s) {{ return (s || '').replace(/\\s+/g, ''); }};
+            const q = norm(quote);
+            if (!q) return null;
+            const walker = document.createTreeWalker(container, NodeFilter.SHOW_TEXT, null);
+            const nodes = [];
+            let n;
+            while ((n = walker.nextNode())) {{
+                if (n.parentNode && n.parentNode.closest && n.parentNode.closest('.note-anchor')) continue;
+                nodes.push(n);
+            }}
+            let full = '';
+            for (let i = 0; i < nodes.length; i++) full += norm(nodes[i].textContent);
+            const idx = full.indexOf(q);
+            if (idx < 0) return null;
+            // 返回引用文字的【末尾】位置，与 applyNoteAnchor（折叠到选区末尾）保持一致，
+            // 这样在内容漂移需要兜底定位时，图标也落在选区末尾而非开头。
+            const endIdx = idx + q.length;
+            let acc = 0;
+            for (let i = 0; i < nodes.length; i++) {{
+                const rn = norm(nodes[i].textContent);
+                if (acc + rn.length >= endIdx) {{
+                    let target = endIdx - acc, rawPos = 0, got = 0;
+                    const raw = nodes[i].textContent;
+                    for (let j = 0; j < raw.length && got < target; j++) {{
+                        if (/\\s/.test(raw[j])) {{ rawPos++; continue; }}
+                        got++; rawPos++;
+                    }}
+                    return {{ node: nodes[i], offset: rawPos }};
+                }}
+                acc += rn.length;
+            }}
+            return null;
+        }}
+
+        // 在正文某偏移处重绘单个笔记图标（内容被重新渲染后调用）
+        function reapplyNoteAnchor(note) {{
+            const content = getContentEl();
+            if (!content) return;
+            let pos = null;
+            if (note.offset != null) {{
+                const text = content.textContent || '';
+                if (note.offset > text.length) {{
+                    // 偏移超出正文范围（内容长度变化），改用引用文字兜底定位
+                    if (note.quote) pos = findQuotePosition(content, note.quote);
+                }} else {{
+                    // 校验该偏移处文本是否与引用原文匹配，避免把其他书的笔记错放到当前内容；
+                    // 注意：note.offset 记录的是选区【末尾】的干净偏移（applyNoteAnchor 用
+                    // r.collapse(false) 折叠到末尾），引用文字应结束于该偏移，而非开始于该偏移。
+                    if (note.quote) {{
+                        const start = Math.max(0, note.offset - note.quote.length);
+                        const at = text.slice(start, note.offset).replace(/\\s+/g, '');
+                        if (at !== note.quote.replace(/\\s+/g, '')) {{
+                            console.warn('笔记偏移与引用文字不一致，尝试按引用文字重定位', note.id);
+                            pos = findQuotePosition(content, note.quote);
+                        }}
+                    }}
+                    if (!pos) pos = getNodeAtOffset(content, note.offset);
+                }}
+            }} else if (note.quote) {{
+                // 兜底：早期版本未记录 offset 时，按引用文字定位（可能在内容变动后失效）
+                pos = findQuotePosition(content, note.quote);
+            }}
+            if (!pos || !pos.node) return;
+            const span = buildNoteAnchorEl(note.id);
+            try {{
+                const after = pos.node.splitText(pos.offset);
+                pos.node.parentNode.insertBefore(span, after);
+            }} catch (e) {{ console.error('笔记锚点重绘失败', e); }}
+        }}
+
+        // 重绘全部笔记图标（幂等：先清除已存在的图标）
+        function reapplyAllNoteAnchors() {{
+            const content = getContentEl();
+            if (!content) return;
+            content.querySelectorAll('.note-anchor').forEach(el => el.remove());
+            const sorted = notes.filter(function(n) {{ return n.offset != null || (n.quote && n.quote.trim()); }})
+                                .sort(function(a, b) {{ return (b.offset || 0) - (a.offset || 0); }});
+            sorted.forEach(function(note) {{ reapplyNoteAnchor(note); }});
+        }}
+
+        function openNoteEditor(range, rect, quote) {{
+            const pop = ensureNotePopover();
+            pop.innerHTML = '';
+            const q = document.createElement('div');
+            q.className = 'np-quote';
+            q.textContent = quote;
+            const ta = document.createElement('textarea');
+            ta.className = 'np-input';
+            ta.placeholder = (typeof t === 'function' ? t('browser_reader.note_placeholder') : '输入笔记内容...');
+            const actions = document.createElement('div');
+            actions.className = 'np-actions';
+            const cancel = document.createElement('button');
+            cancel.textContent = (typeof t === 'function' ? t('browser_reader.note_cancel') : '取消');
+            const save = document.createElement('button');
+            save.className = 'np-primary';
+            save.textContent = (typeof t === 'function' ? t('browser_reader.note_save') : '保存');
+            actions.appendChild(cancel);
+            actions.appendChild(save);
+            pop.appendChild(q);
+            pop.appendChild(ta);
+            pop.appendChild(actions);
+            positionNotePopover(pop, rect);
+            ta.focus();
+            cancel.onclick = (e) => {{ e.stopPropagation(); closeNotePopover(); }};
+            save.onclick = (e) => {{
+                e.stopPropagation();
+                const content = ta.value.trim();
+                if (!content) {{ showNotification(t('browser_reader.note_empty')); return; }}
+                const note = {{
+                    id: Date.now(),
+                    quote: quote,
+                    text: content,
+                    offset: null,
+                    position: Math.floor(window.scrollY),
+                    time: new Date().toLocaleString()
+                }};
+                notes.push(note);
+                try {{ note.offset = applyNoteAnchor(range, note.id); }} catch (err) {{ console.error('笔记锚定失败', err); }}
+                saveBookArr('reader_notes', notes);
+                scheduleAnnotationSync();
+                closeNotePopover();
+                updateNotesList();
+                showNotification(t('browser_reader.note_added'));
+            }};
+        }}
+
+        function openNoteViewer(note, el) {{
+            const pop = ensureNotePopover();
+            const rect = el.getBoundingClientRect();
+            pop.innerHTML = '';
+            if (note.quote) {{
+                const q = document.createElement('div');
+                q.className = 'np-quote';
+                q.textContent = note.quote;
+                pop.appendChild(q);
+            }}
+            const body = document.createElement('div');
+            body.className = 'np-text';
+            body.textContent = note.text;
+            pop.appendChild(body);
+            const actions = document.createElement('div');
+            actions.className = 'np-actions';
+            const del = document.createElement('button');
+            del.textContent = (typeof t === 'function' ? t('browser_reader.note_delete') : '删除');
+            const closeBtn = document.createElement('button');
+            closeBtn.textContent = (typeof t === 'function' ? t('browser_reader.note_close') : '关闭');
+            actions.appendChild(del);
+            actions.appendChild(closeBtn);
+            pop.appendChild(actions);
+            positionNotePopover(pop, rect);
+            del.onclick = (e) => {{ e.stopPropagation(); deleteNote(note.id); closeNotePopover(); }};
+            closeBtn.onclick = (e) => {{ e.stopPropagation(); closeNotePopover(); }};
         }}
 
         function updateNotesList() {{
@@ -5614,9 +6018,11 @@ class BrowserReader:
             notes.forEach(note => {{
                 const item = document.createElement('div');
                 item.className = 'note-item';
+                const quoteHtml = note.quote ? '<div class="note-quote">' + escapeHtml(note.quote) + '</div>' : '';
                 item.innerHTML = '<span class="note-delete" onclick="deleteNote(' + note.id + ')">×</span>' +
-                                    '<div class="note-text">' + note.text + '</div>' +
-                                    '<div class="note-time">' + note.time + '</div>';
+                                    '<div class="note-text">' + escapeHtml(note.text) + '</div>' +
+                                    quoteHtml +
+                                    '<div class="note-time">' + (note.time || '') + '</div>';
                 item.onclick = (e) => {{
                     if (e.target.className !== 'note-delete') {{
                         window.scrollTo({{ top: note.position, behavior: 'smooth' }});
@@ -5628,16 +6034,39 @@ class BrowserReader:
 
         function deleteNote(id) {{
             notes = notes.filter(n => n.id !== id);
-            localStorage.setItem('reader_notes', JSON.stringify(notes));
+            saveBookArr('reader_notes', notes);
+
+            document.querySelectorAll('.note-anchor[data-note-id="' + id + '"]').forEach(el => {{ el.remove(); }});
+
             updateNotesList();
             showNotification(t('browser_reader.note_deleted'));
         }}
+
+        // 点击正文高亮可删除；点击笔记锚点可查看/删除笔记
+        document.addEventListener('click', function(e) {{
+            if (e.target.closest && e.target.closest('#notePopover')) return;
+            closeNotePopover();
+
+            const anchor = e.target.closest && e.target.closest('.note-anchor');
+            if (anchor && anchor.dataset.noteId) {{
+                const id = Number(anchor.dataset.noteId);
+                const note = notes.find(function(n) {{ return n.id === id; }});
+                if (note) openNoteViewer(note, anchor);
+                return;
+            }}
+
+            const hl = e.target.closest && e.target.closest('.highlight');
+            if (hl && hl.dataset.id) {{
+                deleteHighlight(Number(hl.dataset.id));
+                return;
+            }}
+        }});
 
         function updateBookmarksList() {{
             const list = document.getElementById('bookmarksList');
             if (!list) return;
 
-            const savedBookmarks = JSON.parse(localStorage.getItem('reader_bookmarks') || '[]');
+            const savedBookmarks = loadBookArr('reader_bookmarks');
             list.innerHTML = '';
 
             savedBookmarks.forEach((bm, index) => {{
@@ -5662,7 +6091,7 @@ class BrowserReader:
                 return;
             }}
             
-            const savedBookmarks = JSON.parse(localStorage.getItem('reader_bookmarks') || '[]');
+            const savedBookmarks = loadBookArr('reader_bookmarks');
 
             const bookmark = {{
                 id: Date.now(),
@@ -5671,7 +6100,7 @@ class BrowserReader:
             }};
 
             savedBookmarks.push(bookmark);
-            localStorage.setItem('reader_bookmarks', JSON.stringify(savedBookmarks));
+            saveBookArr('reader_bookmarks', savedBookmarks);
 
             updateBookmarksList();
             showNotification(t('browser_reader.bookmark_added'));
@@ -5682,9 +6111,9 @@ class BrowserReader:
                 return;
             }}
             
-            const savedBookmarks = JSON.parse(localStorage.getItem('reader_bookmarks') || '[]');
+            const savedBookmarks = loadBookArr('reader_bookmarks');
             const filtered = savedBookmarks.filter(b => b.id !== id);
-            localStorage.setItem('reader_bookmarks', JSON.stringify(filtered));
+            saveBookArr('reader_bookmarks', filtered);
             updateBookmarksList();
             showNotification(t('browser_reader.bookmark_deleted'));
         }}
@@ -7983,10 +8412,20 @@ class BrowserReader:
             return 'light';
         }}
         
+        // 判断事件目标是否处于可编辑区域（输入框/文本域/下拉/富文本），此时不应触发快捷键
+        function isEditableTarget(e) {{
+            const t = e.target;
+            if (!t) return false;
+            const tag = t.tagName;
+            if (tag === 'INPUT' || tag === 'TEXTAREA' || tag === 'SELECT') return true;
+            if (t.isContentEditable) return true;
+            return false;
+        }}
+
         // 键盘快捷键
         document.addEventListener('keydown', function(e) {{
-            // 防止输入框触发
-            if (e.target.tagName === 'INPUT' || e.target.tagName === 'SELECT') return;
+            // 防止输入框触发（笔记、翻译、生词等输入框聚焦时不响应任何快捷键）
+            if (isEditableTarget(e)) return;
 
             // Ctrl/Cmd+F 打开阅读器搜索框（覆盖浏览器自带查找）
             if ((e.ctrlKey || e.metaKey) && (e.key === 'f' || e.key === 'F')) {{
@@ -9324,6 +9763,17 @@ class BrowserReader:
         window.onload = function() {{
             loadSettings();
 
+            // 兜底重绘：所有资源（含正文）加载完成后，再次套上笔记/高亮图标。
+            // 刷新页面时若 DOMContentLoaded 阶段正文尚未就绪或重绘被其他因素跳过，这里补齐。
+            // 同时按当前 BOOK_ID 重新加载标注数组，避免初始化阶段加载到的不是本书数据。
+            if (typeof notes !== 'undefined') notes = loadBookArr('reader_notes');
+            if (typeof highlights !== 'undefined') highlights = loadBookArr('reader_highlights');
+            console.log('[笔记重绘] 当前 BOOK_ID=', (typeof BOOK_ID !== 'undefined' ? BOOK_ID : '?'),
+                        ' 笔记数=', (typeof notes !== 'undefined' ? notes.length : '?'),
+                        ' 高亮数=', (typeof highlights !== 'undefined' ? highlights.length : '?'));
+            if (typeof reapplyAllNoteAnchors === 'function') reapplyAllNoteAnchors();
+            if (typeof reapplyAllHighlights === 'function') reapplyAllHighlights();
+
             console.log('页面加载完成，开始初始化');
             console.log('文档高度:', document.documentElement.scrollHeight, '视口高度:', window.innerHeight);
 
@@ -10490,7 +10940,15 @@ class BrowserReader:
             
             // 更新当前书籍ID并重新加载进度
             updateCurrentBook(bookId);
-            
+
+            // 关键修复：切换到本书后，必须按当前 BOOK_ID 重新加载该书的笔记/高亮。
+            // 否则 notes/highlights 仍是页面初始化时按初始 BOOK_ID 加载的数组，
+            // 刷新页面或切换书籍后，reapplyAllNoteAnchors 会用错误的（空）数组重绘，导致图标丢失。
+            notes = loadBookArr('reader_notes');
+            highlights = loadBookArr('reader_highlights');
+            if (typeof updateNotesList === 'function') updateNotesList();
+            if (typeof updateHighlightsList === 'function') updateHighlightsList();
+
             // 更新内容
             const contentEl = document.getElementById('content');
             if (contentEl) {{
@@ -10500,6 +10958,8 @@ class BrowserReader:
                     if (content) {{
                         // 内容存在，直接显示
                         contentEl.innerHTML = content;
+                        if (typeof reapplyAllNoteAnchors === 'function') reapplyAllNoteAnchors();
+                        if (typeof reapplyAllHighlights === 'function') reapplyAllHighlights();
                         // 更新书籍状态为已加载
                         if (book.isLoaded === undefined) {{
                             book.isLoaded = true;
@@ -10539,6 +10999,8 @@ class BrowserReader:
                                     if (updatedContent) {{
                                         clearInterval(checkInterval);
                                         contentEl.innerHTML = updatedContent;
+                                        if (typeof reapplyAllNoteAnchors === 'function') reapplyAllNoteAnchors();
+                                        if (typeof reapplyAllHighlights === 'function') reapplyAllHighlights();
                                         book.isLoaded = true;
                                         await saveImportedBooksToStorage();
                                         showNotification('书籍加载完成：' + book.title);
