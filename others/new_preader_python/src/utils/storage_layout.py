@@ -17,6 +17,7 @@
 """
 import os
 import re
+import unicodedata
 
 # 导入书籍（无来源网站）统一放置的子目录名
 IMPORT_DIR_NAME = "_imported"
@@ -25,6 +26,10 @@ IMPORT_DIR_NAME = "_imported"
 def sanitize_dirname(name: str) -> str:
     """把任意字符串转换为安全的目录名（去除路径分隔符等特殊字符）。"""
     name = (name or "").strip()
+    # 全角字符转半角（如全角数字 ０ -> 0、全角字母 Ａ -> A、全角空格转为普通空格）
+    name = unicodedata.normalize("NFKC", name)
+    # 去掉所有空白字符（含全角空格），避免目录名里出现空格
+    name = re.sub(r'\s+', '', name)
     # 去除 Windows / 类 Unix 下不允许出现在文件名中的字符
     name = re.sub(r'[<>:"/\\|?*\x00-\x1f]', "_", name)
     name = name.strip(". ")
@@ -69,7 +74,8 @@ def get_title_first_letter(title: str) -> str:
     except Exception:
         pass
     # 优先扫描拼音串；拼音为空（如纯符号或拼音库不可用）时回退原标题
-    source = pinyin_text if pinyin_text else title
+    # NFKC 归一化：把全角数字/字母（如 ０／Ａ）转为半角，避免 ０ 这类目录
+    source = unicodedata.normalize("NFKC", pinyin_text if pinyin_text else title)
     for ch in source:
         if ch.isascii() and ch.isalpha():
             return ch.upper()

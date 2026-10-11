@@ -60,6 +60,21 @@ def get_config_paths():
     return os.path.expanduser(library) if library else None, os.path.expanduser(db_path) if db_path else None
 
 
+def cleanup_empty_dirs(root: str) -> int:
+    """删除 root 下所有已空的子目录（不删 root 本身），用于迁移后清理空壳目录。"""
+    removed = 0
+    for dirpath, _dirnames, _filenames in os.walk(root, topdown=False):
+        if dirpath == root:
+            continue
+        try:
+            if not os.listdir(dirpath):
+                os.rmdir(dirpath)
+                removed += 1
+        except OSError:
+            pass
+    return removed
+
+
 def main():
     args = parse_args()
 
@@ -119,18 +134,7 @@ def main():
             print(f"[缺失] 文件不存在，跳过: {old_path}")
             continue
 
-        abs_root = os.path.abspath(library)
-        try:
-            rel = os.path.relpath(old_path, abs_root)
-        except ValueError:
-            rel = ".." + os.sep
-
-        # 已在书籍库子目录中（已分层）：跳过，保证可重复执行
-        if not rel.startswith("..") and os.sep in rel:
-            skipped += 1
-            continue
-
-        # 计算目标目录
+        # 计算目标目录（使用修正后的规则：全角转半角、去空白）
         if old_path in ch_site:
             site_id = ch_site[old_path]
             sname, sfolder = sites.get(site_id, (None, None))
@@ -141,7 +145,9 @@ def main():
 
         os.makedirs(target_dir, exist_ok=True)
         target = os.path.join(target_dir, os.path.basename(old_path))
-        if os.path.abspath(target) == old_path:
+        # 已在正确位置（含修正后的目录名）则跳过；否则移动/复制（可自愈全角/空格目录）。
+        # 库内文件用移动，库外文件用复制（保留原文件，避免数据丢失）。
+        if os.path.abspath(target) == os.path.abspath(old_path):
             skipped += 1
             continue
         target = make_unique_path(target)
@@ -179,8 +185,12 @@ def main():
     print("-" * 60)
     print(f"结果: 迁移 {moved} 本, 跳过(已分层) {skipped} 本, "
           f"文件缺失 {missing} 本, 出错 {errors} 本")
-    if not args.dry_run and moved:
-        print("提示: 迁移后路径已变更，请在应用内「设置 -> 重建全文搜索索引」一次。")
+    if not args.dry_run:
+        removed = cleanup_empty_dirs(library)
+        if removed:
+            print(f"已清理空目录: {removed} 个")
+        if moved:
+            print("提示: 迁移后路径已变更，请在应用内「设置 -> 重建全文搜索索引」一次。")
 
 
 if __name__ == "__main__":
