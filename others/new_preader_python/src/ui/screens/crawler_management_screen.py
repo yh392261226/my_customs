@@ -5179,7 +5179,7 @@ class CrawlerManagementScreen(Screen[None]):
             self._update_status(f"浏览器打开失败: {str(e)}", "error")
     
     def _retry_crawl(self, history_item: Dict[str, Any]) -> None:
-        """重试爬取失败的记录"""
+        """重试爬取失败的记录（改为走后台 CrawlerManager，异步且不阻塞页面）"""
         try:
             # 检查权限：执行爬取任务需 crawler.run
             if not getattr(self.app, "has_permission", lambda k: True)("crawler.run"):
@@ -5202,8 +5202,8 @@ class CrawlerManagementScreen(Screen[None]):
                 self._update_status(get_global_i18n().t('crawler.only_retry_failed'), "error")
                 return
             
-            # 注意：手动重试时不检查历史失败次数，允许用户主动重试
-            # 只有在自动爬取时才会检查连续失败次数限制
+            # 手动重试不检查历史失败次数，允许用户主动重试
+            # （连续失败次数限制只在自动批量爬取时生效）
                 
             # 检查代理要求
             proxy_check_result = self._check_proxy_requirements_sync()
@@ -5213,7 +5213,18 @@ class CrawlerManagementScreen(Screen[None]):
                 
             proxy_config = proxy_check_result['proxy_config']
             
-            # 设置爬取状态
+            # 解析器统一取下拉框当前选择，避免重试时悄悄回退到网站默认解析器
+            parser_name = self._resolve_parser_name()
+            if not parser_name:
+                self._update_status(get_global_i18n().t('crawler.no_parser'), "error")
+                return
+            
+            site_id = self.novel_site.get('id')
+            if not site_id:
+                self._update_status(get_global_i18n().t('crawler.no_site_id'), "error")
+                return
+            
+            # 设置爬取状态（仅做即时 UI 反馈，真正的爬取在后台任务中执行）
             self.is_crawling = True
             self.current_crawling_id = novel_id
             
@@ -5224,8 +5235,20 @@ class CrawlerManagementScreen(Screen[None]):
             # 显示重试状态
             self._update_status(f"{get_global_i18n().t('crawler.retrying')} ID: {novel_id}")
             
-            # 异步执行重试爬取
-            self.app.run_worker(self._retry_crawl_single(novel_id, proxy_config, history_item), name="crawl-retry-worker")
+            # 通过后台 CrawlerManager 启动异步任务：
+            # 1. 真正的异步/后台执行，不阻塞 UI 与系统正常使用；
+            # 2. 任务运行在 app 级单例管理器中，即使离开当前页面也会继续，
+            #    完成时通过已注册的回调刷新历史记录与书架（on_unmount 不会终止它）。
+            task_id = self.crawler_manager.start_crawl_task(
+                site_id, [novel_id], proxy_config, parser_override=parser_name, force=True
+            )
+            if not task_id:
+                self._update_status(get_global_i18n().t('crawler.start_crawl_failed'), "error")
+                self._reset_crawl_state()
+                return
+            
+            self.current_task_id = task_id
+            logger.info(f"已向后台 CrawlerManager 提交重试任务 task_id={task_id} novel_id={novel_id}")
             
         except Exception as e:
             logger.error(f"重试爬取失败: {e}")
@@ -5706,173 +5729,6 @@ class CrawlerManagementScreen(Screen[None]):
             logger.error(f"打开补缺弹窗失败: {e}")
             self._update_status(f"{get_global_i18n().t('crawler.open_dialog_failed')}: {str(e)}", "error")
     
-    async def _retry_crawl_single(self, novel_id: str, proxy_config: Dict[str, Any], history_item: Dict[str, Any]) -> None:
-        """异步重试单个小说的爬取"""
-        import asyncio
-        import time
-        
-        try:
-            # 获取解析器名称（统一取下拉框当前选择，避免重试时悄悄回退到网站默认解析器）
-            parser_name = self._resolve_parser_name()
-            if not parser_name:
-                self.app.call_later(self._update_status, get_global_i18n().t('crawler.no_parser'), "error")
-                return
-            
-            # 导入解析器
-            from src.spiders import create_parser
-            
-            # 创建解析器实例，传递数据库中的网站名称作为作者信息和网站URL
-            parser_instance = create_parser(parser_name, proxy_config, self.novel_site.get('name'), self.novel_site.get('url'))
-            
-            # 使用异步方式执行网络请求
-            await asyncio.sleep(0.5)  # 添加小延迟避免同时请求过多
-            
-            # 解析小说详情
-            novel_content = await self._async_parse_novel_detail(parser_instance, novel_id)
-            
-            # 检查解析是否成功
-            if not novel_content.get('success', False):
-                error_msg = novel_content.get('error_message', get_global_i18n().t('crawler.parse_failed'))
-                logger.warning(f"重试解析失败: {error_msg}")
-                
-                # 检查是否是临时错误，如果是则等待后重试
-                if any(keyword in error_msg.lower() for keyword in ['timeout', 'connection', 'network', 'ssl', 'verify', 'nonetype', 'string or bytes-like']):
-                    logger.info(f"检测到临时错误，5秒后自动重试...")
-                    await asyncio.sleep(5)
-                    
-                    # 重试一次
-                    try:
-                        logger.info(f"开始第二次重试: novel_id={novel_id}")
-                        novel_content = await self._async_parse_novel_detail(parser_instance, novel_id)
-                        if novel_content.get('success', False):
-                            logger.info("第二次重试成功！")
-                        else:
-                            logger.error(f"第二次重试仍然失败: {novel_content.get('error_message', '未知错误')}")
-                    except Exception as retry_error:
-                        logger.error(f"第二次重试异常: {retry_error}")
-                        novel_content = {'success': False, 'error_message': f'重试异常: {str(retry_error)}'}
-                
-                # 如果最终还是失败，更新数据库记录
-                if not novel_content.get('success', False):
-                    site_id = self.novel_site.get('id')
-                    if site_id:
-                        self.db_manager.update_crawl_history_status(
-                            site_id=site_id,
-                            novel_id=novel_id,
-                            status='failed',
-                            novel_title=history_item.get('novel_title', ''),
-                            error_message=novel_content.get('error_message', get_global_i18n().t('crawler.parse_failed'))
-                        )
-                    
-                    # 更新内存中的历史记录
-                    for i, item in enumerate(self.crawler_history):
-                        if item.get('novel_id') == novel_id and item.get('status') == get_global_i18n().t('crawler.status_failed'):
-                            self.crawler_history[i] = {
-                                "novel_id": novel_id,
-                                "novel_title": history_item.get('novel_title', ''),
-                                "crawl_time": time.strftime("%Y-%m-%d %H:%M:%S"),
-                                "status": get_global_i18n().t('crawler.status_failed'),
-                                "error_message": novel_content.get('error_message', '解析失败')
-                            }
-                            break
-                    
-                    # 更新状态
-                    self.app.call_later(self._update_status, f"{get_global_i18n().t('crawler.retry_failed')}: {novel_content.get('error_message', '解析失败')}", "error")
-                    return
-            
-            # 解析成功，获取标题
-            novel_title = novel_content.get('title', history_item.get('novel_title', ''))
-            file_path = novel_content.get('file_path', '')
-            
-            logger.info(f"=== 重试成功 === novel_id={novel_id}, novel_title={novel_title}, file_path={file_path}")
-            
-            # 更新数据库中的记录
-            site_id = self.novel_site.get('id')
-            logger.info(f"准备更新数据库状态: site_id={site_id}, novel_id={novel_id}, novel_title={novel_title}")
-            if site_id:
-                logger.info(f"调用 update_crawl_history_status 更新状态为 success")
-                success = self.db_manager.update_crawl_history_status(
-                    site_id=site_id,
-                    novel_id=novel_id,
-                    status='success',
-                    novel_title=novel_title,
-                    file_path=file_path,
-                    error_message=''
-                )
-                logger.info(f"update_crawl_history_status 返回结果: {success}")
-            else:
-                logger.error(f"无法获取 site_id，novel_site={self.novel_site}")
-            
-            # 更新内存中的历史记录
-            for i, item in enumerate(self.crawler_history):
-                if item.get('novel_id') == novel_id and item.get('status') == get_global_i18n().t('crawler.status_failed'):
-                    self.crawler_history[i] = {
-                        "novel_id": novel_id,
-                        "novel_title": novel_title,
-                        "crawl_time": time.strftime("%Y-%m-%d %H:%M:%S"),
-                        "status": get_global_i18n().t('crawler.status_success'),
-                        "file_path": file_path
-                    }
-                    break
-            
-            # 自动将书籍加入书架
-            try:
-                # 将新书加入书架（优先使用内存书架以便立刻可读，失败时退回直接写DB）
-                try:
-                    bs = getattr(self.app, "bookshelf", None)
-                    book = None
-                    if bs and hasattr(bs, "add_book"):
-                        # 使用"未知作者"而不是硬编码的网站名称作为author
-                        author = "未知作者"
-                        # 获取网站标签
-                        site_tags = self.novel_site.get('tags', '')
-                        book = bs.add_book(file_path, author=author, tags=site_tags)
-                    if not book:
-                        from src.core.book import Book
-                        # 使用"未知作者"而不是硬编码的网站名称作为author
-                        author = "未知作者"
-                        # 获取网站标签
-                        site_tags = self.novel_site.get('tags', '')
-                        book = Book(file_path, novel_title, author, tags=site_tags)
-                        self.db_manager.add_book(book)
-                        
-                    # 发送全局刷新书架消息
-                    try:
-                        from src.ui.messages import RefreshBookshelfMessage
-                        self.app.post_message(RefreshBookshelfMessage())
-                        logger.info(f"已发送书架刷新消息，书籍已添加到书架: {novel_title}")
-                    except Exception as msg_error:
-                        logger.debug(f"发送刷新书架消息失败: {msg_error}")
-                        
-                except Exception as add_err:
-                    logger.error(f"添加书籍到书架失败: {add_err}")
-                    logger.warning(f"添加书籍到书架失败: {novel_title}")
-                    
-            except Exception as e:
-                logger.error(f"添加书籍到书架失败: {e}")
-            
-            # 重新加载数据库中的历史记录
-            self.app.call_later(self._load_crawl_history)
-            
-            # 显示成功消息
-            self.app.call_later(self._update_status, f"{get_global_i18n().t('crawler.retry_success')}: {novel_title}", "success")
-            
-            # 发送全局爬取完成通知
-            try:
-                from src.ui.messages import CrawlCompleteNotification
-                self.app.post_message(CrawlCompleteNotification(
-                    success=True,
-                    novel_title=novel_title,
-                    message=f"{get_global_i18n().t('crawler.retry_success')}: {novel_title}"
-                ))
-            except Exception as msg_error:
-                logger.debug(f"发送爬取完成通知失败: {msg_error}")
-            
-            # 重置爬取状态
-            self.app.call_later(self._reset_crawl_state)
-        except Exception as e:
-            logger.error(f"重试爬取过程失败: {e}")
-            self.app.call_later(self._update_status, f"{get_global_i18n().t('crawler.retry_failed')}: {str(e)}", "error")
     
     def _check_and_continue_crawl(self) -> None:
         """检查输入框中是否还有新ID，如果有则继续爬取"""

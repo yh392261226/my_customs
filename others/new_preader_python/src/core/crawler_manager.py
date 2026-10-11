@@ -40,6 +40,7 @@ class CrawlTask:
     failed_count: int = 0
     error_message: Optional[str] = None
     parser_override: Optional[str] = None  # 临时覆盖的解析器名称（不写入数据库）
+    force: bool = False  # 是否强制爬取（跳过连续失败次数限制，用于手动重试）
 
 
 class CrawlerManager:
@@ -125,7 +126,7 @@ class CrawlerManager:
         """根据任务ID获取任务"""
         return self._tasks.get(task_id)
     
-    def start_crawl_task(self, site_id: int, novel_ids: List[str], proxy_config: Dict[str, Any], parser_override: Optional[str] = None) -> str:
+    def start_crawl_task(self, site_id: int, novel_ids: List[str], proxy_config: Dict[str, Any], parser_override: Optional[str] = None, force: bool = False) -> str:
         """开始新的爬取任务
 
         Args:
@@ -133,6 +134,7 @@ class CrawlerManager:
             novel_ids: 小说ID列表
             proxy_config: 代理配置
             parser_override: 临时覆盖的解析器名称（可选，不写入数据库）
+            force: 是否强制爬取（跳过连续失败次数限制，用于手动重试）
         """
         import uuid
         
@@ -145,7 +147,8 @@ class CrawlerManager:
             proxy_config=proxy_config,
             status=CrawlStatus.PENDING,
             total=len(novel_ids),
-            parser_override=parser_override
+            parser_override=parser_override,
+            force=force
         )
         
         with self._lock:
@@ -214,9 +217,9 @@ class CrawlerManager:
                 if task.status == CrawlStatus.STOPPED:
                     break
                 
-                # 检查连续失败次数，如果超过3次则跳过
+                # 检查连续失败次数，如果超过3次则跳过（手动重试 force=True 时跳过此限制）
                 consecutive_failures = db_manager.get_consecutive_failure_count(task.site_id, novel_id)
-                if consecutive_failures >= 3:
+                if not task.force and consecutive_failures >= 3:
                     logger.info(f"跳过小说 {novel_id}，连续失败次数已达 {consecutive_failures} 次")
                     task.failed_count += 1
                     
