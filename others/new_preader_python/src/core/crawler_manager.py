@@ -245,8 +245,14 @@ class CrawlerManager:
                     if hasattr(parser, 'chapter_count'):
                         parser.chapter_count = 0
                     
-                    # 获取存储文件夹
-                    storage_folder = novel_site.get('storage_folder', 'novels')
+                    # 获取存储文件夹（为空时回退到配置中的书籍库目录，确保以配置路径为唯一基准）
+                    storage_folder = novel_site.get('storage_folder') or ''
+                    if not storage_folder.strip():
+                        try:
+                            from src.config.config_manager import ConfigManager
+                            storage_folder = ConfigManager.get_instance().get_config().get("paths", {}).get("library", "")
+                        except Exception:
+                            storage_folder = "novels"
                     
                     # 直接使用增量爬取方法，不预先解析
                     # 让 _incremental_crawl 内部判断是否需要增量爬取

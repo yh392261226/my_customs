@@ -228,7 +228,12 @@ class Xn59Parser(BaseParser):
         # 生成文件名（使用标题，避免特殊字符）
         title = novel_content.get('title', '未知标题')
         filename = re.sub(r'[<>:"/\\|?*]', '_', title)
-        file_path = os.path.join(storage_folder, f"{filename}.txt")
+        # 按「来源网站 / 书名首字母」分层存储
+        from src.utils.storage_layout import get_crawl_storage_dir
+        site_name = getattr(self, 'novel_site_name', 'unknown')
+        storage_dir = get_crawl_storage_dir(storage_folder, site_name, title)
+        os.makedirs(storage_dir, exist_ok=True)
+        file_path = os.path.join(storage_dir, f"{filename}.txt")
         
         # 文件名冲突处理：同一标题可能对应不同书籍/分卷（如各分卷章节区间都是 1-3），
         # 必须为冲突项生成唯一路径，避免多条记录指向同一文件导致合并时互相覆盖/误删。
@@ -282,7 +287,12 @@ class Xn59Parser(BaseParser):
         # 生成文件名（使用标题，避免特殊字符）
         title = novel_content.get('title', '未知标题')
         filename = re.sub(r'[<>:"/\\|?*]', '_', title)
-        file_path = os.path.join(storage_folder, f"{filename}.txt")
+        # 按「来源网站 / 书名首字母」分层存储
+        from src.utils.storage_layout import get_crawl_storage_dir
+        site_name = getattr(self, 'novel_site_name', 'unknown')
+        storage_dir = get_crawl_storage_dir(storage_folder, site_name, title)
+        os.makedirs(storage_dir, exist_ok=True)
+        file_path = os.path.join(storage_dir, f"{filename}.txt")
         
         # 文件名冲突处理：同一标题可能对应不同书籍/分卷（如各分卷章节区间都是 1-3），
         # 必须为冲突项生成唯一路径，避免多条记录指向同一文件导致合并时互相覆盖/误删。

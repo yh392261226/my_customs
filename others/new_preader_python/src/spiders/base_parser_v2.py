@@ -1410,9 +1410,6 @@ class BaseParser:
         Returns:
             文件路径
         """
-        # 确保存储目录存在
-        os.makedirs(storage_folder, exist_ok=True)
-        
         # 标记本次保存是否命中已存在的文件（避免把哨兵字符串写入数据库）
         self._last_save_collided = False
         
@@ -1425,8 +1422,12 @@ class BaseParser:
             clean_title = clean_title[:50] + '...'
         # 添加网站标识
         site_name = getattr(self, 'novel_site_name', 'unknown')
+        # 按「来源网站 / 书名首字母」分层存储，避免单一目录堆积过多文件
+        from src.utils.storage_layout import get_crawl_storage_dir
+        storage_dir = get_crawl_storage_dir(storage_folder, site_name, title)
+        os.makedirs(storage_dir, exist_ok=True)
         filename = f"{site_name}_{clean_title}"
-        file_path = os.path.join(storage_folder, f"{filename}.txt")
+        file_path = os.path.join(storage_dir, f"{filename}.txt")
         
         # 文件名冲突处理：同一标题可能对应不同书籍/分卷（如各分卷章节区间都是 1-3），
         # 必须为冲突项生成唯一路径，否则多条爬取记录会指向同一文件，

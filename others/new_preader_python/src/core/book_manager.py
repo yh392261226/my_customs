@@ -4,6 +4,7 @@
 """
 
 import os
+import shutil
 
 import threading
 from typing import Dict, List, Optional, Tuple, Callable, Any
@@ -66,7 +67,12 @@ class BookManager:
             if not self._validate_file_path(file_path):
                 logger.warning(f"无效的文件路径或格式: {file_path}")
                 return None
-                
+
+            # 将导入的书籍整理进分层目录（书籍库/来源网站/首字母 或 书籍库/_imported/首字母）
+            organized = self._organize_imported_file(file_path)
+            if organized:
+                file_path = organized
+
             # 添加书籍到书架
             book = self.bookshelf.add_book(file_path, title, author)
             if book:
@@ -85,6 +91,68 @@ class BookManager:
             logger.error(f"添加书籍时发生错误: {e}")
             return None
             
+    def _organize_imported_file(self, src_path: str) -> Optional[str]:
+        """将导入的书籍文件整理进分层目录，避免单一目录堆积过多文件。
+
+        规则：
+        - 已在书架数据库中登记的书籍：不移动（避免产生孤儿记录/重复）。
+        - 已在书籍库某个子目录中的文件（已分层）：不移动。
+        - 位于书籍库根目录的扁平文件：移动到 书籍库/_imported/<首字母>/。
+        - 位于书籍库之外的文件：复制到 书籍库/_imported/<首字母>/（保留原文件，不破坏数据）。
+        返回整理后的新路径；无需移动或失败时返回 None。
+        """
+        from src.utils.storage_layout import get_import_storage_dir, make_unique_path
+
+        if not os.path.isfile(src_path):
+            return None
+        library_root = getattr(self.bookshelf, "data_dir", None)
+        if not library_root:
+            return None
+
+        abs_src = os.path.abspath(src_path)
+        abs_root = os.path.abspath(os.path.expanduser(library_root))
+
+        # 已在书架中登记的书籍不重复移动，避免产生孤儿记录
+        try:
+            if self.bookshelf.db_manager.get_book(abs_src):
+                return None
+        except Exception:
+            pass
+
+        try:
+            rel = os.path.relpath(abs_src, abs_root)
+        except ValueError:
+            return None
+
+        if not rel.startswith("..") and os.sep not in rel:
+            # 直接位于书籍库根目录（扁平）：需要整理
+            in_library = True
+        elif rel.startswith(".."):
+            # 位于书籍库之外：复制到库内分层目录
+            in_library = False
+        else:
+            # 已位于书籍库内的子目录（视为已分层）：不再移动
+            return None
+
+        title = os.path.splitext(os.path.basename(abs_src))[0]
+        target_dir = get_import_storage_dir(abs_root, title)
+        os.makedirs(target_dir, exist_ok=True)
+        target = os.path.join(target_dir, os.path.basename(abs_src))
+        if os.path.abspath(target) == abs_src:
+            return None
+        target = make_unique_path(target)
+
+        try:
+            if in_library:
+                shutil.move(abs_src, target)
+            else:
+                shutil.copy2(abs_src, target)
+            logger.info(f"导入书籍已整理进分层目录: {abs_src} -> {target}")
+            return target
+        except Exception as e:
+            logger.error(f"整理导入书籍失败: {e}")
+            return None
+
     @LoggerSetup.debug_log
     def add_books(self, file_paths: List[str]) -> Tuple[int, List[str]]:
         """
