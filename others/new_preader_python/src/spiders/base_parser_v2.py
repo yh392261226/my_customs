@@ -549,14 +549,21 @@ class BaseParser:
         """
         修复 cloudscraper 在 Python 3.12+ / 新版 urllib3 下的 SSL 兼容性问题。
 
-        cloudscraper 的 CipherSuiteAdapter.wrap_socket 在 server_hostname 为空时，
-        会把 ssl_context.check_hostname 重新设为 True。而当会话以 verify=False 运行时，
-        底层 SSLContext 的 verify_mode 已被设为 CERT_NONE，此时再设置 check_hostname=True
-        会触发 CPython 报错：
+        根因：
+        cloudscraper 的 CipherSuiteAdapter 默认用 ssl.create_default_context() 创建
+        ssl_context，其 check_hostname 默认是 True。当会话以 verify=False 运行时，
+        urllib3 在建立连接前会把 context.verify_mode 设为 CERT_NONE，而此时
+        check_hostname 仍为 True，触发 CPython 报错：
             Cannot set verify_mode to CERT_NONE when check_hostname is enabled.
 
-        这里在每次建立连接前强制关闭主机名校验，让 verify=False 的链路正常工作。
-        只修补一次（幂等）。
+        此外 cloudscraper.wrap_socket 在 server_hostname 为空时会把 check_hostname
+        重新设为 True，同样与 CERT_NONE 冲突（另一种报错方向）。
+
+        因此必须在两处强制关闭主机名校验（只修补一次，幂等）：
+        1. 补 CipherSuiteAdapter.__init__：构造完默认 ssl_context 后强制
+           check_hostname = False，确保 urllib3 设置 CERT_NONE 前不再冲突。
+        2. 补 CipherSuiteAdapter.wrap_socket：去掉“置 check_hostname=True”的分支，
+           强制关闭主机名校验后再调用原始 wrap_socket。
         """
         try:
             import cloudscraper
@@ -564,18 +571,36 @@ class BaseParser:
             return False
 
         adapter = getattr(cloudscraper, "CipherSuiteAdapter", None)
-        if adapter is None or getattr(adapter.wrap_socket, "_cs_patched", False):
-            return bool(adapter)
+        if adapter is None:
+            return False
 
-        def wrap_socket(self, *args, **kwargs):
-            try:
-                self.ssl_context.check_hostname = False
-            except Exception:
-                pass
-            return self.ssl_context.orig_wrap_socket(*args, **kwargs)
+        # --- 1. 补 __init__：构造完 ssl_context 后强制关闭主机名校验 ---
+        if not getattr(adapter.__init__, "_cs_init_patched", False):
+            _orig_init = adapter.__init__
 
-        wrap_socket._cs_patched = True
-        adapter.wrap_socket = wrap_socket
+            def _patched_init(self, *args, **kwargs):
+                _orig_init(self, *args, **kwargs)
+                try:
+                    if self.ssl_context is not None:
+                        self.ssl_context.check_hostname = False
+                except Exception:
+                    pass
+
+            _patched_init._cs_init_patched = True
+            adapter.__init__ = _patched_init
+
+        # --- 2. 补 wrap_socket：去掉置 check_hostname=True 的分支 ---
+        if not getattr(adapter.wrap_socket, "_cs_wrap_patched", False):
+            def _patched_wrap_socket(self, *args, **kwargs):
+                try:
+                    self.ssl_context.check_hostname = False
+                except Exception:
+                    pass
+                return self.ssl_context.orig_wrap_socket(*args, **kwargs)
+
+            _patched_wrap_socket._cs_wrap_patched = True
+            adapter.wrap_socket = _patched_wrap_socket
+
         return True
 
     def _patch_browserforge_headers(self) -> bool:
