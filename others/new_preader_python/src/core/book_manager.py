@@ -94,18 +94,21 @@ class BookManager:
     def _organize_imported_file(self, src_path: str) -> Optional[str]:
         """将导入的书籍文件整理进分层目录，避免单一目录堆积过多文件。
 
-        规则：
-        - 已在书架数据库中登记、且已处于分层子目录的书籍：不移动。
-        - 已在书架数据库中登记、但仍停留在书籍库根目录（扁平）的书籍：
+        导入流程的规范位置为 书籍库/_imported/<首字母>/（导入书籍无来源网站）。规则：
+        - 已登记且已处于正确分层位置（_imported/<首字母> 或 网站目录）的书籍：不移动。
+        - 已登记但仍扁平在书籍库根目录、或位于 _imported 内错字母/错位置的旧书：
           移动到 书籍库/_imported/<首字母>/，并同步更新所有引用该路径的表。
-          （用于修复「自动归层功能上线前」已入库的扁平文件，使其在再次
-          点击 添加书籍/扫描目录 时被归层。）
-        - 位于书籍库根目录的扁平新文件：移动到 书籍库/_imported/<首字母>/。
+        - 书籍库根目录的扁平新文件：移动到 书籍库/_imported/<首字母>/。
+        - 位于 _imported 内错字母/错位置（如直接丢在 _imported 下或错字母目录）的新文件：
+          移动到正确字母目录。
         - 位于书籍库之外的新文件：复制到 书籍库/_imported/<首字母>/（保留原文件）。
-        - 位于书籍库内某子目录的新文件：视为已分层，不移动。
+        - 位于网站(site)目录或其它一级目录下的文件：属爬虫/已管理区域，导入流程不挪动，
+          以免把爬虫书籍误判为「导入书籍」而改变其归类。
         返回整理后的新路径；无需移动或失败时返回 None。
         """
-        from src.utils.storage_layout import get_import_storage_dir, make_unique_path
+        from src.utils.storage_layout import (
+            IMPORT_DIR_NAME, get_import_storage_dir, make_unique_path,
+        )
 
         if not os.path.isfile(src_path):
             return None
@@ -121,7 +124,7 @@ class BookManager:
         except ValueError:
             rel = ".." + os.sep
         in_library = not rel.startswith("..")
-        flat_in_root = in_library and os.sep not in rel
+        parts = rel.split(os.sep)
 
         # 是否已在书架中登记
         existing_book = None
@@ -130,35 +133,46 @@ class BookManager:
         except Exception:
             pass
 
-        # 已登记且已处于分层子目录：无需移动
-        if existing_book and not flat_in_root:
-            return None
-        # 新文件已位于书籍库内某子目录（视为已分层）：不移动
-        if not existing_book and in_library and not flat_in_root:
-            return None
-        # 其余情况（根目录扁平的新文件 / 已登记但扁平在根目录的旧文件 / 库外新文件）需要整理
-        if not (flat_in_root or (not in_library and not existing_book)):
-            return None
-
-        title = os.path.splitext(os.path.basename(abs_src))[0]
-        target_dir = get_import_storage_dir(abs_root, title)
-        os.makedirs(target_dir, exist_ok=True)
-        target = os.path.join(target_dir, os.path.basename(abs_src))
-        if os.path.abspath(target) == abs_src:
-            return None
-        target = make_unique_path(target)
-
-        # 库内文件移动；库外文件复制（保留原文件）
-        try:
-            if in_library:
-                shutil.move(abs_src, target)
-            else:
+        # 库外文件：仅新文件复制到库内规范位置（已登记的库外书籍不动）
+        if not in_library:
+            if existing_book:
+                return None
+            title = os.path.splitext(os.path.basename(abs_src))[0]
+            target_dir = get_import_storage_dir(abs_root, title)
+            os.makedirs(target_dir, exist_ok=True)
+            target = make_unique_path(os.path.join(target_dir, os.path.basename(abs_src)))
+            try:
                 shutil.copy2(abs_src, target)
+                logger.info(f"导入书籍已整理进分层目录: {abs_src} -> {target}")
+                return target
+            except Exception as e:
+                logger.error(f"整理导入书籍失败: {e}")
+                return None
+
+        # 库内文件：top 为相对 library_root 的第一级目录名（扁平文件则为 None）
+        top = parts[0] if len(parts) > 1 else None
+
+        # 网站(site)目录或其它一级目录：属爬虫/已管理区域，不挪动
+        if top is not None and top != IMPORT_DIR_NAME:
+            return None
+
+        # top 为 None（根目录扁平）或 _imported（需检查字母是否正确）
+        title = os.path.splitext(os.path.basename(abs_src))[0]
+        canon_dir = get_import_storage_dir(abs_root, title)
+
+        # 已在 _imported 的正确字母目录中：无需移动
+        if top == IMPORT_DIR_NAME and os.path.abspath(os.path.dirname(abs_src)) == os.path.abspath(canon_dir):
+            return None
+
+        os.makedirs(canon_dir, exist_ok=True)
+        target = make_unique_path(os.path.join(canon_dir, os.path.basename(abs_src)))
+        try:
+            shutil.move(abs_src, target)
         except Exception as e:
             logger.error(f"整理导入书籍失败: {e}")
             return None
 
-        # 若书籍已在书架登记（此前可能以扁平根目录路径入库），同步更新所有引用路径
+        # 若书籍已在书架登记（此前可能以扁平/错位置路径入库），同步更新所有引用路径
         if existing_book:
             try:
                 self._update_book_path_everywhere(abs_src, target)

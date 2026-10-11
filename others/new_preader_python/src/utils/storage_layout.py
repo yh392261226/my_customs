@@ -18,6 +18,7 @@
 import os
 import re
 import unicodedata
+from functools import lru_cache
 
 # 导入书籍（无来源网站）统一放置的子目录名
 IMPORT_DIR_NAME = "_imported"
@@ -36,6 +37,7 @@ def sanitize_dirname(name: str) -> str:
     return name or "unknown"
 
 
+@lru_cache(maxsize=4096)
 def safe_site_dirname(site_name: str) -> str:
     """把站点名转换为 ASCII 安全的目录名，避免中文目录在部分文件系统/工具下出现乱码。
 
@@ -55,6 +57,7 @@ def safe_site_dirname(site_name: str) -> str:
     return sanitize_dirname(candidate)
 
 
+@lru_cache(maxsize=4096)
 def get_title_first_letter(title: str) -> str:
     """根据书名返回分组目录名（首字母 / 首个数字），目录名只为 ASCII。
 
