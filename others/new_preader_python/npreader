@@ -2,6 +2,10 @@
 
 # python文件所在目录
 LIBPATH=$MYRUNTIME/customs/others/new_preader_python
-PYBIN=/opt/homebrew/bin/python3
+# 优先使用本项目自带的虚拟环境（Python 升级后系统 python 的依赖会失效）
+PYBIN="$LIBPATH/venv/bin/python"
+if [ ! -x "$PYBIN" ]; then
+    PYBIN=/opt/homebrew/bin/python3
+fi
 
 $PYBIN $LIBPATH/main.py "$@"
