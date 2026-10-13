@@ -193,7 +193,7 @@ class WelcomeScreen(QuickIsolationMixin, Screen[None]):
                 self.notify(get_global_i18n().t('welcome.np_get_books'), severity="warning")
         elif event.button.id == "browser-reader-btn":
             if has_perm("welcome.browser_reader"):
-                self._open_browser_reader()
+                self.app.push_screen("web_reader")
             else:
                 self.notify(get_global_i18n().t('welcome.np_browser_reader'), severity="warning")
         elif event.button.id == "settings-btn":
@@ -326,9 +326,9 @@ class WelcomeScreen(QuickIsolationMixin, Screen[None]):
             self.notify(get_global_i18n().t('welcome.np_open_getbooks'), severity="warning")
 
     def action_open_browser_reader(self) -> None:
-        """Action: 打开浏览器阅读器（F4）"""
+        """Action: 进入网页阅读器页面（F4）"""
         if getattr(self.app, "has_permission", lambda k: True)("welcome.browser_reader"):
-            self._open_browser_reader()
+            self.app.push_screen("web_reader")
         else:
             self.notify(get_global_i18n().t('welcome.np_browser_reader'), severity="warning")
 
@@ -362,101 +362,3 @@ class WelcomeScreen(QuickIsolationMixin, Screen[None]):
         """已由 BINDINGS 处理，避免重复触发"""
         pass
 
-    def _open_browser_reader(self) -> None:
-            """打开浏览器阅读器（根据设置打开起始页）"""
-            try:
-                from src.utils.browser_reader import BrowserReader
-                from src.core.bookmark import BookmarkManager
-                from src.config.config_manager import ConfigManager
-                import tempfile
-                import os
-
-                # 获取起始页设置
-                config_manager = ConfigManager.get_instance()
-                config = config_manager.get_config()
-                start_page = config.get("browser", {}).get("start_page", "last_book")
-
-                logger.info(f"浏览器阅读器起始页设置: {start_page}")
-
-                # 根据起始页设置决定打开方式
-                if start_page == "last_book":
-                    # 尝试获取上一次阅读的书籍
-                    last_book_path = None
-                    try:
-                        bookmark_manager = BookmarkManager()
-                        # 获取最近有阅读记录的书籍
-                        last_book = bookmark_manager.get_last_read_book()
-                        if last_book:
-                            last_book_path = last_book.get('book_path')
-                            logger.info(f"找到上一次阅读的书籍: {last_book_path}")
-                    except Exception as e:
-                        logger.warning(f"获取上一次阅读书籍失败: {e}")
-
-                    # 如果找到上一次的书籍，直接打开
-                    if last_book_path and os.path.exists(last_book_path):
-                        logger.info(f"打开上一次阅读的书籍: {last_book_path}")
-                        success, message = BrowserReader.open_book_in_browser(
-                            last_book_path,
-                            theme=self.theme_manager.get_current_theme_name()
-                        )
-                    else:
-                        # 书籍不存在，创建欢迎页临时文件
-                        logger.info("上一次阅读的书籍不存在，创建欢迎页临时文件")
-                        success, message = self._create_welcome_temp_file()
-                else:
-                    # start_page == "welcome"，创建欢迎页临时文件
-                    logger.info("使用欢迎页作为起始页")
-                    success, message = self._create_welcome_temp_file()
-
-                if success:
-                    logger.info(f"浏览器阅读器已打开: {message}")
-                    self.notify(get_global_i18n().t('welcome.browser_reader_opened', title="浏览器阅读器"), severity="information")
-                else:
-                    logger.error(f"浏览器阅读器打开失败: {message}")
-                    self.notify(get_global_i18n().t('welcome.browser_reader_open_failed', message=message), severity="error")
-
-            except Exception as e:
-                logger.error(get_global_i18n().t('welcome.browser_reader_open_failed', message=str(e)))
-                self.notify(get_global_i18n().t('welcome.browser_reader_open_failed', message=str(e)), severity="error")
-
-    def _create_welcome_temp_file(self) -> tuple[bool, str]:
-        """创建欢迎页临时文件并打开浏览器阅读器
-
-        Returns:
-            tuple[bool, str]: (是否成功, 消息)
-        """
-        try:
-            from src.utils.browser_reader import BrowserReader
-            import tempfile
-            import os
-
-            # 创建一个临时文件用于浏览器阅读器
-            temp_dir = tempfile.gettempdir()
-            temp_file = os.path.join(temp_dir, "welcome.txt")
-
-            # 创建临时文件内容
-            library_content = """🌐 浏览器阅读器
-
-欢迎使用浏览器阅读器！
-
-请使用书库功能添加书籍，或者使用文件导入功能打开本地书籍文件。
-
-提示：
-- 支持TXT、EPUB等多种格式
-- 自动保存阅读进度
-- 可自定义主题和字体
-"""
-
-            with open(temp_file, 'w', encoding='utf-8') as f:
-                f.write(library_content)
-
-            # 使用open_book_in_browser打开，确保启动后端服务器
-            success, message = BrowserReader.open_book_in_browser(
-                temp_file,
-                theme="light"
-            )
-
-            return success, message
-        except Exception as e:
-            logger.error(f"创建欢迎页临时文件失败: {e}")
-            return False, str(e)

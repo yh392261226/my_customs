@@ -28,6 +28,7 @@ from typing import Optional as _Optional
 import asyncio as _asyncio
 
 from src.ui.screens.welcome_screen import WelcomeScreen
+from src.ui.screens.web_reader_screen import WebReaderScreen
 from src.ui.screens.reader_screen import ReaderScreen
 from src.ui.screens.bookshelf_screen import BookshelfScreen
 from src.ui.screens.settings_screen import SettingsScreen
@@ -312,6 +313,7 @@ class NewReaderApp(App[None]):
         
         # 安装所有屏幕
         self.install_screen(WelcomeScreen(self.theme_manager, self.bookshelf), name="welcome")
+        self.install_screen(WebReaderScreen(self.theme_manager), name="web_reader")
         self.install_screen(BookshelfScreen(self.theme_manager, self.bookshelf, self.statistics_manager, self.book_manager), name="bookshelf")
         # 创建一个默认的Book对象用于初始化阅读器屏幕
         from src.core.book import Book

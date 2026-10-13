@@ -1,0 +1,112 @@
+Header {
+    dock: top;
+    width: 100%;
+    height: 1;
+    background: $background;
+    color: $accent;
+    text-align: left;
+    align: left middle;
+    content-align: left middle;
+}
+
+#web-reader-header {
+    text-align: center;
+    align: center middle;
+    content-align: center middle;
+}
+
+Footer {
+    height: 1;
+    width: 100%;
+    dock: bottom;
+}
+
+#wr-main {
+    width: 100%;
+    height: 100%;
+    padding: 1 3;
+    background: $background;
+}
+
+#wr-title {
+    width: 100%;
+    height: 3;
+    text-style: bold;
+    color: $accent;
+    text-align: center;
+    content-align: center middle;
+}
+
+#wr-desc {
+    width: 100%;
+    height: 2;
+    color: $text-muted;
+    text-align: center;
+    content-align: center middle;
+    margin-bottom: 1;
+}
+
+/* 顶部按钮行，复用通用 .btn-row 布局，对齐欢迎页风格 */
+#wr-buttons {
+    overflow-x: auto;
+    height: 3;
+    align: center middle;
+    margin-bottom: 1;
+}
+
+#wr-buttons Button {
+    margin: 0 1;
+    min-width: 10;
+}
+
+.wr-panels {
+    height: 1fr;
+    margin: 1 0;
+}
+
+.wr-panel {
+    width: 1fr;
+    height: 100%;
+    border: round $primary;
+    padding: 1 2;
+    background: $panel;
+}
+
+.wr-section-title {
+    text-style: bold;
+    color: $secondary;
+    height: 1;
+    margin-bottom: 1;
+}
+
+.wr-info-line {
+    height: 1;
+    color: $text;
+    margin: 0 0 1 0;
+}
+
+#wr-diag-scroll {
+    height: 1fr;
+}
+
+.wr-diag {
+    width: 100%;
+    height: auto;
+    color: $text;
+}
+
+/* 底部：网址输入框 + 打开按钮 */
+#wr-local-row {
+    height: 3;
+    align: center middle;
+    margin-top: 1;
+}
+
+#wr-local-row #wr-path-input {
+    width: 1fr;
+}
+
+#wr-local-row Button {
+    margin-left: 1;
+    min-width: 18;
+}
