@@ -4167,7 +4167,6 @@ class BrowserReader:
         <button onclick="scrollToBottom()"><script>document.write(t('browser_reader.bottom'));</script></button>
         
         <button onclick="togglePositionJump()" id="positionJumpBtn" title="{{t('browser_reader.position_jump.title')}}"><script>document.write(t('browser_reader.position_jump.title'));</script></button>
-        <button onclick="if(checkPermission('book.write')) printContent()"><script>document.write(t('browser_reader.print_button'));</script></button>
         <button onclick="toggleMinimap()" id="minimapToolbarBtn"><script>document.write(t('browser_reader.minimap'));</script></button>
         <button onclick="toggleTOC()"><script>document.write(t('browser_reader.toc'));</script></button>
         <button onclick="if(checkPermission('book.write')) toggleProgressSync()" id="progressSyncBtn"><script>document.write(t('browser_reader.progress_sync'));</script></button>
