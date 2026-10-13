@@ -249,6 +249,7 @@ class CrawlerMergeDetailDialog(ModalScreen[Dict[str, Any]]):
         db_manager: Optional[DatabaseManager] = None,
         novel_site: Optional[Dict[str, Any]] = None,
         parser_override: Optional[str] = None,
+        library_mode: bool = False,
         **kwargs,
     ) -> None:
         super().__init__(**kwargs)
@@ -256,6 +257,8 @@ class CrawlerMergeDetailDialog(ModalScreen[Dict[str, Any]]):
         self.i18n = get_global_i18n()
         self.db_manager = db_manager
         self.novel_site = novel_site or {}
+        # 书库合并模式：不关联爬取网站，隐藏补缺/爬取/浏览器监听等爬虫专属控件
+        self.library_mode = library_mode
         # 当前爬取使用的解析器（来自主界面用户选择，None 时由站点默认决定）
         self.parser_override = parser_override
 
@@ -276,6 +279,31 @@ class CrawlerMergeDetailDialog(ModalScreen[Dict[str, Any]]):
             _books = _g.get('books', [])
             if _books:
                 _g['display_title'] = _books[0].get('novel_title', _g.get('base_title', ''))
+
+        # 书库模式：group 记录的 novel_id 是文件路径占位、且无 site_id，需批量反查
+        # crawl_history 还原真实的 site_id/novel_id，使复制ID、爬取、补缺、搜索一致正确。
+        if self.library_mode and self.db_manager:
+            _src_paths: List[str] = []
+            for _g in self.groups:
+                for _b in _g.get('books', []):
+                    _p = _b.get('id') or _b.get('file_path') or _b.get('novel_id') or ""
+                    if _p:
+                        _src_paths.append(_p)
+            if _src_paths:
+                _src_map = self.db_manager.get_crawl_history_source_map(_src_paths)
+                for _g in self.groups:
+                    for _b in _g.get('books', []):
+                        _p = _b.get('id') or _b.get('file_path') or _b.get('novel_id') or ""
+                        if not _p:
+                            continue
+                        _rec = _src_map.get(os.path.abspath(_p))
+                        if _rec:
+                            _b['site_id'] = _rec.get('site_id')
+                            _b['novel_id'] = _rec.get('novel_id')
+                            # 书库适配记录缺 file_path，补回以便默认选中与合并使用
+                            if not _b.get('file_path'):
+                                _b['file_path'] = _rec.get('file_path') or _p
+
         self._current_index: int = 0       # 当前在第几组
         self._total_groups: int = len(self.groups)
 
@@ -350,12 +378,12 @@ class CrawlerMergeDetailDialog(ModalScreen[Dict[str, Any]]):
                     Button(self.i18n.t('merge_detail.sort_by_time'), id="sort-time-btn"),
                     Button(self.i18n.t('merge_detail.select_all'), id="select-all-btn"),
                     Button(self.i18n.t('merge_detail.deselect_all'), id="deselect-all-btn"),
+                    Button(self.i18n.t('merge_detail.smart_title'), id="smart-title-btn", variant="success"),
                     Button(self.i18n.t('crawler.search_chapters'), id="search-chapters-btn", variant="warning"),
                     Button(self.i18n.t('merge_detail.fill_missing'), id="fill-missing-btn", variant="primary"),
-                    Button(self.i18n.t('merge_detail.smart_title'), id="smart-title-btn", variant="success"),
                     id="sort-buttons",
                 ),
-                # 补缺操作行（默认隐藏）
+                # 补缺操作行（默认隐藏；书库合并模式下同样可用，按光标书籍反查来源站点）
                 Vertical(
                     Horizontal(
                         *([Button(self.i18n.t('crawler.select_books'), id="md-choose-books-btn")] if self.novel_site.get("selectable_enabled", True) else []),
@@ -657,8 +685,8 @@ class CrawlerMergeDetailDialog(ModalScreen[Dict[str, Any]]):
         table = self.query_one("#merge-detail-table", DataTable)
         return getattr(table, 'cursor_row', None)
 
-    def _get_cursor_book_id(self) -> Optional[int]:
-        """获取当前光标行的书籍 ID"""
+    def _get_cursor_book_id(self) -> Optional[str]:
+        """获取当前光标行的书籍 ID（原始值：爬取模式为整数主键，书库模式为文件路径字符串）"""
         table = self.query_one("#merge-detail-table", DataTable)
         cursor_row = getattr(table, 'cursor_row', None)
         if cursor_row is None or not (0 <= cursor_row < len(table.rows)):
@@ -668,10 +696,7 @@ class CrawlerMergeDetailDialog(ModalScreen[Dict[str, Any]]):
         val = str(key.value if hasattr(key, 'value') else key)
         if not val or val == 'None':
             return None
-        try:
-            return int(val)
-        except (ValueError, TypeError):
-            return None
+        return val
 
     def _toggle_current_row(self) -> None:
         """切换当前行的选中状态"""
@@ -680,9 +705,10 @@ class CrawlerMergeDetailDialog(ModalScreen[Dict[str, Any]]):
         if cursor_row is None or not (0 <= cursor_row < len(table.rows)):
             return
 
-        bid = self._get_cursor_book_id()
-        if bid is None:
+        book = self._get_cursor_book()
+        if book is None:
             return
+        bid = book.get('id')
         state = self._group_state[self._current_index]
         if bid in state['selected_ids']:
             state['selected_ids'].discard(bid)
@@ -1092,8 +1118,10 @@ class CrawlerMergeDetailDialog(ModalScreen[Dict[str, Any]]):
     def action_preview_book(self) -> None:
         """v键：预览当前光标所在行的书籍"""
         book = self._get_cursor_book()
-        if book is not None:
-            self._preview_book(book)
+        if book is None:
+            self.notify(self.i18n.t('batch_ops.no_selected_rows'), severity="warning", timeout=2)
+            return
+        self._preview_book(book)
 
     def action_delete_book(self) -> None:
         """d键：删除当前光标所在行的书籍"""
@@ -1143,7 +1171,7 @@ class CrawlerMergeDetailDialog(ModalScreen[Dict[str, Any]]):
         if bid is None:
             return None
         state = self._group_state[self._current_index]
-        return next((b for b in state['books'] if b.get('id') == bid), None)
+        return next((b for b in state['books'] if str(b.get('id')) == bid), None)
 
     @on(DataTable.HeaderSelected, "#merge-detail-table")
     def on_data_table_header_selected(self, event: DataTable.HeaderSelected) -> None:
@@ -1192,12 +1220,8 @@ class CrawlerMergeDetailDialog(ModalScreen[Dict[str, Any]]):
             bid_str = event.cell_key.row_key.value or ""
             if not bid_str:
                 return
-            try:
-                bid = int(bid_str)
-            except ValueError:
-                return
             state = self._group_state[self._current_index]
-            book = next((b for b in state['books'] if b.get('id') == bid), None)
+            book = next((b for b in state['books'] if str(b.get('id')) == bid_str), None)
             if not book:
                 return
 
@@ -1440,12 +1464,20 @@ class CrawlerMergeDetailDialog(ModalScreen[Dict[str, Any]]):
 
     @on(Button.Pressed, "#fill-missing-btn")
     def on_fill_missing_btn(self) -> None:
-        """补缺按钮"""
+        """补缺按钮（书库模式先按光标书籍反查来源站点）"""
+        if self.library_mode and not self.novel_site:
+            site, _ = self._resolve_library_source()
+            if site:
+                self.novel_site = site
         self._toggle_fill_missing()
 
     @on(Button.Pressed, "#search-chapters-btn")
     def on_search_chapters_btn(self) -> None:
-        """搜索章节按钮（位于补缺按钮前）"""
+        """搜索章节按钮（书库模式先按光标书籍反查来源站点）"""
+        if self.library_mode and not self.novel_site:
+            site, _ = self._resolve_library_source()
+            if site:
+                self.novel_site = site
         self._open_search_chapters()
 
     def _get_crawler_manager(self):
@@ -1651,8 +1683,13 @@ class CrawlerMergeDetailDialog(ModalScreen[Dict[str, Any]]):
         except Exception:
             pass
 
-    def _start_crawl(self) -> None:
-        """开始爬取"""
+    def _start_crawl(self, novel_ids_override: Optional[List[str]] = None) -> None:
+        """开始爬取
+
+        Args:
+            novel_ids_override: 书库合并模式下直接指定要爬取的小说ID列表，
+                绕过隐藏的书籍ID输入框（书库模式下该输入框不渲染）。
+        """
         if not self.novel_site:
             self.notify(self.i18n.t('crawler.no_site_id'), severity="warning", timeout=2)
             return
@@ -1661,22 +1698,30 @@ class CrawlerMergeDetailDialog(ModalScreen[Dict[str, Any]]):
             return
 
         try:
-            novel_id_input = self.query_one("#md-novel-id-input", Input)
-            novel_ids_input = novel_id_input.value.strip()
-            if not novel_ids_input:
-                # 输入框为空：进入等待模式，等待浏览器监听自动填入书籍ID后自动开始爬取
-                self._waiting_for_id = True
-                self._update_crawl_button_state()
-                self.notify(self.i18n.t('crawler.waiting_for_id'), timeout=2)
-                return
+            if novel_ids_override is not None:
+                # 书库模式：直接使用解析出的来源小说ID，无需输入框
+                novel_ids = [str(x).strip() for x in novel_ids_override if str(x).strip()]
+            else:
+                novel_id_input = self.query_one("#md-novel-id-input", Input)
+                novel_ids_input = novel_id_input.value.strip()
+                if not novel_ids_input:
+                    # 输入框为空：进入等待模式，等待浏览器监听自动填入书籍ID后自动开始爬取
+                    self._waiting_for_id = True
+                    self._update_crawl_button_state()
+                    self.notify(self.i18n.t('crawler.waiting_for_id'), timeout=2)
+                    return
 
-            from urllib.parse import unquote
-            novel_ids = [unquote(id.strip()) for id in novel_ids_input.split(',') if id.strip()]
+                from urllib.parse import unquote
+                novel_ids = [unquote(id.strip()) for id in novel_ids_input.split(',') if id.strip()]
+                if not novel_ids:
+                    # 输入框内容无有效ID：同样进入等待模式
+                    self._waiting_for_id = True
+                    self._update_crawl_button_state()
+                    self.notify(self.i18n.t('crawler.waiting_for_id'), timeout=2)
+                    return
+
             if not novel_ids:
-                # 输入框内容无有效ID：同样进入等待模式
-                self._waiting_for_id = True
-                self._update_crawl_button_state()
-                self.notify(self.i18n.t('crawler.waiting_for_id'), timeout=2)
+                self.notify(self.i18n.t('crawler.enter_novel_id'), severity="warning", timeout=2)
                 return
 
             site_id = self.novel_site.get('id')
@@ -2009,6 +2054,16 @@ class CrawlerMergeDetailDialog(ModalScreen[Dict[str, Any]]):
     def _start_browser_monitor(self) -> None:
         """开始监听"""
         try:
+            if not self.novel_site:
+                self.notify(self.i18n.t('crawler.no_site_id'), severity="warning", timeout=2)
+                return
+            if self.library_mode and self.browser_monitor:
+                # 书库模式来源站点随光标书籍变化，需先停掉并按当前站点重建监听器
+                try:
+                    self.browser_monitor.stop_monitoring()
+                except Exception:
+                    pass
+                self.browser_monitor = None
             if not self.browser_monitor:
                 self._init_browser_monitor()
             if not self.browser_monitor:
@@ -2088,6 +2143,11 @@ class CrawlerMergeDetailDialog(ModalScreen[Dict[str, Any]]):
 
     @on(Button.Pressed, "#md-toggle-crawl-btn")
     def on_md_toggle_crawl(self) -> None:
+        if self.library_mode and not self.is_crawling and not self._waiting_for_id:
+            # 书库模式按当前光标书籍反查来源站点，与分组按钮行为一致
+            site, _ = self._resolve_library_source()
+            if site:
+                self.novel_site = site
         if self._waiting_for_id:
             # 等待书籍ID模式下再次点击：取消等待
             self._stop_crawl()
@@ -2102,6 +2162,11 @@ class CrawlerMergeDetailDialog(ModalScreen[Dict[str, Any]]):
 
     @on(Button.Pressed, "#md-toggle-monitor-btn")
     def on_md_toggle_monitor(self) -> None:
+        if self.library_mode and not self.browser_monitor_active:
+            # 书库模式按当前光标书籍反查来源站点，与分组按钮行为一致
+            site, _ = self._resolve_library_source()
+            if site:
+                self.novel_site = site
         self._toggle_browser_monitor()
 
     @on(Button.Pressed, "#md-refresh-window-btn")
@@ -2247,10 +2312,63 @@ class CrawlerMergeDetailDialog(ModalScreen[Dict[str, Any]]):
 
     def action_select_books(self) -> None:
         """X键：选择书籍"""
+        if self.library_mode:
+            self.notify(self.i18n.t('merge_detail.crawler_feature_unavailable'), severity="warning", timeout=2)
+            return
         self._open_select_books_dialog()
 
+    def _resolve_library_source(self) -> tuple:
+        """书库合并模式：根据当前光标书籍解析其来源站点配置与 novel_id。
+
+        书库书籍本身不保存来源站点信息（Book 仅有 path/title 等），但其在
+        crawl_history 表中留有记录（file_path 与书库路径一致，重命名/整理/迁移时
+        也会同步），据此反查可还原来源站点（含 search_url、解析器、代理等）与
+        真实 novel_id。返回 (site_config, novel_id)；无来源记录时 site_config 为 None。
+        """
+        if not self.library_mode:
+            return (self.novel_site or {}, None)
+        book = self._get_cursor_book()
+        if not book:
+            return (None, None)
+        site_id = book.get('site_id')
+        novel_id = book.get('novel_id')
+        # 书库模式下 book 的 id/novel_id 被适配为文件路径占位（非空，但不能当作真实
+        # 小说ID使用），需按文件路径反查 crawl_history 还原真实来源站点与 novel_id。
+        # 只要反查命中，就用记录里的真实值覆盖占位值（不能用 not novel_id 判断，
+        # 否则路径占位会让 novel_id 永远得不到覆盖，导致输入框/爬取用了路径）。
+        path = book.get('id') or book.get('file_path') or book.get('novel_id') or ""
+        if self.db_manager and path:
+            try:
+                rows = self.db_manager.get_crawl_history_by_file_path(path)
+            except Exception as e:
+                logger.debug(f"书库模式按路径反查爬取历史失败: {e}")
+                rows = []
+            if rows:
+                # 优先取最新一条成功记录，否则取首条
+                best: Optional[Dict[str, Any]] = None
+                for r in rows:
+                    if r.get('status') == 'success':
+                        best = r
+                        break
+                best = best or rows[0]
+                site_id = best.get('site_id')
+                novel_id = best.get('novel_id')
+        site: Optional[Dict[str, Any]] = None
+        if site_id and self.db_manager:
+            try:
+                site = self.db_manager.get_novel_site_by_id(site_id)
+            except Exception as e:
+                logger.debug(f"书库模式解析来源站点失败: {e}")
+                site = None
+        return (site, novel_id)
+
     def action_toggle_crawl(self) -> None:
-        """s键：开始/停止爬取"""
+        """s键：开始/停止爬取（书库模式按当前光标书籍反查来源站点，再走与分组一致的标准流程）"""
+        if self.library_mode and not self.is_crawling and not self._waiting_for_id:
+            # 书库模式来源站点随光标书籍变化，以当前书籍为准（覆盖可能过期的旧站点）
+            site, _ = self._resolve_library_source()
+            if site:
+                self.novel_site = site
         if self._waiting_for_id:
             # 等待书籍ID模式下再次点击：取消等待
             self._stop_crawl()
@@ -2260,7 +2378,12 @@ class CrawlerMergeDetailDialog(ModalScreen[Dict[str, Any]]):
             self._start_crawl()
 
     def action_toggle_monitor(self) -> None:
-        """e键：开始/停止监听"""
+        """e键：开始/停止监听（书库模式按当前光标书籍反查来源站点，再走与分组一致的标准流程）"""
+        if self.library_mode and not self.browser_monitor_active:
+            # 书库模式来源站点随光标书籍变化，以当前书籍为准（覆盖可能过期的旧站点）
+            site, _ = self._resolve_library_source()
+            if site:
+                self.novel_site = site
         self._toggle_browser_monitor()
 
     def action_smart_title(self) -> None:
@@ -2268,11 +2391,29 @@ class CrawlerMergeDetailDialog(ModalScreen[Dict[str, Any]]):
         self._apply_smart_title()
 
     def action_fill_missing(self) -> None:
-        """f键：补缺"""
+        """f键：补缺（书库模式复用合并详情页每组的内嵌补缺功能）"""
+        if self.library_mode:
+            site, _ = self._resolve_library_source()
+            if not site:
+                self.notify(self.i18n.t('crawler.no_site_id'), severity="warning", timeout=2)
+                return
+            # 复用合并详情页每组的补缺功能：设置来源站点并展开内嵌补缺行，
+            # 输入框保持为空，由用户手动输入小说ID（与合并详情页每组补缺一致）。
+            self.novel_site = site
+            self._toggle_fill_missing()
+            return
         self._toggle_fill_missing()
 
     def action_search_chapters(self) -> None:
         """S键：搜索章节（使用网站配置的搜索连接地址）"""
+        if self.library_mode:
+            site, _ = self._resolve_library_source()
+            if not site:
+                self.notify(self.i18n.t('crawler.no_site_id'), severity="warning", timeout=2)
+                return
+            self.novel_site = site
+            self._open_search_chapters()
+            return
         self._open_search_chapters()
 
     def action_view_current_file(self) -> None:

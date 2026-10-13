@@ -384,7 +384,20 @@
     "cancel_merge": "Cancel Merge",
     "merge_submitted": "Merge Submitted",
     "no_data": "No Data",
-    "no_selected_rows": "No rows selected"
+    "no_selected_rows": "No rows selected",
+    "merge_mode": "Merge Mode",
+    "shortcut_z": "Merge Mode (All Library)"
+  },
+  "batch_merge": {
+    "title": "Merge Mode",
+    "full_title": "Merge Mode",
+    "full_scope": "Scope: all books in library (total {count} books)",
+    "scanning_all": "Scanning all books in library (total {count} books)...",
+    "scan_progress": "Scanning library books: analyzed {done}/{total} titles",
+    "scan_failed": "Library scan failed: {error}",
+    "summary": "Found {group_count} book groups, involving {book_count} books",
+    "no_groups": "No mergeable book groups found",
+    "status": "Selected {selected_groups}/{total_groups} groups, {selected_books} books total"
   },
   "search": {
     "title": "Search",
@@ -1611,6 +1624,8 @@
     "col_book_count": "Records",
     "col_date": "Date Range",
     "col_type": "Group Type",
+    "col_skip": "Skip",
+    "skip_group": "Skip Current Group",
     "select_all": "Select All",
     "deselect_all": "Deselect All",
     "invert_selection": "Invert",
@@ -1706,7 +1721,8 @@
     "copy_title": "Copy Title",
     "preview": "Preview",
     "delete_current": "Delete Row",
-    "batch_delete_unmarked": "Deleted {count} unmarked items"
+    "batch_delete_unmarked": "Deleted {count} unmarked items",
+    "crawler_feature_unavailable": "Not available in library merge mode (crawler merge mode only)"
   },
   "fill_missing": {
     "title": "🔧 Fill Missing",

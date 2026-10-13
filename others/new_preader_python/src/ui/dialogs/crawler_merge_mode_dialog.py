@@ -469,6 +469,7 @@ class CrawlerMergeModeDialog(ModalScreen[Dict[str, Any]]):
         ("space", "toggle_row", get_global_i18n().t('batch_ops.toggle_row')),
         ("a", "toggle_select_all", get_global_i18n().t('batch_ops.select_all')),
         ("r", "invert_selection", get_global_i18n().t('merge_mode.invert_selection')),
+        ("s", "skip_group", get_global_i18n().t('merge_mode.skip_group')),
         ("y", "copy_title", get_global_i18n().t('merge_detail.copy_title')),
     ]
 
@@ -476,14 +477,15 @@ class CrawlerMergeModeDialog(ModalScreen[Dict[str, Any]]):
         self,
         theme_manager: ThemeManager,
         all_history: List[Dict[str, Any]],
-        db_manager: DatabaseManager,
-        site_id: int,
+        db_manager: Optional[DatabaseManager] = None,
+        site_id: int = 0,
         site_name: str = "",
         min_date: str = "",
         max_date: str = "",
         novel_site: Optional[Dict[str, Any]] = None,
         parser_override: Optional[str] = None,
         full_scan: bool = False,
+        library_mode: bool = False,
         **kwargs,
     ) -> None:
         # DatePickerDialog 原生 CSS 有 layer: dialog + display:none。
@@ -650,6 +652,8 @@ class CrawlerMergeModeDialog(ModalScreen[Dict[str, Any]]):
         self.novel_site = novel_site or {}
         # 全合并模式：排查该网站下所有书籍（不按日期筛选）
         self.full_scan = full_scan
+        # 书库合并模式：不限定书籍网站，排查书库中的全部书籍
+        self.library_mode = library_mode
         # 全站排查任务的取消标记
         self._scan_cancelled = False
         # 当前爬取使用的解析器（来自主界面用户选择，None 时由站点默认决定）
@@ -677,6 +681,8 @@ class CrawlerMergeModeDialog(ModalScreen[Dict[str, Any]]):
         # 分组结果（初始为空，on_mount 时加载）
         self.groups: List[BookGroup] = []
         self._selected_group_ids: Set[int] = set()
+        # 在第一层分组列表直接标记跳过的整组（不参与合并，区别于取消勾选的视觉标记）
+        self._skipped_group_ids: Set[int] = set()
         self._total_books: int = 0
 
     def compose(self) -> ComposeResult:
@@ -684,16 +690,16 @@ class CrawlerMergeModeDialog(ModalScreen[Dict[str, Any]]):
             Vertical(
                 # 标题
                 Label(
-                    f"📑 {self.i18n.t('merge_mode.full_title' if self.full_scan else 'merge_mode.title')} — {self.site_name}",
+                    f"📑 {self.i18n.t('batch_merge.full_title' if self.library_mode else ('merge_mode.full_title' if self.full_scan else 'merge_mode.title'))} — {self.site_name}",
                     id="merge-mode-title",
                 ),
-                # 全合并模式不提供日期筛选：直接排查该网站下的全部书籍
+                # 全合并/书库模式不提供日期筛选：直接排查全部书籍
                 (
                     Label(
-                        self.i18n.t('merge_mode.full_scope', count=len(self.all_history)),
+                        self.i18n.t('batch_merge.full_scope' if self.library_mode else 'merge_mode.full_scope', count=len(self.all_history)),
                         id="merge-mode-full-scope",
                     )
-                    if self.full_scan
+                    if (self.full_scan or self.library_mode)
                     else Horizontal(
                         Label(self.i18n.t('merge_mode.date_filter'), classes="date-filter-label"),
                         Label(self.i18n.t('merge_mode.date_start'), classes="date-sub-label"),
@@ -715,6 +721,7 @@ class CrawlerMergeModeDialog(ModalScreen[Dict[str, Any]]):
                     Button(self.i18n.t('merge_mode.select_all'), id="select-all-btn"),
                     Button(self.i18n.t('merge_mode.deselect_all'), id="deselect-all-btn"),
                     Button(self.i18n.t('merge_mode.invert_selection'), id="invert-btn"),
+                    Button(self.i18n.t('merge_mode.skip_group'), id="skip-group-btn", variant="warning"),
                     Button(self.i18n.t('merge_mode.merge_selected'), id="confirm-merge-btn", variant="primary"),
                     Button(self.i18n.t('common.cancel'), id="cancel-btn"),
                     id="merge-mode-buttons",
@@ -764,6 +771,7 @@ class CrawlerMergeModeDialog(ModalScreen[Dict[str, Any]]):
         table.add_column(self.i18n.t('merge_mode.col_book_count'), width=10)
         table.add_column(self.i18n.t('merge_mode.col_date'), width=22)
         table.add_column(self.i18n.t('merge_mode.col_type'), width=12)
+        table.add_column(self.i18n.t('merge_mode.col_skip'), width=8)
 
         if self.full_scan:
             # 全合并模式：后台线程排查全站所有书籍（数据量大，避免阻塞 UI）
@@ -911,14 +919,16 @@ class CrawlerMergeModeDialog(ModalScreen[Dict[str, Any]]):
                     logger.debug(f"分组进度回调失败: {e}")
 
             if ignore_date:
-                # 全站排查：all_history 已含该网站全部记录，用 2-gram 倒排索引
+                # 全站/书库排查：all_history 已含全部记录，用 2-gram 倒排索引
                 # 做候选筛选后再精确校验，避免「核心书名 × 全部记录」的全量子串扫描
                 # 以及逐条 LIKE 查询
                 books = self._match_books_by_core(core, title_index)
-            else:
+            elif self.db_manager is not None:
                 books = self.db_manager.search_crawl_history_by_title(
                     self.site_id, core
                 )
+            else:
+                books = []
             if not books:
                 # 兜底：子串搜不到时，用「规范化后完全等于该核心书名」的记录。
                 # 这里直接复用 Step1 建好的映射，避免对全部记录重新做一次规范化
@@ -1028,6 +1038,7 @@ class CrawlerMergeModeDialog(ModalScreen[Dict[str, Any]]):
         if groups is None:
             self.groups = []
             self._selected_group_ids = set()
+            self._skipped_group_ids = set()
             self._total_books = 0
             self._refresh_display()
             self.notify(
@@ -1048,6 +1059,7 @@ class CrawlerMergeModeDialog(ModalScreen[Dict[str, Any]]):
 
         if not self.groups:
             self._selected_group_ids = set()
+            self._skipped_group_ids = set()
             self._total_books = 0
             self._refresh_display()
             if notify_empty:
@@ -1062,13 +1074,13 @@ class CrawlerMergeModeDialog(ModalScreen[Dict[str, Any]]):
     # ─── 全合并模式：全站排查 ───────────────────────────────
 
     def _scan_all_groups_async(self) -> None:
-        """全合并模式：后台线程排查该网站下所有书籍并分组（数据量大，避免 UI 卡死）"""
+        """全合并/书库模式：后台线程排查全部书籍并分组（数据量大，避免 UI 卡死）"""
         app = self.app
         self._scan_cancelled = False
 
         try:
             self.query_one("#merge-mode-summary", Label).update(
-                self.i18n.t('merge_mode.scanning_all', count=len(self.all_history))
+                self.i18n.t('batch_merge.scanning_all' if self.library_mode else 'merge_mode.scanning_all', count=len(self.all_history))
             )
         except Exception as e:
             logger.debug(f"更新全站排查提示失败: {e}")
@@ -1077,13 +1089,13 @@ class CrawlerMergeModeDialog(ModalScreen[Dict[str, Any]]):
             try:
                 app.call_from_thread(
                     self._update_scan_status,
-                    self.i18n.t('merge_mode.scan_progress', done=done, total=total),
+                    self.i18n.t('batch_merge.scan_progress' if self.library_mode else 'merge_mode.scan_progress', done=done, total=total),
                 )
             except Exception:
                 pass
 
         def _scan_worker() -> None:
-            """后台线程：执行全站排查"""
+            """后台线程：执行全量排查"""
             try:
                 groups = self._build_groups(
                     self._start_date,
@@ -1096,7 +1108,7 @@ class CrawlerMergeModeDialog(ModalScreen[Dict[str, Any]]):
                     return
                 app.call_from_thread(self._apply_scan_result, groups)
             except Exception as e:
-                logger.error(f"全站排查失败: {e}")
+                logger.error(f"全量排查失败: {e}")
                 logger.debug(traceback.format_exc())
                 if self._scan_cancelled:
                     return
@@ -1118,7 +1130,7 @@ class CrawlerMergeModeDialog(ModalScreen[Dict[str, Any]]):
         groups: Optional[List[BookGroup]],
         error: Optional[str] = None,
     ) -> None:
-        """全站排查结束后把结果应用到界面（主线程）"""
+        """全量排查结束后把结果应用到界面（主线程）"""
         if not self.is_attached:
             return
 
@@ -1129,7 +1141,7 @@ class CrawlerMergeModeDialog(ModalScreen[Dict[str, Any]]):
                 self._total_books = 0
                 self._refresh_display()
                 self.notify(
-                    self.i18n.t('merge_mode.scan_failed', error=error),
+                    self.i18n.t('batch_merge.scan_failed' if self.library_mode else 'merge_mode.scan_failed', error=error),
                     severity="error",
                     timeout=5,
                 )
@@ -1140,7 +1152,7 @@ class CrawlerMergeModeDialog(ModalScreen[Dict[str, Any]]):
                 self._selected_group_ids = set()
                 self._total_books = 0
                 self._refresh_display()
-                self.notify(self.i18n.t('merge_mode.no_groups'), severity="information")
+                self.notify(self.i18n.t('batch_merge.no_groups' if self.library_mode else 'merge_mode.no_groups'), severity="information")
                 return
 
             self._selected_group_ids = set(g.group_id for g in self.groups if g.is_selected)
@@ -1148,7 +1160,7 @@ class CrawlerMergeModeDialog(ModalScreen[Dict[str, Any]]):
             self._refresh_display()
             self.notify(
                 self.i18n.t(
-                    'merge_mode.summary',
+                    'batch_merge.summary' if self.library_mode else 'merge_mode.summary',
                     group_count=len(self.groups),
                     book_count=self._total_books,
                 ),
@@ -1156,18 +1168,18 @@ class CrawlerMergeModeDialog(ModalScreen[Dict[str, Any]]):
                 timeout=3,
             )
         except Exception as e:
-            logger.debug(f"应用全站排查结果失败: {e}")
+            logger.debug(f"应用全量排查结果失败: {e}")
 
     def _refresh_display(self) -> None:
         """刷新摘要、表格、提示和状态"""
         # 统计摘要
         summary = self.query_one("#merge-mode-summary", Label)
         if self.groups:
-            if self.full_scan:
-                # 全合并模式：无日期范围，只展示分组与涉及记录数
+            if self.full_scan or self.library_mode:
+                # 全合并/书库模式：无日期范围，只展示分组与涉及书籍数
                 summary.update(
                     self.i18n.t(
-                        'merge_mode.summary',
+                        'batch_merge.summary' if self.library_mode else 'merge_mode.summary',
                         group_count=len(self.groups),
                         book_count=sum(g.book_count for g in self.groups),
                     )
@@ -1228,6 +1240,7 @@ class CrawlerMergeModeDialog(ModalScreen[Dict[str, Any]]):
                 selected_groups=selected,
                 total_groups=len(self.groups),
                 selected_books=total_books,
+                skipped_groups=len(self._skipped_group_ids),
             )
         )
 
@@ -1237,8 +1250,11 @@ class CrawlerMergeModeDialog(ModalScreen[Dict[str, Any]]):
         table.clear()
 
         for group in self.groups:
-            is_sel = group.group_id in self._selected_group_ids
+            is_skipped = group.group_id in self._skipped_group_ids
+            # 跳过优先于选中：被标记跳过的组不显示为已选
+            is_sel = (group.group_id in self._selected_group_ids) and not is_skipped
             check_mark = "☑" if is_sel else "☐"
+            skip_mark = self.i18n.t('merge_mode.col_skip') if is_skipped else ""
             type_label = "章节合集" if group.is_auto_same_book else "相似书籍"
 
             table.add_row(
@@ -1247,6 +1263,7 @@ class CrawlerMergeModeDialog(ModalScreen[Dict[str, Any]]):
                 str(group.book_count),
                 group.date_range,
                 type_label,
+                skip_mark,
                 key=str(group.group_id),
             )
 
@@ -1266,7 +1283,11 @@ class CrawlerMergeModeDialog(ModalScreen[Dict[str, Any]]):
             if row_key is None:
                 return
             group_id = int(str(row_key.value if hasattr(row_key, 'value') else row_key))
-            if group_id in self._selected_group_ids:
+            if group_id in self._skipped_group_ids:
+                # 已跳过：取消跳过并标记为选中（空格=想要合并）
+                self._skipped_group_ids.discard(group_id)
+                self._selected_group_ids.add(group_id)
+            elif group_id in self._selected_group_ids:
                 self._selected_group_ids.discard(group_id)
             else:
                 self._selected_group_ids.add(group_id)
@@ -1287,6 +1308,35 @@ class CrawlerMergeModeDialog(ModalScreen[Dict[str, Any]]):
             self._update_status()
         except (ValueError, IndexError) as e:
             logger.debug(f"切换行失败: {e}")
+
+    def _toggle_skip_current_row(self) -> None:
+        """在当前光标所在分组上切换「跳过」标记（不打开详情即可整组跳过）"""
+        table = self.query_one("#merge-group-table", DataTable)
+        if table.row_count == 0:
+            return
+
+        try:
+            cursor_row = getattr(table, 'cursor_row', None)
+            if cursor_row is None or not (0 <= cursor_row < len(table.rows)):
+                return
+
+            row_keys = list(table.rows.keys())
+            row_key = row_keys[cursor_row]
+            if row_key is None:
+                return
+            group_id = int(str(row_key.value if hasattr(row_key, 'value') else row_key))
+
+            if group_id in self._skipped_group_ids:
+                self._skipped_group_ids.discard(group_id)
+            else:
+                self._skipped_group_ids.add(group_id)
+                # 跳过优先于选中：标记跳过后从选中集合移除
+                self._selected_group_ids.discard(group_id)
+
+            self._refresh_table()
+            self._update_status()
+        except (ValueError, IndexError) as e:
+            logger.debug(f"跳过分组失败: {e}")
 
     def _copy_focused_group_title(self) -> None:
         """复制当前光标所在行的书籍名称到剪贴板"""
@@ -1344,25 +1394,33 @@ class CrawlerMergeModeDialog(ModalScreen[Dict[str, Any]]):
 
     @on(Button.Pressed, "#select-all-btn")
     def on_select_all(self) -> None:
-        """全选"""
-        self._selected_group_ids = set(g.group_id for g in self.groups)
+        """全选（跳过组不参与选中）"""
+        self._selected_group_ids = set(
+            g.group_id for g in self.groups
+            if g.group_id not in self._skipped_group_ids
+        )
         self._refresh_table()
         self._update_status()
 
     @on(Button.Pressed, "#deselect-all-btn")
     def on_deselect_all(self) -> None:
-        """取消全选"""
+        """取消全选（保留跳过标记）"""
         self._selected_group_ids.clear()
         self._refresh_table()
         self._update_status()
 
     @on(Button.Pressed, "#invert-btn")
     def on_invert_selection(self) -> None:
-        """反选"""
-        all_ids = set(g.group_id for g in self.groups)
+        """反选（在未被跳过的组中取反）"""
+        all_ids = set(g.group_id for g in self.groups) - self._skipped_group_ids
         self._selected_group_ids = all_ids - self._selected_group_ids
         self._refresh_table()
         self._update_status()
+
+    @on(Button.Pressed, "#skip-group-btn")
+    def on_skip_group(self) -> None:
+        """底部按钮：跳过当前光标所在分组"""
+        self.action_skip_group()
 
     @on(Button.Pressed, "#confirm-merge-btn")
     def on_confirm_merge(self) -> None:
@@ -1374,6 +1432,7 @@ class CrawlerMergeModeDialog(ModalScreen[Dict[str, Any]]):
         selected_groups = [
             g for g in self.groups
             if g.group_id in self._selected_group_ids
+            and g.group_id not in self._skipped_group_ids
         ]
 
         if not selected_groups:
@@ -1411,7 +1470,14 @@ class CrawlerMergeModeDialog(ModalScreen[Dict[str, Any]]):
                 })
 
         self.app.push_screen(
-            CrawlerMergeDetailDialog(self.theme_manager, group_data, self.db_manager, novel_site=self.novel_site, parser_override=self.parser_override),
+            CrawlerMergeDetailDialog(
+                self.theme_manager,
+                group_data,
+                self.db_manager,
+                novel_site=self.novel_site,
+                parser_override=self.parser_override,
+                library_mode=self.library_mode,
+            ),
             handle_detail_result,
         )
 
@@ -1446,6 +1512,10 @@ class CrawlerMergeModeDialog(ModalScreen[Dict[str, Any]]):
     def action_invert_selection(self) -> None:
         """r键：反选"""
         self.on_invert_selection()
+
+    def action_skip_group(self) -> None:
+        """s键：跳过/取消跳过当前光标所在分组"""
+        self._toggle_skip_current_row()
 
     def action_copy_title(self) -> None:
         """y键：复制当前行书名"""

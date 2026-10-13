@@ -2487,6 +2487,96 @@ class DatabaseManager:
             logger.error(f"添加爬取历史记录失败: {e}")
             return False
 
+    def get_crawl_history_by_file_path(self, file_path: str) -> List[Dict[str, Any]]:
+        """
+        按文件路径反查爬取历史记录（书库合并模式用于从书籍恢复来源站点与 novel_id）。
+
+        书库书籍本身不保存来源站点信息，但其文件路径与爬取历史记录的 file_path
+        一致（爬虫直接存入书库分层目录，重命名/整理/迁移时也会同步更新该字段）。
+        优先精确匹配绝对路径，失败则按文件名兜底匹配。
+
+        Args:
+            file_path: 书籍文件路径
+
+        Returns:
+            List[Dict[str, Any]]: 匹配到的爬取历史记录（按爬取时间倒序）
+        """
+        try:
+            norm = os.path.abspath(file_path) if file_path else ""
+            base = os.path.basename(norm) if norm else ""
+            with sqlite3.connect(self.db_path) as conn:
+                conn.row_factory = sqlite3.Row
+                cursor = conn.cursor()
+                rows: List[Dict[str, Any]] = []
+                if norm:
+                    cursor.execute(
+                        "SELECT * FROM crawl_history WHERE file_path = ? ORDER BY crawl_time DESC",
+                        (norm,),
+                    )
+                    rows = [dict(r) for r in cursor.fetchall()]
+                if not rows and base:
+                    cursor.execute(
+                        "SELECT * FROM crawl_history WHERE file_path LIKE ? ORDER BY crawl_time DESC",
+                        (f"%{base}",),
+                    )
+                    rows = [dict(r) for r in cursor.fetchall()]
+                return rows
+        except sqlite3.Error as e:
+            logger.error(f"按文件路径反查爬取历史记录失败: {e}")
+            return []
+
+    def get_crawl_history_source_map(self, paths: List[str]) -> Dict[str, Dict[str, Any]]:
+        """
+        批量反查：给定一组文件路径，返回 绝对路径 -> {site_id, novel_id}。
+
+        书库模式下书籍本身不保存来源信息，其 group 记录的 novel_id 为文件路径占位，
+        需批量从 crawl_history 还原真实来源站点与小说ID（供复制ID、爬取、补缺、搜索等使用）。
+        优先精确匹配绝对路径，失败按文件名兜底；同一路径多条记录优先取 success。
+
+        Args:
+            paths: 书籍文件路径列表
+
+        Returns:
+            Dict[str, Dict[str, Any]]: key 为输入路径的 abspath，value 含 site_id/novel_id
+        """
+        result: Dict[str, Dict[str, Any]] = {}
+        if not paths:
+            return result
+        try:
+            norm_paths = [os.path.abspath(p) for p in paths if p]
+            with sqlite3.connect(self.db_path) as conn:
+                conn.row_factory = sqlite3.Row
+                cursor = conn.cursor()
+                cursor.execute(
+                    "SELECT file_path, site_id, novel_id, status FROM crawl_history WHERE file_path <> ''"
+                )
+                exact: Dict[str, Dict[str, Any]] = {}
+                by_base: Dict[str, Dict[str, Any]] = {}
+                for r in cursor.fetchall():
+                    fp = r["file_path"] or ""
+                    rec = {"site_id": r["site_id"], "novel_id": r["novel_id"], "status": r["status"]}
+                    norm = os.path.abspath(fp) if fp else ""
+                    if norm:
+                        if norm not in exact or (
+                            rec["status"] == "success" and exact[norm]["status"] != "success"
+                        ):
+                            exact[norm] = rec
+                    base = os.path.basename(norm) if norm else ""
+                    if base:
+                        if base not in by_base or (
+                            rec["status"] == "success" and by_base[base]["status"] != "success"
+                        ):
+                            by_base[base] = rec
+            for p in norm_paths:
+                rec = exact.get(p)
+                if not rec:
+                    rec = by_base.get(os.path.basename(p))
+                if rec:
+                    result[p] = {"site_id": rec["site_id"], "novel_id": rec["novel_id"]}
+        except sqlite3.Error as e:
+            logger.error(f"批量反查爬取历史来源失败: {e}")
+        return result
+
     def get_crawl_history_by_site(self, site_id: int, limit: Optional[int] = None) -> List[Dict[str, Any]]:
         """
         获取指定网站的爬取历史记录

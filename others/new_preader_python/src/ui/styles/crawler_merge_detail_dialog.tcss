@@ -179,6 +179,7 @@ CrawlerMergeDetailDialog Container, #merge-detail-container {
 
 #move-to-pos-input {
     width: 15;
+    height: 3;
     margin-bottom: 2;
     background: $accent;
 }

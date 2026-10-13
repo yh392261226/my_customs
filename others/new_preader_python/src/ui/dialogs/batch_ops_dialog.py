@@ -493,6 +493,7 @@ class BatchOpsDialog(ModalScreen[Dict[str, Any]]):
         ("r", "delete_selected", get_global_i18n().t('batch_ops.shortcut_r')),
         ("R", "remove_missing", get_global_i18n().t('batch_ops.shortcut_R')),
         ("v", "preview_book", get_global_i18n().t('batch_ops.shortcut_v')),
+        ("z", "merge_mode", get_global_i18n().t('batch_ops.shortcut_z')),
     ]
     # 支持的书籍文件扩展名（从配置文件读取）
     SUPPORTED_EXTENSIONS = set(SUPPORTED_FORMATS)
@@ -553,6 +554,7 @@ class BatchOpsDialog(ModalScreen[Dict[str, Any]]):
                     Button(get_global_i18n().t("batch_ops.move_up"), id="move-up-btn"),
                     Button(get_global_i18n().t("batch_ops.move_down"), id="move-down-btn"),
                     Button(get_global_i18n().t("batch_ops.merge"), id="merge-btn", variant="warning"),
+                    Button(get_global_i18n().t("batch_ops.merge_mode"), id="merge-mode-btn", variant="primary"),
                     Button(get_global_i18n().t("batch_ops.compare_read"), id="compare-read-btn", variant="success"),
                     Button(get_global_i18n().t("batch_ops.find_duplicates"), id="find-duplicates-btn", variant="primary"),
                     Button(get_global_i18n().t("bookshelf.batch_ops.set_author"), id="set-author-btn", variant="primary"),
@@ -1588,6 +1590,145 @@ class BatchOpsDialog(ModalScreen[Dict[str, Any]]):
         import asyncio
         asyncio.create_task(self._merge_selected_books())
 
+    def action_merge_mode(self) -> None:
+        """z键 - 合并模式（排查书库全部书籍，不限定网站）"""
+        self._open_batch_merge_mode()
+
+    def _open_batch_merge_mode(self) -> None:
+        """打开书库合并模式：排查书库中的全部书籍（不限定网站），分组后合并"""
+        try:
+            all_books = self.bookshelf.get_all_books()
+            if not all_books:
+                self.notify(get_global_i18n().t("batch_merge.no_groups"), severity="warning")
+                return
+
+            # 将书库书籍适配为合并模式所需的记录结构（不限定网站）
+            all_history: List[Dict[str, Any]] = []
+            for book in all_books:
+                if getattr(book, "file_not_found", False):
+                    continue
+                all_history.append({
+                    "novel_title": book.title or book.file_name,
+                    "id": book.path,
+                    "novel_id": book.path,
+                    "file_path": book.path,
+                    "crawl_time": getattr(book, "add_date", "") or "",
+                    "status": "success",
+                    "author": book.author,
+                    "size": book.size,
+                    "tags": book.tags,
+                    "format": book.format,
+                })
+
+            if not all_history:
+                self.notify(get_global_i18n().t("batch_merge.no_groups"), severity="warning")
+                return
+
+            from src.ui.dialogs.crawler_merge_mode_dialog import CrawlerMergeModeDialog
+
+            def handle_merge_result(result: Optional[Dict[str, Any]]) -> None:
+                # 无论取消还是完成都刷新列表（弹窗中可能删除了数据）
+                if not result or not result.get('success'):
+                    self._load_books()
+                    return
+                merged_groups = result.get('merged_groups', [])
+                pending_deletes = result.get('pending_deletes', [])
+                if not merged_groups and not pending_deletes:
+                    self._load_books()
+                    return
+                self._run_batch_merge(merged_groups, pending_deletes)
+
+            self.app.push_screen(
+                CrawlerMergeModeDialog(
+                    self.theme_manager,
+                    all_history,
+                    db_manager=self.bookshelf.db_manager,
+                    site_id=0,
+                    site_name=get_global_i18n().t("batch_ops.merge_mode"),
+                    full_scan=True,
+                    novel_site={},
+                    library_mode=True,
+                ),
+                handle_merge_result,
+            )
+        except Exception as e:
+            logger.error(f"打开书库合并模式失败: {e}")
+
+    def _run_batch_merge(
+        self,
+        merged_groups: List[Dict[str, Any]],
+        pending_deletes: List[Dict[str, Any]],
+    ) -> None:
+        """在后台线程执行书库合并与延迟删除，避免 UI 卡顿"""
+        app = self.app
+
+        def _worker() -> None:
+            total_merged = 0
+            total_failed = 0
+            total_deleted = 0
+            try:
+                for group_data in merged_groups:
+                    selected_books = group_data.get('selected_books', [])
+                    new_title = group_data.get('new_title', '')
+                    if len(selected_books) < 2:
+                        continue
+                    if new_title:
+                        new_title = new_title.replace('/', '').replace('\\', '').strip()
+                    file_paths = [b.get('file_path') for b in selected_books if b.get('file_path')]
+                    if len(file_paths) < 2:
+                        continue
+                    first = selected_books[0]
+                    author = first.get('author', '') or ""
+                    tags = first.get('tags', '') or ""
+                    try:
+                        new_book = self.bookshelf.merge_books(file_paths, new_title, author, tags)
+                        if new_book:
+                            total_merged += 1
+                            app.call_from_thread(
+                                self.notify,
+                                get_global_i18n().t('batch_ops.merge_success', title=new_title),
+                                timeout=2,
+                            )
+                        else:
+                            total_failed += 1
+                            app.call_from_thread(
+                                self.notify,
+                                get_global_i18n().t('batch_ops.merge_failed'),
+                                severity="error",
+                                timeout=3,
+                            )
+                    except Exception as ex:
+                        total_failed += 1
+                        logger.error(f"书库合并失败 [{new_title}]: {ex}")
+                        app.call_from_thread(
+                            self.notify,
+                            get_global_i18n().t('batch_ops.merge_failed'),
+                            severity="error",
+                            timeout=3,
+                        )
+
+                # 执行延迟删除（合并详情中标记为待删除、且未被合并的书籍）
+                for book in pending_deletes:
+                    try:
+                        fp = book.get('file_path')
+                        if fp and self.bookshelf.remove_book(fp, delete_file=True):
+                            total_deleted += 1
+                    except Exception as ex:
+                        logger.error(f"书库合并删除失败 {book.get('novel_title', '')}: {ex}")
+
+                parts = []
+                if total_merged or total_failed:
+                    parts.append(get_global_i18n().t('merge_mode.result', merged=total_merged, failed=total_failed))
+                if total_deleted > 0:
+                    parts.append(get_global_i18n().t('merge_mode.deleted_info', count=total_deleted))
+                if parts:
+                    app.call_from_thread(self.notify, "".join(parts), timeout=4)
+            finally:
+                app.call_from_thread(self._load_books)
+                app.call_from_thread(self.dismiss, {"refresh": True})
+
+        self.app.run_worker(_worker, name="batch-merge-worker", thread=True)
+
     def action_compare_read(self) -> None:
         """D键 - 对比阅读选中的书籍"""
         import asyncio
@@ -1646,6 +1787,8 @@ class BatchOpsDialog(ModalScreen[Dict[str, Any]]):
             self._move_selected_book_down()
         elif event.button.id == "merge-btn":
             await self._merge_selected_books()
+        elif event.button.id == "merge-mode-btn":
+            self._open_batch_merge_mode()
         elif event.button.id == "compare-read-btn":
             await self._compare_read_selected_books()
         elif event.button.id == "find-duplicates-btn":

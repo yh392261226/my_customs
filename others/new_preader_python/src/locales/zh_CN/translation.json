@@ -384,7 +384,20 @@
     "cancel_merge": "取消合并",
     "merge_submitted": "已提交合并",
     "no_data": "无数据",
-    "no_selected_rows": "未选择任何行"
+    "no_selected_rows": "未选择任何行",
+    "merge_mode": "合并模式",
+    "shortcut_z": "合并模式（全库）"
+  },
+  "batch_merge": {
+    "title": "合并模式",
+    "full_title": "合并模式",
+    "full_scope": "排查范围：书库全部书籍（共 {count} 本）",
+    "scanning_all": "正在排查书库全部书籍（共 {count} 本）...",
+    "scan_progress": "正在排查书库书籍：已分析 {done}/{total} 个书名",
+    "scan_failed": "书库排查失败：{error}",
+    "summary": "共检测到 {group_count} 个书籍分组，涉及 {book_count} 本书籍",
+    "no_groups": "未发现可合并的书籍分组",
+    "status": "已选 {selected_groups}/{total_groups} 组，共 {selected_books} 本书"
   },
   "search": {
     "title": "搜索",
@@ -1694,9 +1707,11 @@
     "col_book_count": "记录数",
     "col_date": "日期范围",
     "col_type": "分组类型",
+    "col_skip": "跳过",
     "select_all": "全选",
     "deselect_all": "取消全选",
     "invert_selection": "反选",
+    "skip_group": "跳过当前组",
     "merge_selected": "合并选中组",
     "no_selection": "请至少选择一个分组",
     "confirmed": "已确认合并 {group_count} 个分组",
@@ -1716,7 +1731,7 @@
     "deleted_info": "（删除 {count} 本）",
     "deleted_only": "已删除 {count} 本书籍",
     "error": "合并模式错误: {error}",
-    "status": "已选 {selected_groups}/{total_groups} 组，共 {selected_books} 本书",
+    "status": "已选 {selected_groups}/{total_groups} 组，共 {selected_books} 本书（已跳过 {skipped_groups} 组）",
     "date_filter": "日期筛选：",
     "date_start": "从",
     "date_end": "到",
@@ -1789,12 +1804,15 @@
     "new_books_added": "已添加 {count} 本新书籍到列表末尾，请人工确认是否选择",
     "copy_title": "复制标题",
     "preview": "预览",
-    "delete_current": "删除当前行"
+    "delete_current": "删除当前行",
+    "crawler_feature_unavailable": "书库合并模式不支持该功能（仅爬虫合并模式可用）"
   },
   "fill_missing": {
     "title": "🔧 补缺",
     "forward": "最前面",
     "backward": "最后面",
+    "front": "开头",
+    "back": "末尾",
     "pos_front": "最前面（插入到文件开头）",
     "pos_back": "最后面（追加到文件末尾）",
     "pos_line": "指定行号（插入到该行之后）",
