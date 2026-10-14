@@ -71,8 +71,8 @@ class WebReaderScreen(QuickIsolationMixin, Screen[None]):
         i18n = get_global_i18n()
         yield Header(time_format=None, show_clock=True, id="web-reader-header", name="web-reader-header")
         yield Container(
-            Label(i18n.t('web_reader.title'), id="wr-title"),
-            Label(i18n.t('web_reader.description'), id="wr-desc"),
+            # Label(i18n.t('web_reader.title'), id="wr-title"),
+            Label(i18n.t('web_reader.description'), id="wr-title"),
             # 顶部按钮行（参考欢迎页）
             Horizontal(
                 Button(i18n.t('web_reader.open_reader'), id="wr-open-reader-btn", variant="primary"),
