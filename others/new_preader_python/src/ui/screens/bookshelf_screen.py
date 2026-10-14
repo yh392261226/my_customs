@@ -4,6 +4,7 @@
 
 
 import os
+import re
 from typing import Dict, Any, Optional, List, ClassVar, Set
 from webbrowser import get
 from src.core import book
@@ -596,6 +597,9 @@ class BookshelfScreen(Screen[None]):
             
             # 支持多关键词搜索（逗号分隔，支持AND/OR逻辑）
             # 格式: "关键词1,关键词2" (OR逻辑) 或 "关键词1+关键词2" (AND逻辑)
+            # 智能拆分：除逗号/加号外，书名中常见的连接符号（. - _ —— 空格 等）
+            # 也会拆成独立词元并各自规范化，要求所有词元同时命中（AND），
+            # 避免「三体.黑暗森林」被截断成「三体」后搜出一堆无关书。
             keywords = []
             search_logic = "or"  # 默认OR逻辑
             
@@ -608,6 +612,16 @@ class BookshelfScreen(Screen[None]):
                     # OR逻辑: 关键词1,关键词2
                     keywords = [k.strip() for k in search_keyword.split(",") if k.strip()]
                     search_logic = "or"
+                # 进一步按书名连接符号拆词元并规范化（空词元丢弃）
+                split_tokens = []
+                for kw in keywords:
+                    for tok in re.split(r'[\s.\-—－~～_·、]+', kw):
+                        tok = tok.strip()
+                        if not tok:
+                            continue
+                        norm = normalize_book_title(tok)
+                        split_tokens.append(norm if norm else tok.lower())
+                keywords = [t for t in split_tokens if t]
             
             # 处理search_format参数，确保正确处理NoSelection对象
             actual_search_format = "all"

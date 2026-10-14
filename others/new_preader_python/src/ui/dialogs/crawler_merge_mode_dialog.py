@@ -100,20 +100,27 @@ def normalize_book_title(title: str) -> str:
     处理流程（按顺序）：
     1. 剥离章节信息（括号内数字、尾部数字范围、第X章等）
     2. 去除"作者"及之后的所有内容
-    3. 在第一个分隔符处截断（逗号、顿号、问号、感叹号、句号、冒号、分号等），只保留主标题
-    4. 在破折号处截断（跳过数字范围如 1-46）
+    3. 仅在「句子型标点」处截断主标题（，。？！；：、… 等）
+    4. 破折号「—/－/~」仅在其后为长描述（子标题）时才截断
     5. 去除包裹符号 《 》 【 】 「 」 [ ]
     6. 去除尾部省略号
-    7. 移除所有剩余特殊字符，只保留中英文和数字
+    7. 去掉连接型符号（- . _ · ~ 空格 等），把复合书名连成整体
+    8. 移除所有剩余特殊字符，只保留中英文和数字
+
+    设计要点（精准化）：
+    连接型符号（短横、点、下划线、间隔号、空格、波浪号）视为书名的一部分，
+    只去掉符号本身、保留文字，而不是在第一个符号处就把书名截断。否则
+    「半缘-陌上花开」「三体.黑暗森林」会被裁成「半缘」「三体」，
+    丢失区分信息，导致大量毫不相关的书被误判为同一本。真正的子标题
+    （如 "……，系统怎么才来"）才在句子型标点处截断。
 
     示例:
         我都三十五了，系统怎么才来           →  我都三十五了
         《我都三十五了，系统怎么才来》3-4    →  我都三十五了
         【我都三十五了，系统怎么才来】（5-6） →  我都三十五了
-        《我都三十五了...》（7-8）           →  我都三十五了
-        【半缘-陌上花开】（序-21）作者：修道  →  半缘
-        【与老妈的(其他)故事】(1－28)作者:xxx →  与老妈的
-        【女主播？我的女友！】               →  女主播
+        【半缘-陌上花开】（序-21）作者：修道  →  半缘陌上花开
+        【与老妈的(其他)故事】(1－28)作者:xxx →  与老妈的其他故事
+        【女主播？我的女友！】               →  女主播我的女友
         【蛆虫之歌】11-19完 译者：sunson -> 蛆虫之歌
         【蛆虫之歌】(11-19完) 译者：sunson -> 蛆虫之歌
         【蛆虫之歌】（11-19完） 译者：sunson -> 蛆虫之歌
@@ -133,17 +140,17 @@ def normalize_book_title(title: str) -> str:
             result = result[:author_idx]
             break
 
-    # Step 3: 在第一个分隔符处截断，只保留主标题
-    # 分隔符包括：tab、空格、逗号、顿号、问号、感叹号、句号、冒号、分号、括号、省略号、书名号闭合等
-    # 注意：省略号必须在书名号闭合之前，否则 】 会先匹配导致截断位置错误
-    for sep in ('   ', ' ', '，', ',', '、', '？', '?', '！', '!', '。', '.', '；', ';', '：', ':', '(', '（', '…', '...', '】', '」', '》', ')', '）'):
+    # Step 3: 仅在「句子型标点」处截断，只保留主标题。
+    #   连接型符号（- . _ · ~ 空格）不在此截断，避免裁短复合书名。
+    for sep in ('，', ',', '。', '？', '?', '！', '!', '；', ';', '：', ':', '、', '…', '...'):
         idx = result.find(sep)
         if idx >= 2:
             result = result[:idx].strip()
             break
 
-    # Step 4: 在破折号处截断（跳过数字范围）
-    for sep in ('-', '—', '－', '~'):
+    # Step 4: 破折号「—/－/~」处截断：仅当其后是「长描述/句子」才截断，
+    #   否则视为复合书名的一部分（去掉符号保留文字）。
+    for sep in ('—', '－', '~', '～'):
         idx = result.find(sep)
         if idx < 2:
             continue
@@ -152,7 +159,8 @@ def normalize_book_title(title: str) -> str:
         # 跳过数字范围（如 "1-46"、"3-4" 已在章节剥离中处理）
         if before and after and before[-1].isdigit() and after[0].isdigit():
             continue
-        if before and len(before) >= 2:
+        # 其后为长尾（明显是子标题/描述）才截断，否则保留
+        if len(after) >= max(4, len(before)):
             result = before.strip()
             break
 
@@ -163,13 +171,69 @@ def normalize_book_title(title: str) -> str:
     # Step 6: 去除尾部省略号/句号
     result = result.rstrip('·…。.~～ ')
 
-    # Step 7: 移除所有剩余特殊字符，只保留中英文字母
+    # Step 7: 去掉连接型符号（保留中英文与数字），把复合书名连成整体
+    result = re.sub(r'[\s.\-_·~～,，]+', '', result)
+
+    # Step 8: 移除所有剩余特殊字符，只保留中英文和数字
     result = re.sub(
-        r'[^\u4e00-\u9fff\u3400-\u4dbf\U00020000-\U0002a6dfa-zA-Z]',
+        r'[^\u4e00-\u9fff\u3400-\u4dbf\U00020000-\U0002a6dfa-zA-Z\d]',
         '', result,
     )
 
     return result.strip()
+
+
+# 仅允许作为「同名异本」后缀出现的字符（版次/卷册/上下中/续/外传等），
+# 用于放宽「核心书名互为子串」时的判定，避免把仅"包含该片段"的无关书并入。
+_VARIANT_SUFFIX_CHARS = set('上下中前后内外终完全续篇集卷册部回章节传套')
+
+
+def _book_core_matches(candidate_title: str, seed_core: str) -> bool:
+    """
+    判断候选书名是否真正属于 seed_core 这一组（精确，避免 LIKE 把仅"包含该片段"的无关书拉入）。
+
+    - 规范化后核心书名完全相同 → 同一本书（不同卷/章）
+    - 一方是另一方的子串，且多出来的部分仅由「版次/卷册」类变体字符或数字构成
+      （如 '三体' ⊂ '三体续' / '三体2'）→ 视为同一本书的异本
+    - 否则（如 '三体' ⊂ '三体的世界'）→ 视为不同书，不并入
+    """
+    if not seed_core or not candidate_title:
+        return False
+    cand = remove_chapter_info(normalize_book_title(candidate_title))
+    if not cand or len(cand) < 2:
+        cand = normalize_book_title(candidate_title)
+    if not cand:
+        return False
+    if cand == seed_core:
+        return True
+    shorter, longer = (cand, seed_core) if len(cand) < len(seed_core) else (seed_core, cand)
+    if len(shorter) >= 3 and shorter in longer:
+        extra = longer.replace(shorter, '', 1)
+        if extra and all((c in _VARIANT_SUFFIX_CHARS or c.isdigit()) for c in extra):
+            return True
+    return False
+
+
+def _like_key_for_search(title: str) -> str:
+    """
+    生成「子串安全」的检索键，仅供 DB 的 `LIKE %key%` 取候选。
+
+    必须保留书名内部分隔符（- . 空格 · 等），否则「去掉分隔符」后的核心名
+    在原始含分隔符的书名上无法命中（LIKE 子串匹配失败，分组会塌成 0 本）。
+    这里只剥离：章节信息、作者/译者后缀、包裹符号、尾部省略号。
+    """
+    if not title:
+        return ""
+    r = remove_chapter_info(title.strip())
+    for sep in ('译者', '作者', '作', '译'):
+        i = r.find(sep)
+        if i > 0:
+            r = r[:i]
+            break
+    for ch in ('【', '】', '《', '》', '「', '」', '[', ']', '（', '）', '(', ')'):
+        r = r.replace(ch, '')
+    r = r.rstrip('·…。.~～ ')
+    return r.strip()
 
 
 def remove_chapter_info(title: str) -> str:
@@ -307,7 +371,7 @@ def group_books_for_merge(
         if not normalized:
             continue
 
-        # 再剥离章节信息（去括号数字、第X章等），得到核心书名用于搜索
+        # 再剥离章节信息（去括号数字、第X章等），得到核心书名（joined core）
         search_key = remove_chapter_info(normalized)
         if not search_key or len(search_key) < 2:
             # 核心书名太短则用规范化结果兜底
@@ -317,8 +381,23 @@ def group_books_for_merge(
             continue
         seen_search_keys.add(search_key)
 
-        # 用核心书名 LIKE 搜索全部历史（包括已合并的、往期章节）
-        similar_books = db_manager.search_crawl_history_by_title(site_id, search_key)
+        # 用「子串安全」的检索键做 LIKE 取候选（保留内部分隔符，否则核心名在
+        # 原始含分隔符的书名上匹配不到）；joined core 仅用于下方精确过滤与合并标识。
+        like_key = _like_key_for_search(title)
+        if like_key:
+            similar_books = db_manager.search_crawl_history_by_title(site_id, like_key)
+        else:
+            similar_books = []
+
+        # ── 精确过滤：LIKE 会把任何"包含该片段"的书都拉出来，
+        #    这里只保留核心书名真正一致的书，避免无关书被并入同一组。
+        similar_books = [
+            b for b in similar_books
+            if _book_core_matches(b.get('novel_title', ''), search_key)
+        ]
+        # 确保种子记录本身一定在组内（其原始标题规范化后必等于 search_key）
+        if not any(_book_identity(b) == _book_identity(item) for b in similar_books):
+            similar_books.append(item)
 
         if similar_books:
             group_id += 1
@@ -924,9 +1003,17 @@ class CrawlerMergeModeDialog(ModalScreen[Dict[str, Any]]):
                 # 以及逐条 LIKE 查询
                 books = self._match_books_by_core(core, title_index)
             elif self.db_manager is not None:
-                books = self.db_manager.search_crawl_history_by_title(
-                    self.site_id, core
-                )
+                # 用「子串安全」的检索键取候选（保留内部分隔符），
+                # 否则 joined core 在原始含分隔符的书名上 LIKE 匹配不到；
+                # joined core 仅用于下方精确过滤与合并标识。
+                sample_title = records_by_core.get(core, [{}])[0].get('novel_title', '')
+                like_key = _like_key_for_search(sample_title)
+                if like_key:
+                    books = self.db_manager.search_crawl_history_by_title(
+                        self.site_id, like_key
+                    )
+                else:
+                    books = []
             else:
                 books = []
             if not books:
@@ -934,6 +1021,14 @@ class CrawlerMergeModeDialog(ModalScreen[Dict[str, Any]]):
                 # 这里直接复用 Step1 建好的映射，避免对全部记录重新做一次规范化
                 # （原先每个未命中的核心书名都要全表 normalize，是主要耗时点）
                 books = list(records_by_core.get(core, []))
+
+            # ── 精确过滤：LIKE / 倒排索引只负责"候选筛选"，
+            #    真正入组前再校验核心书名是否一致，避免无关书被并入同一组。
+            books = [b for b in books if _book_core_matches(b.get('novel_title', ''), core)]
+            # 确保本核心的源记录始终在组内
+            for seed in records_by_core.get(core, []):
+                if not any(_book_identity(b) == _book_identity(seed) for b in books):
+                    books.append(seed)
 
             # 去重（不同核心书名可能搜到同一本书）
             # 按 novel_id 去重，避免 novel_id 相同的重复记录（主键 id 不同）被保留
