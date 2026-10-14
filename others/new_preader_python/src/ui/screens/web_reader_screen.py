@@ -9,7 +9,7 @@
 - 在浏览器打开本地书籍
 """
 
-from typing import Any, ClassVar, Dict, List, Optional, Tuple
+from typing import Any, ClassVar, Dict, List, Optional, Tuple, Union
 
 import asyncio
 import os
@@ -55,6 +55,7 @@ class WebReaderScreen(QuickIsolationMixin, Screen[None]):
         ("escape,q", "back", get_global_i18n().t('web_reader.back')),
         ("c", "check_status", get_global_i18n().t('web_reader.check_status')),
         ("o", "open_reader", get_global_i18n().t('web_reader.open_reader')),
+        ("f", "browse_book_file", get_global_i18n().t('web_reader.browse_file')),
     ]
 
     def __init__(self, theme_manager: ThemeManager):
@@ -103,10 +104,11 @@ class WebReaderScreen(QuickIsolationMixin, Screen[None]):
                 ),
                 classes="wr-panels",
             ),
-            # 底部：网址输入框 + 打开本地书籍
+            # 底部：路径输入框 + 浏览文件 + 打开本地书籍
             Horizontal(
                 Input(placeholder=i18n.t('web_reader.path_placeholder'), id="wr-path-input"),
-                Button(i18n.t('web_reader.open_local'), id="wr-open-local-btn"),
+                Button(i18n.t('web_reader.browse_file'), id="wr-browse-btn"),
+                Button(i18n.t('web_reader.open_local'), id="wr-open-local-btn", variant="success"),
                 id="wr-local-row", classes="btn-row",
             ),
             id="wr-main",
@@ -142,6 +144,8 @@ class WebReaderScreen(QuickIsolationMixin, Screen[None]):
             self.run_worker(self._restart_server)
         elif btn_id == "wr-open-local-btn":
             self.run_worker(self._open_local_book)
+        elif btn_id == "wr-browse-btn":
+            self._browse_local_book()
         elif btn_id == "wr-back-btn":
             self._back()
 
@@ -153,6 +157,9 @@ class WebReaderScreen(QuickIsolationMixin, Screen[None]):
 
     def action_check_status(self) -> None:
         self._start_diagnosis()
+
+    def action_browse_book_file(self) -> None:
+        self._browse_local_book()
 
     # ------------------------------------------------------------------ #
     # 辅助
@@ -266,9 +273,43 @@ class WebReaderScreen(QuickIsolationMixin, Screen[None]):
             logger.error(f"创建欢迎页临时文件失败: {e}")
             return False, str(e)
 
-    async def _open_local_book(self) -> None:
+    def _browse_local_book(self) -> None:
+        """打开文件浏览器（文件资源管理器），选择本地书籍并在浏览器中打开"""
         i18n = get_global_i18n()
+
+        def _handle_result(result: Optional[Union[str, List[str]]]) -> None:
+            if not result:
+                return
+            path = result[0] if isinstance(result, list) else result
+            self.run_worker(self._open_book_path(path))
+
+        try:
+            from src.ui.screens.file_explorer_screen import FileExplorerScreen
+            # 通过 getattr 获取，避免类型检查器对 App 基类的静态属性报错（运行时必有这两个属性）
+            app = self.app
+            bookshelf = getattr(app, "bookshelf", None)
+            statistics_manager = getattr(app, "statistics_manager", None)
+            file_explorer_screen = FileExplorerScreen(
+                theme_manager=self.theme_manager,
+                bookshelf=bookshelf,
+                statistics_manager=statistics_manager,
+                selection_mode="file",
+                title=i18n.t('web_reader.browse_file_title'),
+                show_all_files=True,
+                default_diff_mode=False,
+            )
+            self.app.push_screen(file_explorer_screen, _handle_result)
+        except Exception as e:
+            logger.error(f"打开文件浏览器失败: {e}")
+            self.notify(i18n.t('web_reader.browse_failed', message=str(e)), severity="error")
+
+    async def _open_local_book(self) -> None:
         path = self.query_one("#wr-path-input", Input).value.strip()
+        await self._open_book_path(path)
+
+    async def _open_book_path(self, path: str) -> None:
+        """在浏览器中打开指定路径的本地书籍"""
+        i18n = get_global_i18n()
         if not path or not os.path.exists(path):
             self.notify(i18n.t('web_reader.invalid_path'), severity="warning")
             return

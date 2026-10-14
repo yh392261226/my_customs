@@ -54,7 +54,8 @@ class FileExplorerScreen(ScreenStyleMixin, Screen[Optional[Union[str, List[str]]
     def __init__(self, theme_manager: ThemeManager, bookshelf: Bookshelf, statistics_manager: StatisticsManagerDirect,
                  selection_mode: str = "file", title: Optional[str] = None, direct_open: bool = False,
                  multiple: bool = False, file_extensions: Optional[Set[str]] = None,
-                 initial_path: Optional[str] = None):
+                 initial_path: Optional[str] = None, show_all_files: bool = False,
+                 default_diff_mode: Optional[bool] = None):
         """
         初始化文件资源管理器屏幕
         
@@ -75,6 +76,10 @@ class FileExplorerScreen(ScreenStyleMixin, Screen[Optional[Union[str, List[str]]
         self.selection_mode = selection_mode
         self.direct_open = direct_open  # 使用传入的direct_open参数
         self.multiple = multiple  # 多选模式
+        self.show_all_files = show_all_files  # 是否显示目录下全部文件（含非书籍格式）
+        # 差异模式（只列出书库中不存在的书籍）开关的默认值；
+        # 不传时沿用旧逻辑 not direct_open，传 True/False 时显式指定
+        self.default_diff_mode = default_diff_mode if default_diff_mode is not None else (not self.direct_open)
         
         # 使用自定义文件扩展名或默认的书籍格式
         if file_extensions is not None:
@@ -145,7 +150,7 @@ class FileExplorerScreen(ScreenStyleMixin, Screen[Optional[Union[str, List[str]]
                             # 如果是文件选择模式，则显示搜索框和按钮 start
                             yield Label(get_global_i18n().t("file_explorer.diff_mode"), id="file-explorer-diff-mode-label")
                             # 添加书籍场景（非直接打开）默认开启比较差异，只列出书库中不存在的书籍
-                            yield Switch(value=not self.direct_open, id="file-explorer-diff-mode-switch")
+                            yield Switch(value=self.default_diff_mode, id="file-explorer-diff-mode-switch")
                             yield Input(placeholder=get_global_i18n().t("file_explorer.search_placeholder"), id="file-explorer-search-input")
                             # 动态生成搜索选择框选项
                             search_options = [(get_global_i18n().t("search.all_formats"), "all")]
@@ -311,11 +316,14 @@ class FileExplorerScreen(ScreenStyleMixin, Screen[Optional[Union[str, List[str]]
                         dir_count += 1
                         items.append({"name": item, "path": item_path, "type": "directory", "display": f"📁 {item}/"})
                     else:
-                        # 文件项，只显示支持的书籍格式
+                        # 文件项
                         ext = FileUtils.get_file_extension(item_path)
                         if ext in self.file_extensions:
                             book_count += 1
                             items.append({"name": item, "path": item_path, "type": "book", "display": f"📖 {item}"})
+                        elif self.show_all_files:
+                            # 显示全部文件（含非书籍格式），选中非书籍文件时给出提示
+                            items.append({"name": item, "path": item_path, "type": "file", "display": f"📄 {item}"})
                 except (PermissionError, OSError):
                     # 跳过无法访问的文件
                     continue
@@ -767,6 +775,15 @@ class FileExplorerScreen(ScreenStyleMixin, Screen[Optional[Union[str, List[str]]
                 self.dismiss(list(self.selected_files))
             else:
                 # 返回单选的文件路径
+                # show_all_files 模式下，非书籍文件（type=="file"）仅提示，不打开
+                if self.show_all_files and self.selected_file_index is not None:
+                    try:
+                        _sel = self.file_items[self.selected_file_index]
+                        if _sel.get("type") == "file":
+                            self.notify(get_global_i18n().t("file_explorer.unsupported_format"), severity="warning")
+                            return
+                    except (IndexError, KeyError):
+                        pass
                 self.dismiss(self.selected_file)
     
     @on(Tree.NodeExpanded)
