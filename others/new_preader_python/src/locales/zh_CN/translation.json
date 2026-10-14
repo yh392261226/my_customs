@@ -1817,6 +1817,8 @@
     "col_preview": "预览",
     "col_file": "文件",
     "col_delete": "删除",
+    "col_author": "作者",
+    "unknown_site": "未知网站",
     "preview_btn": "预览",
     "file_btn": "文件",
     "delete_btn": "删除",

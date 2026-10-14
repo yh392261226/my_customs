@@ -1734,6 +1734,8 @@
     "col_preview": "Preview",
     "col_file": "File",
     "col_delete": "Delete",
+    "col_author": "Author",
+    "unknown_site": "Unknown Site",
     "preview_btn": "View",
     "file_btn": "File",
     "delete_btn": "Del",

@@ -304,6 +304,23 @@ class CrawlerMergeDetailDialog(ModalScreen[Dict[str, Any]]):
                             if not _b.get('file_path'):
                                 _b['file_path'] = _rec.get('file_path') or _p
 
+        # 书库模式下，每本书来源网站可能不同，预构建 site_id -> 网站名称 缓存，
+        # 供作者列（展示书籍网站名称）复用，避免逐行查库。
+        self._site_name_cache: Dict[int, str] = {}
+        if self.library_mode and self.db_manager:
+            _seen_site_ids: Set[int] = set()
+            for _g in self.groups:
+                for _b in _g.get('books', []):
+                    _sid = _b.get('site_id')
+                    if _sid and _sid not in _seen_site_ids:
+                        _seen_site_ids.add(_sid)
+                        try:
+                            _site = self.db_manager.get_novel_site_by_id(_sid)
+                            if _site:
+                                self._site_name_cache[_sid] = _site.get('name') or _site.get('site_name') or ''
+                        except Exception as _e:
+                            logger.debug(f"预取网站名称失败 site_id={_sid}: {_e}")
+
         self._current_index: int = 0       # 当前在第几组
         self._total_groups: int = len(self.groups)
 
@@ -512,6 +529,20 @@ class CrawlerMergeDetailDialog(ModalScreen[Dict[str, Any]]):
         # 聚焦
         self.query_one("#merge-detail-table", DataTable).focus()
 
+    def _site_name_for_book(self, book: Dict[str, Any]) -> str:
+        """返回书籍网站名称（用于作者列展示）
+
+        - 书库模式：每本书来源网站可能不同，用其 site_id 从缓存取网站名称
+        - 非书库（整站合并）模式：整组来自同一网站，用当前 novel_site 的名称
+        """
+        if self.library_mode:
+            site_id = book.get('site_id')
+            if site_id:
+                return self._site_name_cache.get(site_id, '') or self.i18n.t('merge_detail.unknown_site')
+            return self.i18n.t('merge_detail.unknown_site')
+        # 非书库模式：整组来自同一网站
+        return self.novel_site.get('name') or self.novel_site.get('site_name') or ''
+
     def _refresh_table(self, preserve_cursor: bool = True) -> None:
         """刷新书籍表格
 
@@ -547,6 +578,7 @@ class CrawlerMergeDetailDialog(ModalScreen[Dict[str, Any]]):
                 (self.i18n.t('merge_detail.col_title') + arrow) if self._sort_column == "title" else self.i18n.t('merge_detail.col_title'),
                 key="title", width=60,
             )
+            table.add_column(self.i18n.t('merge_detail.col_author'), key="author", width=18)
             table.add_column(
                 (self.i18n.t('merge_detail.col_time') + arrow) if self._sort_column == "time" else self.i18n.t('merge_detail.col_time'),
                 key="time", width=10,
@@ -614,11 +646,15 @@ class CrawlerMergeDetailDialog(ModalScreen[Dict[str, Any]]):
             else:
                 delete_label = self.i18n.t('merge_detail.delete_btn')
 
+            # 作者列展示书籍来源网站名称
+            author_display = self._site_name_for_book(book)
+
             table.add_row(
                 check,
                 seq_display,
                 novel_id[:20],
                 display_title,
+                author_display,
                 crawl_time,
                 size_str,
                 self.i18n.t('merge_detail.preview_btn'),
