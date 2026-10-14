@@ -1419,6 +1419,7 @@
     "preview_truncated": "(Preview only — up to the first 2000 characters)",
     "preview_full": "Preview Full Book",
     "preview_back": "Preview",
+    "preview_toggle": "Full / Preview",
     "preview_full_note": "(Entire book content shown)",
     "preview_field_title": "Title",
     "preview_field_type": "Type",

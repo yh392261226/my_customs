@@ -40,6 +40,7 @@ class _MergePreviewDialog(ModalScreen[None]):
         ("escape", "close", get_global_i18n().t('common.close')),
         ("j", "scroll_down", get_global_i18n().t('common.scroll_down')),
         ("k", "scroll_up", get_global_i18n().t('common.scroll_up')),
+        ("V", "toggle_preview", get_global_i18n().t('crawler.preview_toggle')),
     ]
 
     def action_close(self) -> None:
@@ -50,6 +51,10 @@ class _MergePreviewDialog(ModalScreen[None]):
 
     def action_scroll_up(self) -> None:
         self.query_one("#preview-content", RichLog).scroll_up()
+
+    def action_toggle_preview(self) -> None:
+        """V 键 —— 在「预览全部 / 预览(前2000字)」之间切换"""
+        self._toggle_preview()
 
     def __init__(self, theme_manager: ThemeManager, title: str, content: str,
                  metadata: Optional[Dict[str, Any]] = None):
