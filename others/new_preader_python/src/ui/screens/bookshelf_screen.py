@@ -2796,7 +2796,7 @@ class BookshelfScreen(Screen[None]):
         self._copy_focused_book_title()
 
     def action_preview_book(self) -> None:
-        """v键 - 预览当前焦点书籍"""
+        """v键 - 预览当前焦点书籍（前2000字）"""
         table = self.query_one("#books-table", DataTable)
         current_row_index = getattr(table, 'cursor_row', None)
         

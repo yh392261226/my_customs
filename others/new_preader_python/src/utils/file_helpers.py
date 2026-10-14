@@ -157,6 +157,55 @@ def read_file_preview(file_path: str, max_chars: int = 2000) -> str:
         logger.error(f"读取文件预览失败: {file_path}, 错误: {e}")
         return ""
 
+
+def read_file_full(file_path: str) -> str:
+    """
+    读取整个文件内容用于全文预览，自动检测编码
+
+    与 read_file_preview 不同，本函数会读取文件全部内容，不做字符数截断，
+    适用于「预览全书（V 键）」场景。
+
+    Args:
+        file_path: 文件路径
+
+    Returns:
+        解码后的完整文本；失败返回空字符串
+    """
+    try:
+        with open(file_path, 'rb') as f:
+            raw = f.read()
+
+        text: Optional[str] = None
+
+        # 1) 依次尝试常见编码；utf-8 优先，且对末尾截断做容错
+        encodings = ['utf-8-sig', 'utf-8', 'gbk', 'gb2312', 'gb18030', 'big5', 'utf-16']
+        for encoding in encodings:
+            decoded = _strict_decode_tolerant(raw, encoding)
+            if decoded is not None:
+                text = decoded
+                break
+
+        # 2) 补充：charset-normalizer 检测更罕见编码（若已安装且上面未命中）
+        if not text:
+            try:
+                from charset_normalizer import from_bytes
+                result = from_bytes(raw).best()
+                if result is not None and result.encoding:
+                    text = str(result)
+            except Exception:
+                pass
+
+        # 3) 最终回退：忽略无法解码的字节，避免预览直接失败
+        if not text:
+            text = raw.decode('utf-8', errors='ignore')
+
+        # 去掉可能导致渲染异常的 NUL 字符
+        text = text.replace('\x00', '')
+        return text
+    except Exception as e:
+        logger.error(f"读取文件全文失败: {file_path}, 错误: {e}")
+        return ""
+
 def write_text_file(file_path: str, content: str) -> bool:
     """
     写入文本文件

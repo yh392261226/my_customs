@@ -59,6 +59,11 @@ class _MergePreviewDialog(ModalScreen[None]):
         self.content = content
         self.metadata = metadata or {}
         self.i18n = get_global_i18n()
+        # 用于「预览全部」：从元数据中取出文件路径（兼容 file_path / path 两种键名）
+        self.file_path = self.metadata.get("file_path") or self.metadata.get("path")
+        # 记录进入弹窗时的原始截断内容，便于在「预览全部 / 预览」之间切换
+        self.original_content = content
+        self._is_full = False
 
     def compose(self) -> ComposeResult:
         yield Header()
@@ -80,10 +85,12 @@ class _MergePreviewDialog(ModalScreen[None]):
                         classes="preview-text",
                         wrap=True,
                         markup=False,
+                        auto_scroll=False,
                     ),
                     id="preview-body",
                 ),
                 Horizontal(
+                    Button(self.i18n.t('crawler.preview_full'), id="preview-full-btn", variant="default"),
                     Button(self.i18n.t('common.close'), id="preview-close-btn", variant="primary"),
                     id="preview-buttons",
                     classes="btn-row",
@@ -109,10 +116,24 @@ class _MergePreviewDialog(ModalScreen[None]):
         except Exception as e:
             logger.warning(f"写入预览内容失败: {e}")
             preview_content.write(self.i18n.t("crawler.preview_failed", error=str(e)))
+
+        # 加载完内容后回到顶部，而不是停留在底部
+        try:
+            preview_content.scroll_home(animate=False)
+        except Exception:
+            pass
+
         try:
             self.query_one("#preview-close-btn", Button).focus()
         except Exception:
             pass
+
+        # 无文件路径时禁用「预览全部」按钮
+        if not self.file_path:
+            try:
+                self.query_one("#preview-full-btn", Button).disabled = True
+            except Exception:
+                pass
 
     def _build_info_text(self) -> "Text":
         from rich.text import Text
@@ -209,8 +230,69 @@ class _MergePreviewDialog(ModalScreen[None]):
         return t
 
     def on_button_pressed(self, event: Button.Pressed) -> None:
-        if event.button.id == "preview-close-btn":
+        if event.button.id == "preview-full-btn":
+            self._toggle_preview()
+        elif event.button.id == "preview-close-btn":
             self.dismiss()
+
+    def _toggle_preview(self) -> None:
+        """在「预览全部 / 预览(前2000字)」之间切换
+
+        当前为截断预览时点击加载整本书；已为全文时点击回到前 2000 字预览。
+        按钮文案随之在「预览全部」与「预览」之间切换。
+        """
+        try:
+            preview_content = self.query_one("#preview-content", RichLog)
+            full_btn = self.query_one("#preview-full-btn", Button)
+        except Exception:
+            return
+
+        if not self._is_full:
+            # 截断预览 → 全文预览
+            if not self.file_path:
+                return
+            try:
+                from src.utils.file_helpers import read_file_full
+                content = read_file_full(self.file_path)
+            except Exception as e:
+                logger.error(f"加载全书内容失败: {e}")
+                self.notify(self.i18n.t("crawler.preview_failed", error=str(e)), severity="error", timeout=3)
+                return
+            if not content.strip():
+                self.notify(self.i18n.t("crawler.preview_empty"), severity="information", timeout=2)
+                return
+            self._render_preview_content(preview_content, content, "crawler.preview_full_note")
+            full_btn.label = self.i18n.t("crawler.preview_back")
+            self._is_full = True
+        else:
+            # 全文预览 → 回到前 2000 字截断预览
+            self._render_preview_content(preview_content, self.original_content, "crawler.preview_truncated")
+            full_btn.label = self.i18n.t("crawler.preview_full")
+            self._is_full = False
+
+    def _render_preview_content(self, preview_content: "RichLog", content: str, note_key: str) -> None:
+        """清空并重写预览内容区，刷新左侧字数并更新到顶部"""
+        from rich.text import Text
+        preview_content.clear()
+        preview_content.write(Text(content))
+
+        note = Text()
+        note.append("\n\n" + "─" * 40 + "\n", style="dim")
+        note.append(self.i18n.t(note_key), style="italic dim")
+        preview_content.write(note)
+
+        # 同步刷新左侧信息面板的「预览字数」
+        self.content = content
+        try:
+            self.query_one("#preview-info", Static).update(self._build_info_text())
+        except Exception:
+            pass
+
+        # 回到顶部，而不是停留在底部
+        try:
+            preview_content.scroll_home(animate=False)
+        except Exception:
+            pass
 
 
 class CrawlerMergeDetailDialog(ModalScreen[Dict[str, Any]]):
