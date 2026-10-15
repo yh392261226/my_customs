@@ -15,6 +15,7 @@ _SCREEN_MODULES = [
     "src.ui.screens.welcome_screen",
     "src.ui.screens.bookshelf_screen",
     "src.ui.screens.reader_screen",
+    "src.ui.web_reader_screen",
     "src.ui.screens.settings_screen",
     "src.ui.screens.statistics_screen",
     "src.ui.screens.boss_key_screen",
