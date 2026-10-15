@@ -1435,12 +1435,7 @@ class CrawlerMergeDetailDialog(ModalScreen[Dict[str, Any]]):
 
     def _copy_focused_book_title(self) -> None:
         """复制当前光标所在行的书籍名称到剪贴板"""
-        bid = self._get_cursor_book_id()
-        if bid is None:
-            return
-
-        state = self._group_state[self._current_index]
-        book = next((b for b in state['books'] if b.get('id') == bid), None)
+        book = self._get_cursor_book()
         if not book:
             return
 
