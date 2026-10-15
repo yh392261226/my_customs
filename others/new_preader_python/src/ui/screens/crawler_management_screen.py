@@ -984,7 +984,7 @@ class CrawlerManagementScreen(Screen[None]):
                 self._preview_book(history_item)
 
     def action_fill_missing(self) -> None:
-        """f键 - 补缺当前焦点书籍的文件"""
+        """f键 - 补足缺失章节当前焦点书籍的文件"""
         table = self.query_one("#crawl-history-table", DataTable)
         current_row_index = getattr(table, 'cursor_row', None)
 
@@ -5770,17 +5770,17 @@ class CrawlerManagementScreen(Screen[None]):
             self._update_status(f"{get_global_i18n().t('crawler.preview_failed')}: {str(e)}", "error")
 
     def _fill_missing(self, history_item: Dict[str, Any]) -> None:
-        """打开补缺弹窗，对指定书籍进行补缺操作"""
+        """打开补足缺失章节弹窗，对指定书籍进行补足缺失章节操作"""
         try:
             from src.ui.dialogs.fill_missing_dialog import FillMissingDialog
 
-            # 打开补缺弹窗前，先关闭爬取管理页面的浏览器监听，避免与补缺弹窗的监听互相截留
+            # 打开补足缺失章节弹窗前，先关闭爬取管理页面的浏览器监听，避免与补足缺失章节弹窗的监听互相截留
             was_monitoring = self.browser_monitor_active
             if was_monitoring:
                 self._stop_browser_monitor()
 
             def handle_fill_missing_result(result: Optional[Dict[str, Any]]) -> None:
-                # 补缺弹窗关闭后，若之前正在监听浏览器则恢复监听
+                # 补足缺失章节弹窗关闭后，若之前正在监听浏览器则恢复监听
                 if was_monitoring:
                     self._start_browser_monitor()
                 if not result:
@@ -5813,7 +5813,7 @@ class CrawlerManagementScreen(Screen[None]):
             )
 
         except Exception as e:
-            logger.error(f"打开补缺弹窗失败: {e}")
+            logger.error(f"打开补足缺失章节弹窗失败: {e}")
             self._update_status(f"{get_global_i18n().t('crawler.open_dialog_failed')}: {str(e)}", "error")
     
     

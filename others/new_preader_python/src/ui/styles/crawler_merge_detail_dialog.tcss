@@ -239,7 +239,7 @@ CrawlerMergeDetailDialog Container, #merge-detail-container {
     background: $error;
 }
 
-/* ── 补缺按钮 ── */
+/* ── 补足缺失章节按钮 ── */
 #fill-missing-btn {
     background: $primary 70%;
 }
@@ -256,7 +256,7 @@ CrawlerMergeDetailDialog Container, #merge-detail-container {
     background: $success 80%;
 }
 
-/* ── 补缺操作行 ── */
+/* ── 补足缺失章节操作行 ── */
 #md-fill-missing-container {
     width: 100%;
     height: 3;

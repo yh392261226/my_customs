@@ -1,5 +1,5 @@
 """
-可视化补缺助手 —— 在浏览器中通过拖拽操作完成补缺位置选择
+可视化补足缺失章节助手 —— 在浏览器中通过拖拽操作完成补足缺失章节位置选择
 生成 HTML 页面，支持：
   - 目标文件内容预览（带行号，可点击定位）
   - 三个拖放区域：前置 / 中间 / 后置
@@ -24,7 +24,7 @@ logger = get_logger(__name__)
 
 
 class VisualMergeHelper:
-    """可视化补缺助手——管理 HTML 生成、HTTP 通信和浏览器打开"""
+    """可视化补足缺失章节助手——管理 HTML 生成、HTTP 通信和浏览器打开"""
 
     _instance: Optional['VisualMergeHelper'] = None
     _lock = threading.Lock()
@@ -49,7 +49,7 @@ class VisualMergeHelper:
         self._result_event = threading.Event()
         self._result_callback: Optional[Callable] = None
         self._current_html_content: str = ""  # 存储当前 HTML 内容供 HTTP 服务器使用
-        logger.info("可视化补缺助手已初始化")
+        logger.info("可视化补足缺失章节助手已初始化")
 
     # ══════════════════════════════════════════
     #   公开 API
@@ -65,7 +65,7 @@ class VisualMergeHelper:
         theme: str = "light",
     ) -> bool:
         """
-        打开可视化补缺页面。
+        打开可视化补足缺失章节页面。
 
         Args:
             target_file_path: 目标文件路径
@@ -81,7 +81,7 @@ class VisualMergeHelper:
         try:
             # 1. 启动 HTTP 服务器接收结果
             if not self._start_server():
-                logger.error("无法启动可视化补缺 HTTP 服务器")
+                logger.error("无法启动可视化补足缺失章节 HTTP 服务器")
                 return False
 
             # 2. 准备书籍数据
@@ -128,11 +128,11 @@ class VisualMergeHelper:
             url = f"http://{self._host}:{self._port}/"
             BrowserManager.open_url(url)
 
-            logger.info(f"可视化补缺页面已打开: {url}")
+            logger.info(f"可视化补足缺失章节页面已打开: {url}")
             return True
 
         except Exception as e:
-            logger.error(f"打开可视化补缺页面失败: {e}", exc_info=True)
+            logger.error(f"打开可视化补足缺失章节页面失败: {e}", exc_info=True)
             return False
 
     def wait_for_result(self, timeout: float = 300.0) -> Optional[Dict[str, Any]]:
@@ -152,7 +152,7 @@ class VisualMergeHelper:
                 self._server_thread = None
             # 清理 HTML 内容
             self._current_html_content = ""
-            logger.info("可视化补缺 HTTP 服务器已停止")
+            logger.info("可视化补足缺失章节 HTTP 服务器已停止")
         except Exception as e:
             logger.error(f"停止服务器失败: {e}")
 
@@ -225,7 +225,7 @@ class VisualMergeHelper:
                                 body = self.rfile.read(content_length)
                                 data = json.loads(body.decode('utf-8'))
 
-                                logger.info(f"收到可视化补缺结果: {json.dumps(data, ensure_ascii=False)}")
+                                logger.info(f"收到可视化补足缺失章节结果: {json.dumps(data, ensure_ascii=False)}")
 
                                 # 存储结果
                                 helper._result_data = data
@@ -291,7 +291,7 @@ class VisualMergeHelper:
                 self._server_thread = threading.Thread(target=server.serve_forever, daemon=True)
                 self._server_thread.start()
                 self._port = port
-                logger.info(f"可视化补缺服务器已启动: http://{self._host}:{self._port}")
+                logger.info(f"可视化补足缺失章节服务器已启动: http://{self._host}:{self._port}")
                 logger.debug(f"服务器线程已启动: {self._server_thread.is_alive()}")
                 return True
             except OSError as e:
@@ -303,7 +303,7 @@ class VisualMergeHelper:
                 port += 1
                 continue
 
-        logger.error("无法找到可用端口启动可视化补缺服务器")
+        logger.error("无法找到可用端口启动可视化补足缺失章节服务器")
         return False
 
     # ══════════════════════════════════════════
@@ -319,7 +319,7 @@ class VisualMergeHelper:
         submit_url: str,
         theme: str = "light",
     ) -> str:
-        """生成完整的可视化补缺 HTML 页面"""
+        """生成完整的可视化补足缺失章节 HTML 页面"""
 
         # 截断显示行数（避免超大文件导致浏览器卡顿）
         MAX_DISPLAY_LINES = 2000
@@ -742,7 +742,7 @@ body {{
 <!-- Header -->
 <div class="header">
     <div>
-        <h1>📖 Visual Merge — 补缺可视化工具</h1>
+        <h1>📖 Visual Merge — 补足缺失章节可视化工具</h1>
         <div class="target-info">目标文件: <strong>{target_filename}</strong> ({total_lines} 行)</div>
         <div class="title-edit-area" style="margin-top: 8px;">
             <label style="font-size: 13px; color: rgba(255,255,255,0.9);">新书籍标题: </label>
@@ -1131,5 +1131,5 @@ function updateSelectedLineInfo(lineNum) {{
 
 
 def get_visual_merge_helper() -> VisualMergeHelper:
-    """获取可视化补缺助手单例实例"""
+    """获取可视化补足缺失章节助手单例实例"""
     return VisualMergeHelper.get_instance()

@@ -2530,7 +2530,7 @@ class DatabaseManager:
         批量反查：给定一组文件路径，返回 绝对路径 -> {site_id, novel_id}。
 
         书库模式下书籍本身不保存来源信息，其 group 记录的 novel_id 为文件路径占位，
-        需批量从 crawl_history 还原真实来源站点与小说ID（供复制ID、爬取、补缺、搜索等使用）。
+        需批量从 crawl_history 还原真实来源站点与小说ID（供复制ID、爬取、补足缺失章节、搜索等使用）。
         优先精确匹配绝对路径，失败按文件名兜底；同一路径多条记录优先取 success。
 
         Args:

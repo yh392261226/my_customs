@@ -1,5 +1,5 @@
 """
-补缺弹窗 —— 两阶段模式：爬取 → 分组合并确认
+补足缺失章节弹窗 —— 两阶段模式：爬取 → 分组合并确认
 阶段1：爬取新书籍内容
 阶段2：多选书籍 + 分配到前/中/后三组 + 独立位置控制 + 预览搜索 + 执行合并
 """
@@ -28,7 +28,7 @@ logger = get_logger(__name__)
 
 
 class FillMissingDialog(ModalScreen[Dict[str, Any]]):
-    """可复用的补缺弹窗 - 支持多文件分组分配合并"""
+    """可复用的补足缺失章节弹窗 - 支持多文件分组分配合并"""
 
     CSS_PATH = "../styles/fill_missing_dialog.tcss"
 
@@ -878,16 +878,16 @@ class FillMissingDialog(ModalScreen[Dict[str, Any]]):
 
     @on(Button.Pressed, "#fm-visual-merge-btn")
     def on_visual_merge(self):
-        """在浏览器中打开可视化拖拽补缺页面"""
+        """在浏览器中打开可视化拖拽补足缺失章节页面"""
         self._open_visual_merge()
 
     @on(Button.Pressed, "#fm-search-chapters-btn")
     def on_search_chapters(self):
-        """搜索章节：使用网站配置的搜索连接地址，以被补缺书籍书名为关键词搜索"""
+        """搜索章节：使用网站配置的搜索连接地址，以被补足缺失章节书籍书名为关键词搜索"""
         self._open_search_chapters(self.target_book.get('novel_title', '') or '')
 
     def _open_visual_merge(self) -> None:
-        """启动浏览器可视化补缺工具"""
+        """启动浏览器可视化补足缺失章节工具"""
         try:
             # 确保有目标文件内容
             if not self._target_lines:
@@ -927,11 +927,11 @@ class FillMissingDialog(ModalScreen[Dict[str, Any]]):
                 self.notify(self.i18n.t('fill_missing.visual_merge_failed'), severity="error", timeout=3)
 
         except Exception as e:
-            logger.error(f"打开可视化补缺失败: {e}")
+            logger.error(f"打开可视化补足缺失章节失败: {e}")
             self.notify(f"{self.i18n.t('fill_missing.visual_merge_failed')}: {e}", severity="error", timeout=4)
 
     def _apply_visual_merge_result(self, data: Dict[str, Any]) -> None:
-        """应用从浏览器返回的可视化补缺结果"""
+        """应用从浏览器返回的可视化补足缺失章节结果"""
         try:
             # 清空现有分组
             for gkey in (self.GROUP_FRONT, self.GROUP_MIDDLE, self.GROUP_BACK):
@@ -994,14 +994,14 @@ class FillMissingDialog(ModalScreen[Dict[str, Any]]):
                 timeout=5,
             )
             logger.info(
-                f"可视化补缺结果已应用: 前{f_count}+中{m_count}@L{mid_line or '?'}+后{b_count}"
+                f"可视化补足缺失章节结果已应用: 前{f_count}+中{m_count}@L{mid_line or '?'}+后{b_count}"
             )
             
             # 自动执行合并
             self.app.call_later(self._execute_merge)
 
         except Exception as e:
-            logger.error(f"应用可视化补缺结果失败: {e}", exc_info=True)
+            logger.error(f"应用可视化补足缺失章节结果失败: {e}", exc_info=True)
             self.notify(f"应用失败: {e}", severity="error", timeout=3)
 
     @on(Input.Submitted, "#fm-search-input")
@@ -1489,7 +1489,7 @@ class FillMissingDialog(ModalScreen[Dict[str, Any]]):
             pass
 
     def _add_crawled_book_to_table(self, novel_id: str, novel_title: str, file_path: str) -> None:
-        """将一本已成功爬取（含已存在书补缺）的书直接加入 DataTable，按 novel_id 去重"""
+        """将一本已成功爬取（含已存在书补足缺失章节）的书直接加入 DataTable，按 novel_id 去重"""
         try:
             if not self.is_attached:
                 return
@@ -2080,7 +2080,7 @@ class FillMissingDialog(ModalScreen[Dict[str, Any]]):
             msg = self.i18n.t('fill_missing.merge_success_multi').format(total=total_merged, detail=direction_text, name=new_name)
             self._update_status_text(msg)
             self.notify(msg, severity="success", timeout=5)
-            logger.info(f"补缺合并完成: 前{front_count}+中{mid_count}@L{middle_line}+后{back_count}, 新名={new_name}")
+            logger.info(f"补足缺失章节合并完成: 前{front_count}+中{mid_count}@L{middle_line}+后{back_count}, 新名={new_name}")
 
             self.dismiss({
                 "success": True, "action": "merged",
@@ -2395,7 +2395,7 @@ class FillMissingDialog(ModalScreen[Dict[str, Any]]):
     def action_cancel(self): self.on_cancel()
 
     def action_visual_merge(self):
-        """快捷键 v: 打开可视化补缺"""
+        """快捷键 v: 打开可视化补足缺失章节"""
         if self._stage == "merge":
             self._open_visual_merge()
 

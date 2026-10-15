@@ -344,7 +344,7 @@ class CrawlerMergeDetailDialog(ModalScreen[Dict[str, Any]]):
         self.i18n = get_global_i18n()
         self.db_manager = db_manager
         self.novel_site = novel_site or {}
-        # 书库合并模式：不关联爬取网站，隐藏补缺/爬取/浏览器监听等爬虫专属控件
+        # 书库合并模式：不关联爬取网站，隐藏补足缺失章节/爬取/浏览器监听等爬虫专属控件
         self.library_mode = library_mode
         # 当前爬取使用的解析器（来自主界面用户选择，None 时由站点默认决定）
         self.parser_override = parser_override
@@ -368,7 +368,7 @@ class CrawlerMergeDetailDialog(ModalScreen[Dict[str, Any]]):
                 _g['display_title'] = _books[0].get('novel_title', _g.get('base_title', ''))
 
         # 书库模式：group 记录的 novel_id 是文件路径占位、且无 site_id，需批量反查
-        # crawl_history 还原真实的 site_id/novel_id，使复制ID、爬取、补缺、搜索一致正确。
+        # crawl_history 还原真实的 site_id/novel_id，使复制ID、爬取、补足缺失章节、搜索一致正确。
         if self.library_mode and self.db_manager:
             _src_paths: List[str] = []
             for _g in self.groups:
@@ -429,7 +429,7 @@ class CrawlerMergeDetailDialog(ModalScreen[Dict[str, Any]]):
                 'auto_sorted': False,   # 是否已对该组执行过自动排序
             }
 
-        # ── 补缺功能相关状态 ──
+        # ── 补足缺失章节功能相关状态 ──
         self._fill_missing_visible: bool = False
         self.is_crawling: bool = False
         self.current_task_id: Optional[str] = None
@@ -487,7 +487,7 @@ class CrawlerMergeDetailDialog(ModalScreen[Dict[str, Any]]):
                     Button(self.i18n.t('merge_detail.fill_missing'), id="fill-missing-btn", variant="primary"),
                     id="sort-buttons",
                 ),
-                # 补缺操作行（默认隐藏；书库合并模式下同样可用，按光标书籍反查来源站点）
+                # 补足缺失章节操作行（默认隐藏；书库合并模式下同样可用，按光标书籍反查来源站点）
                 Vertical(
                     Horizontal(
                         *([Button(self.i18n.t('crawler.select_books'), id="md-choose-books-btn")] if self.novel_site.get("selectable_enabled", True) else []),
@@ -1487,10 +1487,10 @@ class CrawlerMergeDetailDialog(ModalScreen[Dict[str, Any]]):
                 self._move_to_position(pos)
                 event.stop()
 
-    # ─── 补缺功能 ───────────────────────────────────────────
+    # ─── 补足缺失章节功能 ───────────────────────────────────────────
 
     def _toggle_fill_missing(self) -> None:
-        """切换补缺操作行的显示/隐藏"""
+        """切换补足缺失章节操作行的显示/隐藏"""
         self._fill_missing_visible = not self._fill_missing_visible
         try:
             container = self.query_one("#md-fill-missing-container")
@@ -1516,7 +1516,7 @@ class CrawlerMergeDetailDialog(ModalScreen[Dict[str, Any]]):
             self.notify(self.i18n.t('crawler.search_url_not_configured'), severity="warning", timeout=3)
             return
 
-        # 被补缺书籍的书名：以光标所在行的书名为基础；
+        # 被补足缺失章节书籍的书名：以光标所在行的书名为基础；
         # 光标行取不到时再回退到当前合并标题输入框内容，最后回退到组的基准/展示书名
         raw_title = ""
         try:
@@ -1582,7 +1582,7 @@ class CrawlerMergeDetailDialog(ModalScreen[Dict[str, Any]]):
 
     @on(Button.Pressed, "#fill-missing-btn")
     def on_fill_missing_btn(self) -> None:
-        """补缺按钮（书库模式先按光标书籍反查来源站点）"""
+        """补足缺失章节按钮（书库模式先按光标书籍反查来源站点）"""
         if self.library_mode and not self.novel_site:
             site, _ = self._resolve_library_source()
             if site:
@@ -1656,8 +1656,8 @@ class CrawlerMergeDetailDialog(ModalScreen[Dict[str, Any]]):
             # 注意：不再调用 _refresh_books_from_db() 做整站全量拉取。
             # 否则会把该站点数据库里所有历史书（含之前爬过、并非本次添加ID的书）
             # 一并加入表格。现在每本书都已通过 _on_crawl_success_notify 即时入表
-            # （含已存在书补缺、非连载短篇），无需全量刷新。
-            # 隐藏补缺操作行
+            # （含已存在书补足缺失章节、非连载短篇），无需全量刷新。
+            # 隐藏补足缺失章节操作行
             if self._fill_missing_visible:
                 self._fill_missing_visible = False
                 try:
@@ -1721,7 +1721,7 @@ class CrawlerMergeDetailDialog(ModalScreen[Dict[str, Any]]):
             pass
 
     def _add_crawled_book_to_table(self, novel_id: str, novel_title: str, file_path: str) -> None:
-        """将一本已成功爬取（含已存在书补缺）的书直接加入 state['books']，按 novel_id/id 去重"""
+        """将一本已成功爬取（含已存在书补足缺失章节）的书直接加入 state['books']，按 novel_id/id 去重"""
         try:
             if not self.is_attached:
                 return
@@ -1766,7 +1766,7 @@ class CrawlerMergeDetailDialog(ModalScreen[Dict[str, Any]]):
             logger.debug(f"加入表格失败: {e}")
 
     def _remove_id_from_input(self, novel_id: str) -> None:
-        """从补缺输入框中移除指定的ID"""
+        """从补足缺失章节输入框中移除指定的ID"""
         try:
             from urllib.parse import unquote
             decoded_novel_id = unquote(novel_id)
@@ -2253,7 +2253,7 @@ class CrawlerMergeDetailDialog(ModalScreen[Dict[str, Any]]):
         except Exception:
             pass
 
-    # ─── 补缺按钮事件 ───────────────────────────────────────
+    # ─── 补足缺失章节按钮事件 ───────────────────────────────────────
 
     @on(Button.Pressed, "#md-choose-books-btn")
     def on_md_choose_books(self) -> None:
@@ -2509,14 +2509,14 @@ class CrawlerMergeDetailDialog(ModalScreen[Dict[str, Any]]):
         self._apply_smart_title()
 
     def action_fill_missing(self) -> None:
-        """f键：补缺（书库模式复用合并详情页每组的内嵌补缺功能）"""
+        """f键：补足缺失章节（书库模式复用合并详情页每组的内嵌补足缺失章节功能）"""
         if self.library_mode:
             site, _ = self._resolve_library_source()
             if not site:
                 self.notify(self.i18n.t('crawler.no_site_id'), severity="warning", timeout=2)
                 return
-            # 复用合并详情页每组的补缺功能：设置来源站点并展开内嵌补缺行，
-            # 输入框保持为空，由用户手动输入小说ID（与合并详情页每组补缺一致）。
+            # 复用合并详情页每组的补足缺失章节功能：设置来源站点并展开内嵌补足缺失章节行，
+            # 输入框保持为空，由用户手动输入小说ID（与合并详情页每组补足缺失章节一致）。
             self.novel_site = site
             self._toggle_fill_missing()
             return
