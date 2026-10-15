@@ -147,6 +147,7 @@ DEFAULT_CONFIG = {
         "port_range_min": 10000,  # 随机端口范围最小值
         "port_range_max": 60000,  # 随机端口范围最大值
         "max_retry_attempts": 10,  # 端口冲突时最大重试次数
+        "lock_enabled": False,  # 浏览器阅读器锁屏开关（开启后每次打开需先设置密码锁屏）
     }
 }
 def get_available_themes():

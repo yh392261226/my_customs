@@ -93,7 +93,47 @@ EXTRA_READER_CSS = r"""
 .search-mark { background: yellow; color: inherit; border-radius: 2px; padding: 0 1px; }
 """
 
-EXTRA_READER_HTML = ""
+EXTRA_READER_HTML = r"""
+<!-- 浏览器阅读器锁屏遮罩 -->
+<div id="brLockScreen">
+  <div class="br-title">🔒 已锁屏</div>
+  <div class="br-clock"><span id="brClockHMS">00:00:00</span></div>
+  <div class="br-date" id="brLockDate"></div>
+  <div class="br-pwd-wrap">
+    <div class="br-pwd-row">
+      <input type="password" class="br-pwd" id="brLockPwd" placeholder="请输入锁屏密码" autocomplete="off" />
+      <button type="button" class="br-eye" id="brLockEye" title="显示/隐藏密码" aria-label="显示或隐藏密码">
+        <svg class="br-eye-open" viewBox="0 0 24 24" width="20" height="20" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M1 12s4-7 11-7 11 7 11 7-4 7-11 7-11-7-11-7z"/><circle cx="12" cy="12" r="3"/></svg>
+        <svg class="br-eye-off" viewBox="0 0 24 24" width="20" height="20" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M17.94 17.94A10.07 10.07 0 0 1 12 20c-7 0-11-8-11-8a18.45 18.45 0 0 1 5.06-5.94M9.9 4.24A9.12 9.12 0 0 1 12 4c7 0 11 8 11 8a18.5 18.5 0 0 1-2.16 3.19m-6.72-1.07a3 3 0 1 1-4.24-4.24"/><line x1="1" y1="1" x2="23" y2="23"/></svg>
+      </button>
+    </div>
+    <button class="br-unlock-btn" id="brUnlockBtn">解锁</button>
+    <div class="br-msg" id="brLockMsg"></div>
+  </div>
+</div>
+
+<!-- 设置锁屏密码弹窗 -->
+<div id="brSetPwdModal">
+  <div class="br-modal">
+    <h3>设置锁屏密码</h3>
+    <div class="br-pwd-row">
+      <input type="password" id="brSetPwd1" placeholder="输入锁屏密码" autocomplete="off" />
+      <button type="button" class="br-eye" id="brSetPwdEye" title="显示/隐藏密码" aria-label="显示或隐藏密码">
+        <svg class="br-eye-open" viewBox="0 0 24 24" width="20" height="20" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M1 12s4-7 11-7 11 7 11 7-4 7-11 7-11-7-11-7z"/><circle cx="12" cy="12" r="3"/></svg>
+        <svg class="br-eye-off" viewBox="0 0 24 24" width="20" height="20" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M17.94 17.94A10.07 10.07 0 0 1 12 20c-7 0-11-8-11-8a18.45 18.45 0 0 1 5.06-5.94M9.9 4.24A9.12 9.12 0 0 1 12 4c7 0 11 8 11 8a18.5 18.5 0 0 1-2.16 3.19m-6.72-1.07a3 3 0 1 1-4.24-4.24"/><line x1="1" y1="1" x2="23" y2="23"/></svg>
+      </button>
+    </div>
+    <div class="br-modal-msg" id="brSetPwdMsg"></div>
+    <div class="br-modal-btns">
+      <button class="br-cancel" id="brSetPwdCancel">取消</button>
+      <button class="br-ok" id="brSetPwdOk">确定</button>
+    </div>
+  </div>
+</div>
+
+<!-- 浮动锁屏按钮 -->
+<button id="brLockFab" title="按 L 键锁屏">🔒 锁屏</button>
+"""
 
 EXTRA_READER_JS = r"""
 /* === 浏览器阅读器增强功能 JS === */
@@ -811,6 +851,240 @@ def _merge_terminal_reader_themes_into(themes: Dict[str, Dict[str, str]]) -> Non
         logger.debug("合并终端阅读器主题失败", exc_info=True)
 
 
+LOCK_SCREEN_CSS = r"""
+/* === 浏览器阅读器锁屏功能样式 === */
+html.br-locked #content { visibility: hidden !important; }
+#brLockScreen {
+  position: fixed; inset: 0; z-index: 100000; display: none;
+  flex-direction: column; align-items: center; justify-content: center;
+  background: #0d0f14; color: #e8eaf0; font-family: inherit;
+}
+html.br-locked #brLockScreen { display: flex !important; }
+#brLockScreen .br-title { font-size: 18px; opacity: 0.85; margin-bottom: 26px; }
+#brLockScreen .br-clock {
+  font-size: 72px; font-weight: 700; letter-spacing: 3px; line-height: 1.1;
+  font-variant-numeric: tabular-nums; text-shadow: 0 2px 14px rgba(0,0,0,0.5);
+}
+#brLockScreen .br-date { font-size: 15px; opacity: 0.6; margin-top: 6px; }
+#brLockScreen .br-pwd-wrap {
+  position: absolute; bottom: 12%; display: flex; flex-direction: column;
+  align-items: center; gap: 10px; width: 90%; max-width: 380px;
+}
+#brLockScreen .br-pwd-row { width: 100%; }
+#brLockScreen input.br-pwd {
+  width: 100%; padding: 12px 44px 12px 16px; font-size: 16px; border-radius: 10px;
+  border: 1px solid #2a2f3a; background: #161a22; color: #e8eaf0;
+  outline: none; text-align: center;
+}
+#brLockScreen input.br-pwd:focus { border-color: #4facfe; }
+#brLockScreen .br-unlock-btn {
+  width: 100%; padding: 12px; font-size: 16px; border: none; border-radius: 10px;
+  cursor: pointer; background: #4facfe; color: #fff; font-weight: 600;
+}
+#brLockScreen .br-unlock-btn:hover { background: #3a9fe8; }
+#brLockScreen .br-msg { font-size: 13px; min-height: 18px; color: #ff6b6b; }
+
+#brSetPwdModal {
+  position: fixed; inset: 0; z-index: 100001; display: none;
+  align-items: center; justify-content: center; background: rgba(0,0,0,0.6);
+}
+#brSetPwdModal.show { display: flex !important; }
+#brSetPwdModal .br-modal {
+  background: #161a22; border: 1px solid #2a2f3a; border-radius: 14px; padding: 24px;
+  width: 90%; max-width: 360px; display: flex; flex-direction: column; gap: 12px; color: #e8eaf0;
+}
+#brSetPwdModal h3 { margin: 0; font-size: 18px; }
+#brSetPwdModal .br-pwd-row { width: 100%; }
+#brSetPwdModal input {
+  padding: 10px 44px 10px 12px; border-radius: 8px; border: 1px solid #2a2f3a;
+  background: #0d0f14; color: #e8eaf0; font-size: 15px; outline: none;
+}
+#brSetPwdModal input:focus { border-color: #4facfe; }
+#brSetPwdModal .br-modal-msg { font-size: 12px; min-height: 16px; color: #ff6b6b; }
+#brSetPwdModal .br-modal-btns { display: flex; gap: 10px; }
+#brSetPwdModal button {
+  flex: 1; padding: 10px; border: none; border-radius: 8px; cursor: pointer; font-size: 15px;
+}
+#brSetPwdModal .br-ok { background: #4facfe; color: #fff; }
+#brSetPwdModal .br-cancel { background: #2a2f3a; color: #e8eaf0; }
+
+.br-pwd-row { position: relative; display: flex; align-items: center; }
+.br-pwd-row input { flex: 1; }
+.br-eye {
+  position: absolute; right: 8px; top: 50%; transform: translateY(-50%);
+  display: flex; align-items: center; justify-content: center;
+  width: 34px; height: 34px; padding: 0; border: none; background: transparent;
+  color: #8a93a6; cursor: pointer; border-radius: 8px;
+}
+.br-eye:hover { color: #4facfe; background: rgba(255,255,255,0.06); }
+.br-eye svg { display: block; }
+.br-eye .br-eye-off { display: none; }
+.br-eye.br-eye-on .br-eye-open { display: none; }
+.br-eye.br-eye-on .br-eye-off { display: block; }
+
+#brLockFab {
+  position: fixed; left: 16px; bottom: 16px; z-index: 99999; display: block;
+  background: #4facfe; color: #fff; border: none; border-radius: 22px;
+  padding: 9px 15px; font-size: 14px; cursor: pointer;
+  box-shadow: 0 4px 12px rgba(0,0,0,0.35);
+}
+#brLockFab:hover { background: #3a9fe8; }
+"""
+
+LOCK_SCREEN_JS = r"""
+/* === 浏览器阅读器锁屏功能 JS === */
+(function(){
+  'use strict';
+  var BR_PREFIX = 'br_lock_v1::';
+  function brKey(id){ return BR_PREFIX + (id || ''); }
+  function brGet(id){
+    try { return JSON.parse(localStorage.getItem(brKey(id)) || 'null'); }
+    catch(e){ return null; }
+  }
+  function brSave(id, data){ localStorage.setItem(brKey(id), JSON.stringify({ locked: true, data: data })); }
+  function brClear(id){ localStorage.removeItem(brKey(id)); }
+  function brB64(bytes){
+    var s=''; for (var i=0;i<bytes.length;i++) s+=String.fromCharCode(bytes[i]); return btoa(s);
+  }
+  function brBytes(b64){
+    var bin=atob(b64), a=new Uint8Array(bin.length);
+    for (var i=0;i<bin.length;i++) a[i]=bin.charCodeAt(i); return a;
+  }
+  function brEnc(str){ return new TextEncoder().encode(str); }
+  function brDec(buf){ return new TextDecoder().decode(buf); }
+  function brHasCrypto(){ return !!(window.crypto && window.crypto.subtle); }
+  function brDerive(pwd, salt){
+    return crypto.subtle.importKey('raw', brEnc(pwd), 'PBKDF2', false, ['deriveKey'])
+      .then(function(km){
+        return crypto.subtle.deriveKey(
+          { name:'PBKDF2', salt:salt, iterations:100000, hash:'SHA-256' },
+          km, { name:'AES-GCM', length:256 }, false, ['encrypt','decrypt']);
+      });
+  }
+  function brEncrypt(content, pwd){
+    var salt = crypto.getRandomValues(new Uint8Array(16));
+    var iv = crypto.getRandomValues(new Uint8Array(12));
+    return brDerive(pwd, salt).then(function(key){
+      return crypto.subtle.encrypt({ name:'AES-GCM', iv:iv }, key, brEnc(content));
+    }).then(function(ct){
+      var c = new Uint8Array(ct);
+      var out = new Uint8Array(salt.length + iv.length + c.length);
+      out.set(salt,0); out.set(iv,salt.length); out.set(c, salt.length+iv.length);
+      return brB64(out);
+    });
+  }
+  function brDecrypt(b64, pwd){
+    var all = brBytes(b64);
+    var salt = all.slice(0,16), iv = all.slice(16,28), ct = all.slice(28);
+    return brDerive(pwd, salt).then(function(key){
+      return crypto.subtle.decrypt({ name:'AES-GCM', iv:iv }, key, ct);
+    }).then(function(pt){ return brDec(pt); });
+  }
+  function brBookId(){
+    if (window.__BR_BOOK_ID__ !== undefined) return window.__BR_BOOK_ID__;
+    if (typeof BOOK_ID !== 'undefined') return BOOK_ID;
+    return document.title || 'book';
+  }
+  var brTimer=null;
+  function brPad(n){ return (n<10?'0':'')+n; }
+  function brClock(){
+    var d=new Date();
+    var hms=brPad(d.getHours())+':'+brPad(d.getMinutes())+':'+brPad(d.getSeconds());
+    var e=document.getElementById('brClockHMS'); if(e) e.textContent=hms;
+    var dt=document.getElementById('brLockDate');
+    if(dt) dt.textContent=d.getFullYear()+'-'+brPad(d.getMonth()+1)+'-'+brPad(d.getDate())+' 星期'+'日一二三四五六'[d.getDay()];
+  }
+  function brStartClock(){ if(brTimer) return; brClock(); brTimer=setInterval(brClock,1000); }
+  function brShow(){
+    brResetEye('brLockEye', 'brLockPwd');
+    document.documentElement.classList.add('br-locked');
+    brStartClock();
+    var p=document.getElementById('brLockPwd'); if(p) p.focus();
+  }
+  function brHide(){
+    document.documentElement.classList.remove('br-locked');
+    if(brTimer){ clearInterval(brTimer); brTimer=null; }
+  }
+  function brMsg(m){ var e=document.getElementById('brLockMsg'); if(e) e.textContent=m||''; }
+  function brUnlock(){
+    var pe=document.getElementById('brLockPwd'); var pwd=pe?pe.value:'';
+    if(!pwd){ brMsg('请输入锁屏密码'); return; }
+    if(!brHasCrypto()){ brMsg('当前环境不支持加密锁屏'); return; }
+    var id=brBookId(); var rec=brGet(id);
+    if(!rec){ brHide(); return; }
+    brDecrypt(rec.data, pwd).then(function(content){
+      var ce=document.getElementById('content'); if(ce) ce.innerHTML=content;
+      brHide(); brClear(id); if(pe) pe.value=''; brResetEye('brLockEye', 'brLockPwd'); brMsg('');
+    }).catch(function(){ brMsg('密码错误，请重试'); });
+  }
+  function brLock(pwd){
+    if(!brHasCrypto()){ alert('当前浏览器不支持加密锁屏（需通过 https 或本地文件打开）'); return Promise.reject('no-crypto'); }
+    var ce=document.getElementById('content'); var content=ce?ce.innerHTML:'';
+    return brEncrypt(content, pwd).then(function(b64){
+      brSave(brBookId(), b64); if(ce) ce.innerHTML=''; brShow();
+    });
+  }
+  function brToggleEye(btnId, inputId){
+    var btn=document.getElementById(btnId), inp=document.getElementById(inputId);
+    if(!btn||!inp) return;
+    var on=btn.classList.toggle('br-eye-on');
+    inp.type = on ? 'text' : 'password';
+    if(on) inp.focus();
+  }
+  function brResetEye(btnId, inputId){
+    var btn=document.getElementById(btnId), inp=document.getElementById(inputId);
+    if(btn) btn.classList.remove('br-eye-on');
+    if(inp) inp.type='password';
+  }
+  function brOpenSet(){
+    var m=document.getElementById('brSetPwdModal'); if(m) m.classList.add('show');
+    var p=document.getElementById('brSetPwd1'); if(p) p.focus();
+  }
+  function brCloseSet(){
+    var m=document.getElementById('brSetPwdModal'); if(m) m.classList.remove('show');
+    var mm=document.getElementById('brSetPwdMsg'); if(mm) mm.textContent='';
+    var p1=document.getElementById('brSetPwd1'); if(p1) p1.value='';
+    brResetEye('brSetPwdEye', 'brSetPwd1');
+  }
+  function brConfirmSet(){
+    var p1=document.getElementById('brSetPwd1'), mm=document.getElementById('brSetPwdMsg');
+    var v1=p1?p1.value:'';
+    if(!v1){ if(mm) mm.textContent='请输入锁屏密码'; return; }
+    brLock(v1).then(function(){ brCloseSet(); }).catch(function(){});
+  }
+  function brTrigger(){
+    if(document.documentElement.classList.contains('br-locked')) return;
+    var rec=brGet(brBookId());
+    if(rec && rec.locked){ brShow(); return; }
+    brOpenSet();
+  }
+  function brInit(){
+    var ub=document.getElementById('brUnlockBtn'); if(ub) ub.addEventListener('click', brUnlock);
+    var lp=document.getElementById('brLockPwd');
+    if(lp) lp.addEventListener('keydown', function(e){ if(e.key==='Enter'){ e.preventDefault(); brUnlock(); } });
+    var ok=document.getElementById('brSetPwdOk'); if(ok) ok.addEventListener('click', brConfirmSet);
+    var cx=document.getElementById('brSetPwdCancel'); if(cx) cx.addEventListener('click', brCloseSet);
+    var fab=document.getElementById('brLockFab'); if(fab) fab.addEventListener('click', brTrigger);
+    var eyeSet=document.getElementById('brSetPwdEye'); if(eyeSet) eyeSet.addEventListener('click', function(){ brToggleEye('brSetPwdEye','brSetPwd1'); });
+    var eyeLock=document.getElementById('brLockEye'); if(eyeLock) eyeLock.addEventListener('click', function(){ brToggleEye('brLockEye','brLockPwd'); });
+    var id=brBookId(); var rec=brGet(id);
+    if(rec && rec.locked){ brShow(); }
+    else if(window.__BR_LOCK_ENABLED__ === true && !rec){ brOpenSet(); }
+  }
+  document.addEventListener('keydown', function(e){
+    if(e.key==='l' || e.key==='L'){
+      var ae=document.activeElement;
+      var tag=ae&&ae.tagName?ae.tagName.toLowerCase():'';
+      if(tag==='input'||tag==='textarea'||(ae&&ae.isContentEditable)) return;
+      e.preventDefault();
+      brTrigger();
+    }
+  });
+  if(document.readyState==='loading'){ document.addEventListener('DOMContentLoaded', brInit); }
+  else { brInit(); }
+})();
+"""
+
 class BrowserReader:
     """浏览器阅读器类"""
 
@@ -1240,7 +1514,8 @@ class BrowserReader:
                         initial_progress: Optional[float] = None,
                         browser_server_host: str = "localhost",
                         browser_server_port: int = 54321,
-                        file_path: Optional[str] = None) -> str:
+                        file_path: Optional[str] = None,
+                        lock_enabled: bool = False) -> str:
         """
         创建浏览器阅读器HTML
         
@@ -11948,9 +12223,33 @@ class BrowserReader:
         # 在</body>前插入脚本
         html = html.replace('</body>', placeholder_script + title_change_script + '</body>')
 
+        # 注入锁屏早期脚本：在 <head> 中先于样式解析执行，若检测到锁屏记录则立即隐藏内容，
+        # 避免锁定状态下内容在刷新/重新打开时闪现。同时向 JS 暴露书籍 ID 与锁屏开关。
+        try:
+            _br_book_id = book_id or title
+            _br_book_id_json = json.dumps(_br_book_id)
+            _lock_literal = "true" if lock_enabled else "false"
+            lock_early_script = (
+                '<script>\n'
+                '(function(){\n'
+                '  try {\n'
+                '    window.__BR_BOOK_ID__ = ' + _br_book_id_json + ';\n'
+                '    window.__BR_LOCK_ENABLED__ = ' + _lock_literal + ';\n'
+                '    var key = "br_lock_v1::" + window.__BR_BOOK_ID__;\n'
+                '    var rec = null;\n'
+                '    try { rec = JSON.parse(localStorage.getItem(key) || "null"); } catch(e) { rec = null; }\n'
+                '    if (rec && rec.locked) { document.documentElement.classList.add("br-locked"); }\n'
+                '  } catch(e) {}\n'
+                '})();\n'
+                '</script>\n'
+            )
+            html = html.replace('<head>', '<head>' + lock_early_script, 1)
+        except Exception as _lock_e:
+            logger.warning(f"注入锁屏早期脚本失败: {_lock_e}")
+
         # 注入增强功能（CSS / HTML / JS）
-        html = html.replace('</style>', EXTRA_READER_CSS + '</style>', 1)
-        html = html.replace('</body>', EXTRA_READER_HTML + '<script>' + EXTRA_READER_JS + '</script>' + '</body>', 1)
+        html = html.replace('</style>', EXTRA_READER_CSS + LOCK_SCREEN_CSS + '</style>', 1)
+        html = html.replace('</body>', EXTRA_READER_HTML + '<script>' + EXTRA_READER_JS + '</script>' + '<script>' + LOCK_SCREEN_JS + '</script>' + '</body>', 1)
         
 
         # Python端翻译处理 - 替换所有{t('browser_reader.xxx')}占位符
@@ -12347,11 +12646,19 @@ class BrowserReader:
                 except Exception as e:
                     logger.warning(f"获取初始进度失败: {e}")
             
+            # 读取浏览器阅读器锁屏开关（密码仅保存在浏览器端，刷新/重开仍需验证）
+            try:
+                from src.config.config_manager import ConfigManager
+                _br_cfg = ConfigManager.get_instance().get_config().get("browser_server", {})
+                _lock_enabled = bool(_br_cfg.get("lock_enabled", False))
+            except Exception:
+                _lock_enabled = False
+
             # 创建HTML
             html = BrowserReader.create_reader_html(
                 content, title, theme, custom_settings, save_url, load_url,
                 book_id, initial_progress, browser_server_host, browser_server_port,
-                file_path
+                file_path, lock_enabled=_lock_enabled
             )
             
             # 创建临时HTML文件

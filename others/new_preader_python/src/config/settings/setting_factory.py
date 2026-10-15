@@ -677,6 +677,15 @@ def create_browser_settings() -> SettingSection:
         category="browser"
     ))
     
+    # 浏览器阅读器锁屏开关
+    section.add_setting(BooleanSetting(
+        key="browser_server.lock_enabled",
+        default_value=False,
+        display_name="浏览器阅读器锁屏",  # 将在UI中通过国际化显示
+        description="开启后每次在浏览器中打开阅读器需先设置锁屏密码（密码仅保存在浏览器端，刷新或重新打开仍需验证）",  # 将在UI中通过国际化显示
+        category="browser"
+    ))
+    
     return section
 
 def create_path_settings() -> SettingSection:

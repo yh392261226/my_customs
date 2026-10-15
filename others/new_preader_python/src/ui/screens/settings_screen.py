@@ -690,6 +690,15 @@ class SettingsScreen(Screen[Any]):
                     placeholder=str(max_retry_setting.default_value)
                 )
             
+            # 浏览器阅读器锁屏开关
+            yield Label("浏览器阅读器锁屏（开启后，每次在浏览器打开阅读器需先设置密码锁屏）", classes="setting-label")
+            lock_setting = self.setting_registry.get_setting("browser_server.lock_enabled")
+            if lock_setting:
+                yield Switch(
+                    value=lock_setting.value,
+                    id="browser-server-lock-switch"
+                )
+            
             # 端口检测按钮和状态
             yield Label(get_global_i18n().t("settings.check_port"), classes="setting-label")
             with Horizontal(id="browser-server-check-area"):
@@ -1485,6 +1494,10 @@ class SettingsScreen(Screen[Any]):
             self.setting_registry.set_value("browser_server.max_retry_attempts", int(max_retry_input.value))
         except ValueError:
             pass
+        
+        # 浏览器阅读器锁屏开关
+        lock_switch = self.query_one("#browser-server-lock-switch", Switch)
+        self.setting_registry.set_value("browser_server.lock_enabled", bool(lock_switch.value))
         
         # 高级设置
         lang_select = self.query_one("#advanced-language-select", Select)
