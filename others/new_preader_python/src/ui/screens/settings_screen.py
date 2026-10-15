@@ -698,6 +698,46 @@ class SettingsScreen(Screen[Any]):
                     value=lock_setting.value,
                     id="browser-server-lock-switch"
                 )
+
+            # 后端数据接口开关
+            yield Label("启用后端数据接口（api/ 服务：书库/网站/爬取等数据上传下拉，与本地缓存互通）", classes="setting-label")
+            api_enabled_setting = self.setting_registry.get_setting("browser_server.api_enabled")
+            if api_enabled_setting:
+                yield Switch(
+                    value=api_enabled_setting.value,
+                    id="browser-server-api-enabled-switch"
+                )
+
+            # 后端接口地址
+            yield Label("后端接口地址（留空=本机 api_port；远程填完整地址，如 http://192.168.1.10:54322）", classes="setting-label")
+            api_url_setting = self.setting_registry.get_setting("browser_server.api_base_url")
+            if api_url_setting:
+                yield Input(
+                    value=api_url_setting.value or "",
+                    placeholder="http://localhost:54322",
+                    id="browser-server-api-url-input"
+                )
+
+            # 后端接口端口
+            yield Label("后端接口端口（本机模式使用）", classes="setting-label")
+            api_port_setting = self.setting_registry.get_setting("browser_server.api_port")
+            if api_port_setting:
+                yield Input(
+                    value=str(api_port_setting.value or 54322),
+                    placeholder="54322",
+                    id="browser-server-api-port-input"
+                )
+
+            # 后端接口密钥
+            yield Label("后端接口密钥（浏览器阅读器须使用相同密钥才能访问；留空为开放模式）", classes="setting-label")
+            api_secret_setting = self.setting_registry.get_setting("browser_server.api_secret")
+            if api_secret_setting:
+                yield Input(
+                    value=api_secret_setting.value or "",
+                    placeholder="设置一个复杂的密钥字符串",
+                    password=True,
+                    id="browser-server-api-secret-input"
+                )
             
             # 端口检测按钮和状态
             yield Label(get_global_i18n().t("settings.check_port"), classes="setting-label")
@@ -1498,7 +1538,21 @@ class SettingsScreen(Screen[Any]):
         # 浏览器阅读器锁屏开关
         lock_switch = self.query_one("#browser-server-lock-switch", Switch)
         self.setting_registry.set_value("browser_server.lock_enabled", bool(lock_switch.value))
-        
+
+        # 后端数据接口开关与地址
+        api_enabled_switch = self.query_one("#browser-server-api-enabled-switch", Switch)
+        self.setting_registry.set_value("browser_server.api_enabled", bool(api_enabled_switch.value))
+        api_url_input = self.query_one("#browser-server-api-url-input", Input)
+        self.setting_registry.set_value("browser_server.api_base_url", (api_url_input.value or "").strip())
+        api_port_input = self.query_one("#browser-server-api-port-input", Input)
+        try:
+            api_port_val = int((api_port_input.value or "").strip())
+        except (ValueError, TypeError):
+            api_port_val = 54322
+        self.setting_registry.set_value("browser_server.api_port", api_port_val)
+        api_secret_input = self.query_one("#browser-server-api-secret-input", Input)
+        self.setting_registry.set_value("browser_server.api_secret", (api_secret_input.value or "").strip())
+
         # 高级设置
         lang_select = self.query_one("#advanced-language-select", Select)
         if lang_select.value is not None:

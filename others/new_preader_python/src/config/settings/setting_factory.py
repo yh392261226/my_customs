@@ -686,6 +686,35 @@ def create_browser_settings() -> SettingSection:
         category="browser"
     ))
     
+    section.add_setting(BooleanSetting(
+        key="browser_server.api_enabled",
+        default_value=True,
+        display_name="启用后端数据接口",
+        description="开启后在浏览器阅读器内启动 api/ 后端服务，提供书库/网站/爬取等数据的上传与下拉，并与本地缓存互通",
+        category="browser"
+    ))
+    section.add_setting(StringSetting(
+        key="browser_server.api_base_url",
+        default_value="",
+        display_name="后端接口地址",
+        description="留空则使用本机 api_port；如需连接其它后端，请填写完整地址，如 http://192.168.1.10:54322",
+        category="browser"
+    ))
+    section.add_setting(IntegerSetting(
+        key="browser_server.api_port",
+        default_value=54322,
+        display_name="后端接口端口",
+        description="api/ 后端服务监听的端口（本机模式使用）",
+        category="browser"
+    ))
+    section.add_setting(StringSetting(
+        key="browser_server.api_secret",
+        default_value="",
+        display_name="后端接口密钥",
+        description="浏览器阅读器须使用相同密钥才能访问接口；留空则为开放模式（任何请求均可访问）。请设置一个足够复杂的字符串。",
+        category="browser"
+    ))
+    
     return section
 
 def create_path_settings() -> SettingSection:

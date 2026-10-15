@@ -1085,6 +1085,247 @@ LOCK_SCREEN_JS = r"""
 })();
 """
 
+SYNC_CSS = r"""
+/* 数据同步状态徽标 */
+.br-sync-badge {
+  position: fixed; top: 48px; right: 10px; z-index: 99998;
+  padding: 4px 10px; border-radius: 12px; font-size: 12px; cursor: pointer;
+  color: #fff; background: #6b7280; box-shadow: 0 2px 6px rgba(0,0,0,0.3); user-select: none;
+}
+.br-sync-badge.online { background: #1f9d55; }
+.br-sync-badge.offline { background: #b45309; }
+.br-sync-detail { font-size: 11px; opacity: 0.85; margin-top: 2px; }
+
+/* 数据同步面板 */
+.br-sync-panel {
+  position: fixed; top: 80px; right: 10px; width: 320px; max-height: 70vh; overflow: auto;
+  z-index: 99998; background: #0f1115; color: #e8eaf0; border: 1px solid #2a2f3a;
+  border-radius: 10px; box-shadow: 0 8px 24px rgba(0,0,0,0.5); font-size: 13px;
+}
+.br-sync-head { display: flex; justify-content: space-between; align-items: center; padding: 10px 12px; border-bottom: 1px solid #2a2f3a; font-weight: 600; }
+.br-sync-x { background: none; border: none; color: #aaa; font-size: 18px; cursor: pointer; line-height: 1; }
+.br-sync-status { padding: 6px 12px; font-size: 11px; color: #9aa4b2; border-bottom: 1px solid #2a2f3a; }
+.br-sync-key { display: flex; gap: 6px; padding: 8px 12px; border-bottom: 1px solid #2a2f3a; }
+.br-sync-key input { flex: 1; padding: 6px 8px; border-radius: 6px; border: 1px solid #2a2f3a; background: #161a22; color: #e8eaf0; }
+.br-sync-key button { padding: 6px 10px; border-radius: 6px; border: none; background: #374151; color: #fff; cursor: pointer; }
+.br-sync-tabs { display: flex; gap: 4px; padding: 8px 12px 0; }
+.br-sync-tabs button { flex: 1; padding: 6px; background: #1a1e26; color: #cbd5e1; border: 1px solid #2a2f3a; border-radius: 6px; cursor: pointer; }
+.br-sync-tabs button.active { background: #2563eb; color: #fff; border-color: #2563eb; }
+.br-sync-search { display: flex; gap: 6px; padding: 8px 12px; }
+.br-sync-search input { flex: 1; padding: 6px 8px; border-radius: 6px; border: 1px solid #2a2f3a; background: #161a22; color: #e8eaf0; }
+.br-sync-search button, .br-sync-foot button { padding: 6px 10px; border-radius: 6px; border: none; background: #2563eb; color: #fff; cursor: pointer; }
+.br-sync-list { padding: 4px 12px; min-height: 60px; }
+.br-sync-item { padding: 6px 8px; border-bottom: 1px solid #20242c; cursor: pointer; }
+.br-sync-item:hover { background: #1b2029; }
+.br-sync-item .t { font-weight: 600; }
+.br-sync-item .s { font-size: 11px; color: #9aa4b2; word-break: break-all; }
+.br-sync-item .s.link { color: #4facfe; text-decoration: underline; }
+.br-sync-item .src { font-size: 10px; color: #6b7280; }
+.br-sync-pager { display: flex; justify-content: space-between; align-items: center; padding: 8px 12px; border-top: 1px solid #2a2f3a; }
+.br-sync-pager button { padding: 4px 10px; background: #1a1e26; color: #cbd5e1; border: 1px solid #2a2f3a; border-radius: 6px; cursor: pointer; }
+.br-sync-foot { padding: 8px 12px; border-top: 1px solid #2a2f3a; }
+"""
+
+SYNC_HTML = r"""
+<div id="brSyncBadge" class="br-sync-badge offline" title="点击查看数据同步">接口: 离线(本地)</div>
+<div id="brSyncPanel" class="br-sync-panel" style="display:none">
+  <div class="br-sync-head"><span>数据同步</span><button id="brSyncClose" class="br-sync-x">×</button></div>
+  <div class="br-sync-status" id="brSyncDetail">检测中…</div>
+  <div class="br-sync-key">
+    <input id="brSyncKey" placeholder="接口访问密钥（与服务端一致）" type="password" />
+    <button id="brSyncSaveKey">保存密钥</button>
+  </div>
+  <div class="br-sync-tabs">
+    <button data-col="books" class="active">书库</button>
+    <button data-col="websites">书籍网站</button>
+    <button data-col="crawls">爬取管理</button>
+  </div>
+  <div class="br-sync-search">
+    <input id="brSyncSearch" placeholder="搜索…" />
+    <button id="brSyncRefresh">刷新</button>
+  </div>
+  <div class="br-sync-list" id="brSyncList"></div>
+  <div class="br-sync-pager">
+    <button id="brSyncPrev">上一页</button>
+    <span id="brSyncPageInfo"></span>
+    <button id="brSyncNext">下一页</button>
+  </div>
+  <div class="br-sync-foot"><button id="brSyncPushBook">把本书加入书库</button></div>
+</div>
+"""
+
+SYNC_JS = r"""
+(function(){
+  var API = window.__BR_API_BASE__ || '';
+  var TIMEOUT = 8000;
+  function el(id){ return document.getElementById(id); }
+  function lsGet(k){ try { return JSON.parse(localStorage.getItem(k)||'null'); } catch(e){ return null; } }
+  function lsSet(k,v){ try { localStorage.setItem(k, JSON.stringify(v)); } catch(e){} }
+  function esc(s){ s = s==null?'':String(s); return s.replace(/[&<>"]/g, function(c){ return {'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;'}[c]; }); }
+  function getSecret(){ try { return localStorage.getItem('br_api_secret') || ''; } catch(e){ return ''; } }
+  function setSecret(v){ try { localStorage.setItem('br_api_secret', v || ''); } catch(e){} }
+  function escAttr(s){ return esc(s==null?'':String(s)).replace(/'/g, '&#39;'); }
+
+  var state = { col:'books', page:1, q:'', total:0 };
+
+  function brApi(method, path, body){
+    return new Promise(function(resolve, reject){
+      if(!API){ reject(new Error('no-api')); return; }
+      var xhr = new XMLHttpRequest();
+      xhr.open(method, API + path, true);
+      xhr.timeout = TIMEOUT;
+      xhr.setRequestHeader('Content-Type','application/json');
+      var sk = getSecret();
+      if(sk){ xhr.setRequestHeader('X-API-Key', sk); }
+      xhr.onload = function(){ var d=null; try{ d=JSON.parse(xhr.responseText); }catch(e){} resolve({status:xhr.status, data:d}); };
+      xhr.onerror = function(){ reject(new Error('network')); };
+      xhr.ontimeout = function(){ reject(new Error('timeout')); };
+      xhr.send(body ? JSON.stringify(body) : null);
+    });
+  }
+
+  function ik(v){ if(!v) return '?'; return v.available ? '✓'+(v.count!=null?('('+v.count+')'):'') : '✗'; }
+  function setStatus(online, ifaces, msg){
+    var b = el('brSyncBadge'); if(!b) return;
+    b.className = 'br-sync-badge ' + (online?'online':'offline');
+    b.textContent = online ? '接口: 在线' : (msg || '接口: 离线(本地)');
+    var d = el('brSyncDetail');
+    if(d){ d.textContent = (online && ifaces) ? ('书库 '+ik(ifaces.books)+' · 网站 '+ik(ifaces.websites)+' · 爬取 '+ik(ifaces.crawls)) : (msg || '未连接后端，使用本地缓存'); }
+  }
+  function detect(){
+    if(!API){ setStatus(false, null, '未配置后端地址'); return; }
+    brApi('GET','/api/health').then(function(r){
+      if(r.status===200 && r.data && r.data.interfaces){ setStatus(true, r.data.interfaces); }
+      else if(r.status===401){ setStatus(false, null, '密钥错误/未授权'); }
+      else { setStatus(false); }
+    }).catch(function(){ setStatus(false); });
+  }
+
+  function pull(){
+    var cacheKey = 'br_cache_'+state.col;
+    var url = '/api/'+state.col+'?page='+state.page+'&page_size=20&q='+encodeURIComponent(state.q||'');
+    brApi('GET', url).then(function(r){
+      if(r.status===200 && r.data && r.data.items){
+        lsSet(cacheKey, {items:r.data.items, total:r.data.total, page:r.data.page, ts:Date.now(), source:'api'});
+        render(r.data.items, r.data.total, 'api');
+      } else if(r.status===401){ toast('密钥错误，访问被拒绝'); }
+      else { throw new Error('bad'); }
+    }).catch(function(){
+      var c = lsGet(cacheKey);
+      if(c && c.items){ render(c.items, c.total||c.items.length, 'cache'); }
+      else { render([], 0, 'none'); }
+    });
+  }
+
+  function render(items, total, source){
+    var box = el('brSyncList'); if(!box) return;
+    state.total = total||0;
+    var pinfo = el('brSyncPageInfo');
+    if(pinfo){ pinfo.textContent = '第'+state.page+'页 / 共'+Math.max(1,Math.ceil(total/20))+'页 ('+(source==='cache'?'本地缓存':source==='api'?'后端':'空')+')'; }
+    if(!items || !items.length){ box.innerHTML = '<div class="br-sync-item"><div class="s">暂无数据</div></div>'; return; }
+    var html = '';
+    for(var i=0;i<items.length;i++){
+      var it = items[i];
+      if(state.col==='books'){
+        var btitle = it.title || it.name || it.path || ('#'+it.id);
+        var bsub = it.author ? ('作者: '+it.author) : (it.path||'');
+        html += '<div class="br-sync-item" data-open="book" data-path="'+escAttr(it.path||'')+'">'
+              + '<div class="t">'+esc(btitle)+'</div>'
+              + '<div class="s">'+esc(bsub)+'</div>'
+              + '<div class="src">后端 · 点击阅读</div></div>';
+      } else if(state.col==='websites'){
+        var wname = it.name || it.title || it.url || ('#'+it.id);
+        var wurl = it.url || '';
+        html += '<div class="br-sync-item" data-open="link" data-url="'+escAttr(wurl)+'">'
+              + '<div class="t">'+esc(wname)+'</div>'
+              + '<div class="s link">'+(wurl?esc(wurl):'(无链接)')+'</div>'
+              + '<div class="src">点击在新窗口打开</div></div>';
+      } else {
+        var bpath = it.file_path || it.path || '';
+        var bid = it.novel_id || it.book_id || it.bookId || '';
+        var ctime = it.crawl_time || it.created_at || '';
+        var site = it.site_name || it.site_url || it.website || it.book_type || '—';
+        var ctitle = it.novel_title || it.title || ('书籍 '+bid);
+        html += '<div class="br-sync-item" data-open="book" data-path="'+escAttr(String(bpath))+'">'
+              + '<div class="t">'+esc(ctitle)+'</div>'
+              + '<div class="s">书籍ID: '+esc(bid)+' · 所属网站: '+esc(site)+' · 爬取时间: '+esc(ctime)+'</div>'
+              + '<div class="src">'+(bpath ? '点击阅读' : '暂无本地文件')+'</div></div>';
+      }
+    }
+    box.innerHTML = html;
+  }
+
+  function pushBook(){
+    if(!API){ alert('未配置后端接口，已仅保存在本地'); return; }
+    var path = window.__BR_BOOK_ID__ || '';
+    if(!path){ alert('无法获取本书标识'); return; }
+    var title = (document.title||'').replace(/\s*[-–|].*$/,'').trim() || path;
+    var payload = { path:path, title:title, tags:'浏览器导入' };
+    brApi('GET','/api/books/'+encodeURIComponent(path)).then(function(r){
+      if(r.status===401){ throw new Error('auth'); }
+      if(r.status===200 && r.data && r.data.item){ return {existed:true}; }
+      return brApi('POST','/api/books', payload).then(function(rr){
+        if(rr.status===401){ throw new Error('auth'); }
+        return {existed: rr.data && rr.data.existed};
+      });
+    }).then(function(res){ toast(res.existed ? '本书已存在于书库（未重复入库）' : '已加入书库'); detect(); })
+      .catch(function(){ toast('接口不可用或密钥错误，已保存到本地'); });
+  }
+
+  function brOpenBook(path){
+    if(!path){ toast('该书籍暂无本地文件，无法打开'); return; }
+    brApi('POST','/api/open_book', {path:path}).then(function(r){
+      if(r.status===200 && r.data && r.data.success){ toast('已请求在服务端打开本书'); }
+      else if(r.status===401){ toast('密钥错误，访问被拒绝'); }
+      else { var m = (r.data && (r.data.error || r.data.message)) || '未知错误'; toast('打开失败：' + m); }
+    }).catch(function(){ toast('接口不可用或密钥错误'); });
+  }
+
+  var toastTimer=null;
+  function toast(msg){
+    var t = el('brSyncToast');
+    if(!t){ t = document.createElement('div'); t.id='brSyncToast'; t.style.cssText='position:fixed;left:50%;top:20px;transform:translateX(-50%);background:#111827;color:#fff;padding:8px 14px;border-radius:8px;z-index:99999;font-size:13px;box-shadow:0 4px 12px rgba(0,0,0,.4)'; document.body.appendChild(t); }
+    t.textContent = msg; t.style.display='block';
+    clearTimeout(toastTimer); toastTimer=setTimeout(function(){ t.style.display='none'; }, 2200);
+  }
+
+  function openPanel(){ var p=el('brSyncPanel'); if(p) p.style.display='block'; var k=el('brSyncKey'); if(k) k.value=getSecret(); state.page=1; pull(); }
+  function closePanel(){ var p=el('brSyncPanel'); if(p) p.style.display='none'; }
+
+  function bind(){
+    var b=el('brSyncBadge'); if(b) b.addEventListener('click', function(){ var p=el('brSyncPanel'); if(p && p.style.display==='block'){ closePanel(); } else { openPanel(); } });
+    var x=el('brSyncClose'); if(x) x.addEventListener('click', closePanel);
+    var rf=el('brSyncRefresh'); if(rf) rf.addEventListener('click', function(){ pull(); });
+    var s=el('brSyncSearch'); if(s) s.addEventListener('keydown', function(e){ if(e.key==='Enter'){ state.q=s.value; state.page=1; pull(); } });
+    var prev=el('brSyncPrev'); if(prev) prev.addEventListener('click', function(){ if(state.page>1){ state.page--; pull(); } });
+    var next=el('brSyncNext'); if(next) next.addEventListener('click', function(){ state.page++; pull(); });
+    var pb=el('brSyncPushBook'); if(pb) pb.addEventListener('click', pushBook);
+    var skb=el('brSyncSaveKey'); if(skb) skb.addEventListener('click', function(){ var k=el('brSyncKey'); if(k){ setSecret(k.value||''); toast('密钥已保存到本地'); detect(); } });
+    var list=el('brSyncList');
+    if(list){ list.addEventListener('click', function(e){
+      var row = (e.target && e.target.closest) ? e.target.closest('.br-sync-item') : null;
+      if(!row) return;
+      var open = row.getAttribute('data-open');
+      if(open==='link'){ var u=row.getAttribute('data-url'); if(u) window.open(u,'_blank'); }
+      else if(open==='book'){ var p=row.getAttribute('data-path'); if(p) brOpenBook(p); }
+    }); }
+    var tabs=document.querySelectorAll('.br-sync-tabs button');
+    for(var i=0;i<tabs.length;i++){ tabs[i].addEventListener('click', function(){ var c=this.getAttribute('data-col'); state.col=c; state.page=1; for(var j=0;j<tabs.length;j++) tabs[j].classList.remove('active'); this.classList.add('active'); var s2=el('brSyncSearch'); if(s2) s2.value=''; state.q=''; pull(); }); }
+  }
+
+  if(document.readyState==='loading'){ document.addEventListener('DOMContentLoaded', function(){ bind(); detect(); }); }
+  else { bind(); detect(); }
+  setInterval(function(){ detect(); }, 30000);
+
+  window.brSync = {
+    api: function(m,p,b){ return brApi(m,p,b); },
+    openBook: function(p){ brOpenBook(p); },
+    base: function(){ return API || (window.__BR_API_BASE__||''); },
+    secret: getSecret
+  };
+})();
+"""
+
 class BrowserReader:
     """浏览器阅读器类"""
 
@@ -1515,7 +1756,8 @@ class BrowserReader:
                         browser_server_host: str = "localhost",
                         browser_server_port: int = 54321,
                         file_path: Optional[str] = None,
-                        lock_enabled: bool = False) -> str:
+                        lock_enabled: bool = False,
+                        api_base_url: Optional[str] = None) -> str:
         """
         创建浏览器阅读器HTML
         
@@ -4758,8 +5000,9 @@ class BrowserReader:
             <button class="settings-close" onclick="toggleBookLibrary()">×</button>
             
             <div class="library-tabs">
-                <button class="tab-btn active" onclick="switchLibraryTab('history')"><script>document.write(t('browser_reader.reading_history'));</script></button>
-                <button class="tab-btn" onclick="switchLibraryTab('imported')"><script>document.write(t('browser_reader.imported_books'));</script></button>
+                <button class="tab-btn active" data-tab="history" onclick="switchLibraryTab('history')"><script>document.write(t('browser_reader.reading_history'));</script></button>
+                <button class="tab-btn" data-tab="imported" onclick="switchLibraryTab('imported')"><script>document.write(t('browser_reader.imported_books'));</script></button>
+                <button class="tab-btn" data-tab="api" onclick="switchLibraryTab('api')">后端书库</button>
             </div>
             
             <!-- 阅读历史 -->
@@ -4792,6 +5035,19 @@ class BrowserReader:
                 </div>
                 <div class="book-list" id="importedBookList">
                     <p style="color: #666; text-align: center; padding: 20px;"><script>document.write(t('browser_reader.no_imported_books'));</script></p>
+                </div>
+            </div>
+            <!-- 后端书库 -->
+            <div class="library-content" id="apiTab" style="display: none;">
+                <div class="library-actions">
+                    <div class="library-search">
+                        <input type="text" id="apiSearchInput" placeholder="搜索书库..." onkeyup="searchApiBooks()">
+                        <button onclick="clearApiSearch()" id="clearApiSearchBtn" style="display: none;">×</button>
+                    </div>
+                    <button onclick="loadApiBooks()">刷新</button>
+                </div>
+                <div class="book-list" id="apiBookList">
+                    <p style="color: #666; text-align: center; padding: 20px;">加载中…</p>
                 </div>
             </div>
         </div>
@@ -10848,23 +11104,79 @@ class BrowserReader:
         }}
         
         function switchLibraryTab(tab) {{
-            const historyTab = document.getElementById('historyTab');
-            const importedTab = document.getElementById('importedTab');
-            const tabBtns = document.querySelectorAll('.library-tabs .tab-btn');
-            
-            tabBtns.forEach(btn => btn.classList.remove('active'));
-            
-            if (tab === 'history') {{
-                historyTab.style.display = 'block';
-                importedTab.style.display = 'none';
-                tabBtns[0].classList.add('active');
-                loadReadingHistory();
-            }} else {{
-                historyTab.style.display = 'none';
-                importedTab.style.display = 'block';
-                tabBtns[1].classList.add('active');
-                loadImportedBooks();
+            const tabs = ['history', 'imported', 'api'];
+            tabs.forEach(t => {{
+                const el = document.getElementById(t + 'Tab');
+                if (el) el.style.display = (t === tab) ? 'block' : 'none';
+            }});
+            const btns = document.querySelectorAll('.library-tabs .tab-btn');
+            btns.forEach(b => b.classList.toggle('active', b.getAttribute('data-tab') === tab));
+            if (tab === 'history') loadReadingHistory();
+            else if (tab === 'imported') loadImportedBooks();
+            else if (tab === 'api') loadApiBooks();
+        }}
+
+        // 后端书库（API）加载与渲染
+        function loadApiBooks() {{
+            const list = document.getElementById('apiBookList');
+            if (!list) return;
+            if (!window.brSync || !window.brSync.api) {{
+                list.innerHTML = '<p style="color:#666;text-align:center;padding:20px;">同步模块未就绪，请稍后重试</p>';
+                return;
             }}
+            list.innerHTML = '<p style="color:#666;text-align:center;padding:20px;">加载中…</p>';
+            const q = (document.getElementById('apiSearchInput') || {{}}).value || '';
+            const url = '/api/books?page=1&page_size=60&q=' + encodeURIComponent(q);
+            window.brSync.api('GET', url).then(function (r) {{
+                if (r.status === 200 && r.data && r.data.items) {{
+                    renderApiBooks(r.data.items);
+                }} else if (r.status === 401) {{
+                    list.innerHTML = '<p style="color:#e57373;text-align:center;padding:20px;">密钥错误/未授权，请在数据同步面板设置密钥</p>';
+                }} else {{
+                    list.innerHTML = '<p style="color:#666;text-align:center;padding:20px;">加载失败</p>';
+                }}
+            }}).catch(function () {{
+                list.innerHTML = '<p style="color:#666;text-align:center;padding:20px;">接口不可用（使用本地缓存或稍后重试）</p>';
+            }});
+        }}
+
+        function renderApiBooks(items) {{
+            const list = document.getElementById('apiBookList');
+            if (!list) return;
+            if (!items || !items.length) {{
+                list.innerHTML = '<p style="color:#666;text-align:center;padding:20px;">书库暂无书籍</p>';
+                return;
+            }}
+            list.innerHTML = '';
+            items.forEach(function (it) {{
+                const title = it.title || it.name || it.path || ('#' + it.id);
+                const sub = it.author ? ('作者: ' + it.author) : (it.path || '');
+                const row = document.createElement('div');
+                row.className = 'book-item';
+                row.style.cursor = 'pointer';
+                row.setAttribute('data-path', it.path || '');
+                row.innerHTML = '<div class="book-title">' + escapeHtml(title) + '</div>' +
+                    (sub ? '<div class="book-meta">' + escapeHtml(sub) + '</div>' : '');
+                row.addEventListener('click', function () {{
+                    if (window.brSync && window.brSync.openBook) window.brSync.openBook(it.path || '');
+                }});
+                list.appendChild(row);
+            }});
+        }}
+
+        function searchApiBooks() {{
+            const btn = document.getElementById('clearApiSearchBtn');
+            const inp = document.getElementById('apiSearchInput');
+            if (btn && inp) btn.style.display = inp.value ? 'block' : 'none';
+            loadApiBooks();
+        }}
+
+        function clearApiSearch() {{
+            const inp = document.getElementById('apiSearchInput');
+            const btn = document.getElementById('clearApiSearchBtn');
+            if (inp) inp.value = '';
+            if (btn) btn.style.display = 'none';
+            loadApiBooks();
         }}
         
         // 搜索阅读历史
@@ -12229,12 +12541,14 @@ class BrowserReader:
             _br_book_id = book_id or title
             _br_book_id_json = json.dumps(_br_book_id)
             _lock_literal = "true" if lock_enabled else "false"
+            _api_base_json = json.dumps(api_base_url or "")
             lock_early_script = (
                 '<script>\n'
                 '(function(){\n'
                 '  try {\n'
                 '    window.__BR_BOOK_ID__ = ' + _br_book_id_json + ';\n'
                 '    window.__BR_LOCK_ENABLED__ = ' + _lock_literal + ';\n'
+                '    window.__BR_API_BASE__ = ' + _api_base_json + ';\n'
                 '    var key = "br_lock_v1::" + window.__BR_BOOK_ID__;\n'
                 '    var rec = null;\n'
                 '    try { rec = JSON.parse(localStorage.getItem(key) || "null"); } catch(e) { rec = null; }\n'
@@ -12248,8 +12562,8 @@ class BrowserReader:
             logger.warning(f"注入锁屏早期脚本失败: {_lock_e}")
 
         # 注入增强功能（CSS / HTML / JS）
-        html = html.replace('</style>', EXTRA_READER_CSS + LOCK_SCREEN_CSS + '</style>', 1)
-        html = html.replace('</body>', EXTRA_READER_HTML + '<script>' + EXTRA_READER_JS + '</script>' + '<script>' + LOCK_SCREEN_JS + '</script>' + '</body>', 1)
+        html = html.replace('</style>', EXTRA_READER_CSS + LOCK_SCREEN_CSS + SYNC_CSS + '</style>', 1)
+        html = html.replace('</body>', EXTRA_READER_HTML + SYNC_HTML + '<script>' + EXTRA_READER_JS + '</script>' + '<script>' + LOCK_SCREEN_JS + '</script>' + '<script>' + SYNC_JS + '</script>' + '</body>', 1)
         
 
         # Python端翻译处理 - 替换所有{t('browser_reader.xxx')}占位符
@@ -12646,7 +12960,7 @@ class BrowserReader:
                 except Exception as e:
                     logger.warning(f"获取初始进度失败: {e}")
             
-            # 读取浏览器阅读器锁屏开关（密码仅保存在浏览器端，刷新/重开仍需验证）
+            # 读取浏览器阅读器锁屏开关与后端 API 地址（密码仅保存在浏览器端，刷新/重开仍需验证）
             try:
                 from src.config.config_manager import ConfigManager
                 _br_cfg = ConfigManager.get_instance().get_config().get("browser_server", {})
@@ -12654,11 +12968,19 @@ class BrowserReader:
             except Exception:
                 _lock_enabled = False
 
+            # 计算后端数据接口地址（供浏览器阅读器连接；不可用时留空，仅本地模式）
+            _api_base_url = ""
+            try:
+                from src.utils.browser_reader_server_manager import get_browser_reader_server_manager
+                _api_base_url = get_browser_reader_server_manager().get_api_url() or ""
+            except Exception:
+                _api_base_url = ""
+
             # 创建HTML
             html = BrowserReader.create_reader_html(
                 content, title, theme, custom_settings, save_url, load_url,
                 book_id, initial_progress, browser_server_host, browser_server_port,
-                file_path, lock_enabled=_lock_enabled
+                file_path, lock_enabled=_lock_enabled, api_base_url=_api_base_url
             )
             
             # 创建临时HTML文件

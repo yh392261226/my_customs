@@ -131,6 +131,9 @@ class BrowserReaderServerManager:
         self._server_thread = None
         self._save_url: Optional[str] = None
         self._load_url: Optional[str] = None
+        self._api_url: Optional[str] = None
+        self._api_server = None
+        self._api_thread = None
         self._callbacks: Dict[str, Dict[str, Any]] = {}
         self._book_progress_data: Dict[str, Dict] = {}
         self._book_annotations: Dict[str, Dict[str, Any]] = {}
@@ -156,17 +159,20 @@ class BrowserReaderServerManager:
     def start_server(self) -> bool:
         """启动浏览器阅读器服务器"""
         try:
-            if self.is_server_running():
-                logger.info("浏览器阅读器服务器已在运行")
-                return True
-            
             # 获取配置
             from src.config.config_manager import ConfigManager
             config_manager = ConfigManager.get_instance()
             config = config_manager.get_config()
             browser_config = config.get("browser_server", {})
-            fixed_port = browser_config.get("port", 54321)
             host = browser_config.get("host", "localhost")
+            # 启动后端数据接口（独立于进度服务，先确保可用）
+            self._start_api_if_enabled(host)
+
+            if self.is_server_running():
+                logger.info("浏览器阅读器服务器已在运行")
+                return True
+            
+            fixed_port = browser_config.get("port", 54321)
 
             # 初始化翻译管理器（复用系统中的翻译配置）
             try:
@@ -585,6 +591,51 @@ class BrowserReaderServerManager:
             logger.error(f"启动自定义服务器失败: {e}")
             return None, None, None, None
     
+    def _start_api_if_enabled(self, host: str) -> None:
+        """按配置启动后端数据接口（api/ 服务）。失败不影响进度服务。"""
+        try:
+            from src.config.config_manager import ConfigManager
+            cfg = ConfigManager.get_instance().get_config()
+            bc = cfg.get("browser_server", {})
+            if not bc.get("api_enabled", True):
+                self._api_url = None
+                return
+            port = int(bc.get("api_port", 54322))
+            base = (bc.get("api_base_url") or "").strip()
+            self._api_url = base.rstrip("/") if base else f"http://{host}:{port}"
+            if self._api_server is not None:
+                return
+            import socket
+            s = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
+            s.settimeout(0.2)
+            in_use = s.connect_ex((host, port)) == 0
+            s.close()
+            if in_use:
+                # 端口已被占用（可能是其它实例已启动的 API 服务），直接复用地址
+                return
+            from src.api import start_api_server, set_open_book_callback
+            secret = str(bc.get("api_secret", "") or "")
+            server, thread = start_api_server(host, port, secret=secret)
+            set_open_book_callback(self._open_book_by_path)
+            self._api_server = server
+            self._api_thread = thread
+            logger.info(f"后端数据接口已启动: {self._api_url}" + (f"（已启用密钥校验）" if secret else "（开放模式）"))
+        except Exception as e:
+            logger.warning(f"启动后端数据接口失败（浏览器将仅本地模式）: {e}")
+
+    def get_api_url(self) -> Optional[str]:
+        """获取后端数据接口地址（供浏览器阅读器连接）。"""
+        return self._api_url
+
+    def _open_book_by_path(self, path: str):
+        """供浏览器端 /api/open_book 调用：在服务端用浏览器打开指定书籍。"""
+        try:
+            from src.utils.browser_reader import BrowserReader
+            return BrowserReader.open_book_in_browser(path)
+        except Exception as e:
+            logger.error(f"通过 API 打开书籍失败: {path} - {e}")
+            return (False, str(e))
+
     def stop_server(self):
         """停止浏览器阅读器服务器"""
         try:
@@ -597,6 +648,16 @@ class BrowserReaderServerManager:
                 self._server_thread = None
             self._save_url = None
             self._load_url = None
+            if self._api_server:
+                try:
+                    self._api_server.shutdown()
+                except Exception:
+                    pass
+                self._api_server = None
+            if self._api_thread and self._api_thread.is_alive():
+                self._api_thread.join(timeout=0.5)
+                self._api_thread = None
+            self._api_url = None
             logger.info("浏览器阅读器服务器已停止")
         except Exception as e:
             logger.error(f"停止服务器时出错: {e}")
