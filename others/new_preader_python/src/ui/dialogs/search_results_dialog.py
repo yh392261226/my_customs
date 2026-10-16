@@ -66,8 +66,8 @@ class SearchResultsDialog(ModalScreen[Optional[int]]):
         table.clear(columns=True)
         
         # 添加列
-        table.add_column(get_global_i18n().t("search_results_dialog.page_number"), key="page_number")
-        table.add_column(get_global_i18n().t("search_results_dialog.context"), key="context")
+        table.add_column(get_global_i18n().t("common.page_no"), key="page_number")
+        table.add_column(get_global_i18n().t("common.context"), key="context")
         
         # 启用隔行变色效果
         table.zebra_stripes = True

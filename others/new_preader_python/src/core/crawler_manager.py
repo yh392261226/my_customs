@@ -186,7 +186,7 @@ class CrawlerManager:
             novel_site = db_manager.get_novel_site_by_id(task.site_id)
             if not novel_site:
                 task.status = CrawlStatus.FAILED
-                task.error_message = get_global_i18n().t('crawler.site_not_found')
+                task.error_message = get_global_i18n().t('common.site_not_found')
                 self._notify_status_change(task_id)
                 return
             

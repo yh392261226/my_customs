@@ -44,10 +44,10 @@ class FilePathValidator(Validator):
             return self.failure(get_global_i18n().t("empty_path"))
             
         if not os.path.exists(value):
-            return self.failure(get_global_i18n().t("not_exists"))
+            return self.failure(get_global_i18n().t("common.file_not_exist"))
             
         if not os.path.isfile(value):
-            return self.failure(get_global_i18n().t("path_not_file"))
+            return self.failure(get_global_i18n().t("common.path_not_file"))
             
         # 检查文件扩展名
         if self.file_extensions:
@@ -150,7 +150,7 @@ class FileChooserDialog(ModalScreen[Optional[List[str]]]):
                 else:
                     self.notify(get_global_i18n().t("bookshelf.invalid_file"), severity="error")
             else:
-                self.notify(get_global_i18n().t("bookshelf.no_files_selected"), severity="warning")
+                self.notify(get_global_i18n().t("common.no_file_selected"), severity="warning")
                 
         elif event.button.id == "add-file-btn":
             file_input = self.query_one("#file-input", Input)

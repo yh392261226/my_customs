@@ -31,10 +31,10 @@ class NovelSitesManagementScreen(Screen[None]):
         ("e", "edit_site", get_global_i18n().t('common.edit')),
         ("d", "delete_site", get_global_i18n().t('common.delete')),
         ("b", "batch_delete", get_global_i18n().t('novel_sites.batch_delete')),
-        ("m", "note", get_global_i18n().t('crawler.shortcut_b')),
-        ("enter", "enter_crawler", get_global_i18n().t('get_books.enter')),
-        ("p", "prev_page", get_global_i18n().t('crawler.shortcut_p')),
-        ("n", "next_page", get_global_i18n().t('crawler.shortcut_n')),
+        ("m", "note", get_global_i18n().t('common.note')),
+        ("enter", "enter_crawler", get_global_i18n().t('common.enter')),
+        ("p", "prev_page", get_global_i18n().t('common.prev_page')),
+        ("n", "next_page", get_global_i18n().t('common.next_page')),
         ("x", "clear_search_params", get_global_i18n().t('crawler.clear_search_params')),
         ("j", "jump_to", get_global_i18n().t('bookshelf.jump_to')),
         ("space", "toggle_row", get_global_i18n().t('batch_ops.toggle_row')),
@@ -53,7 +53,7 @@ class NovelSitesManagementScreen(Screen[None]):
         """
         super().__init__()
         try:
-            self.title = get_global_i18n().t('novel_sites.title')
+            self.title = get_global_i18n().t('common.book_site_manage')
         except RuntimeError:
             # 如果全局i18n未初始化，使用默认标题
             self.title = "书籍网站管理"
@@ -120,16 +120,16 @@ class NovelSitesManagementScreen(Screen[None]):
             Grid(
                 # 顶部区域：描述、按钮、搜索栏
                 Vertical(
-                    # Label(get_global_i18n().t('novel_sites.title'), id="novel-sites-title", classes="section-title"),
+                    # Label(get_global_i18n().t('common.book_site_manage'), id="novel-sites-title", classes="section-title"),
                     Label(get_global_i18n().t('novel_sites.description'), id="novel-sites-description", classes="section-title"),
                     
                     # 操作按钮区域
                     Horizontal(
                         Button(get_global_i18n().t('novel_sites.add'), id="add-btn", classes="btn"),
                         Button(get_global_i18n().t('novel_sites.edit'), id="edit-btn", classes="btn"),
-                        Button(get_global_i18n().t('novel_sites.delete'), id="delete-btn", classes="btn"),
+                        Button(get_global_i18n().t('common.delete'), id="delete-btn", classes="btn"),
                         Button(get_global_i18n().t('novel_sites.batch_delete'), id="batch-delete-btn", classes="btn"),
-                        Button(get_global_i18n().t('novel_sites.back'), id="back-btn", classes="btn"),
+                        Button(get_global_i18n().t('common.back'), id="back-btn", classes="btn"),
                         id="novel-sites-buttons",
                         classes="btn-row"
                     ),
@@ -218,15 +218,15 @@ class NovelSitesManagementScreen(Screen[None]):
         # 初始化数据表
         table = self.query_one("#novel-sites-table", DataTable)
         table.add_column(get_global_i18n().t('novel_sites.selected'), key="selected")
-        table.add_column(get_global_i18n().t('novel_sites.site_name'), key="site_name")
-        table.add_column(get_global_i18n().t('novel_sites.site_url'), key="site_url")
-        table.add_column(get_global_i18n().t('novel_sites.status'), key="status")
-        table.add_column(get_global_i18n().t('novel_sites.rating'), key="rating")
-        table.add_column(get_global_i18n().t('novel_sites.proxy_enabled'), key="proxy_enabled")
-        table.add_column(get_global_i18n().t('novel_sites.parser'), key="parser")
-        table.add_column(get_global_i18n().t('novel_sites.book_id_example'), key="book_id_example")
+        table.add_column(get_global_i18n().t('common.site_name'), key="site_name")
+        table.add_column(get_global_i18n().t('common.site_url'), key="site_url")
+        table.add_column(get_global_i18n().t('common.status'), key="status")
+        table.add_column(get_global_i18n().t('common.rating'), key="rating")
+        table.add_column(get_global_i18n().t('common.enable_proxy'), key="proxy_enabled")
+        table.add_column(get_global_i18n().t('common.parser'), key="parser")
+        table.add_column(get_global_i18n().t('common.book_id_sample'), key="book_id_example")
         table.add_column(get_global_i18n().t('novel_sites.change_status'), key="change_status")
-        table.add_column(get_global_i18n().t('crawler.note'), key="note")
+        table.add_column(get_global_i18n().t('common.note'), key="note")
         
         # 启用隔行变色效果
         table.zebra_stripes = True
@@ -386,7 +386,7 @@ class NovelSitesManagementScreen(Screen[None]):
                 row_data["parser"],
                 row_data["book_id_example"],
                 row_data["change_status"],
-                get_global_i18n().t('crawler.note')
+                get_global_i18n().t('common.note')
             )
         
         # 更新分页信息
@@ -649,7 +649,7 @@ class NovelSitesManagementScreen(Screen[None]):
                 dialog = NovelSiteDialog(self.theme_manager, site)
                 self.app.push_screen(dialog, lambda result: self._handle_edit_result(result, global_index))
             else:
-                self._update_status(get_global_i18n().t('novel_sites.site_not_found'), "error")
+                self._update_status(get_global_i18n().t('common.site_not_found'), "error")
     
     def _handle_add_result(self, result: Optional[Dict[str, Any]]) -> None:
         """处理添加结果"""
@@ -693,7 +693,7 @@ class NovelSitesManagementScreen(Screen[None]):
                 from src.ui.dialogs.confirm_dialog import ConfirmDialog
                 dialog = ConfirmDialog(
                     self.theme_manager,
-                    get_global_i18n().t('novel_sites.confirm_delete'),
+                    get_global_i18n().t('common.confirm_delete'),
                     f"{get_global_i18n().t('novel_sites.confirm_delete_message')}: {site['name']}"
                 )
                 self.app.push_screen(dialog, lambda confirmed: self._handle_delete_result(confirmed, global_index))
@@ -712,7 +712,7 @@ class NovelSitesManagementScreen(Screen[None]):
         from src.ui.dialogs.confirm_dialog import ConfirmDialog
         dialog = ConfirmDialog(
             self.theme_manager,
-            get_global_i18n().t('novel_sites.confirm_batch_delete'),
+            get_global_i18n().t('common.confirm_batch_delete'),
             f"{get_global_i18n().t('novel_sites.confirm_batch_delete_message')}: {len(self.selected_sites)}"
         )
         self.app.push_screen(dialog, self._handle_batch_delete_confirm)
@@ -794,7 +794,7 @@ class NovelSitesManagementScreen(Screen[None]):
                 dialog = NovelSiteDialog(self.theme_manager, site)
                 self.app.push_screen(dialog, lambda result: self._handle_edit_result(result, global_index))
             else:
-                self._update_status(get_global_i18n().t('novel_sites.site_not_found'), "error")
+                self._update_status(get_global_i18n().t('common.site_not_found'), "error")
         else:
             self._update_status(get_global_i18n().t('novel_sites.select_site_first'))
     
@@ -804,7 +804,7 @@ class NovelSitesManagementScreen(Screen[None]):
             # 获取当前网站的备注内容
             site_id = site.get('id')
             if not site_id:
-                self._update_status(get_global_i18n().t('crawler.no_site_id'), "error")
+                self._update_status(get_global_i18n().t('common.cannot_get_site_id'), "error")
                 return
             
             # 从数据库加载现有备注
@@ -817,7 +817,7 @@ class NovelSitesManagementScreen(Screen[None]):
                     if self.database_manager.save_novel_site_note(site_id, result):
                         self._update_status(get_global_i18n().t('crawler.note_saved'), "success")
                     else:
-                        self._update_status(get_global_i18n().t('crawler.note_save_failed'), "error")
+                        self._update_status(get_global_i18n().t('common.save_note_failed'), "error")
                 # 如果result为None，表示用户取消了操作
             
             self.app.push_screen(
@@ -872,7 +872,7 @@ class NovelSitesManagementScreen(Screen[None]):
                 from src.ui.dialogs.confirm_dialog import ConfirmDialog
                 dialog = ConfirmDialog(
                     self.theme_manager,
-                    get_global_i18n().t('novel_sites.confirm_delete'),
+                    get_global_i18n().t('common.confirm_delete'),
                     f"{get_global_i18n().t('novel_sites.confirm_delete_message')}: {site['name']}"
                 )
                 self.app.push_screen(dialog, lambda confirmed: self._handle_delete_result(confirmed, global_index))
@@ -1169,7 +1169,7 @@ class NovelSitesManagementScreen(Screen[None]):
                 site = self.novel_sites[global_index]
                 self._open_note_dialog(site)
             else:
-                self._update_status(get_global_i18n().t('novel_sites.site_not_found'), "error")
+                self._update_status(get_global_i18n().t('common.site_not_found'), "error")
         else:
             self._update_status(get_global_i18n().t('novel_sites.select_site_first'))
         

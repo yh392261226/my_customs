@@ -36,12 +36,12 @@ class RenameBookDialog(ModalScreen[dict]):
                 
                 # 当前书籍信息
                 Label(f"{get_global_i18n().t('bookshelf.current_title')}: {self.book_title}", id="current-title"),
-                Label(f"{get_global_i18n().t('bookshelf.file_path')}: {os.path.basename(self.book_path)}", id="file-path"),
+                Label(f"{get_global_i18n().t('common.file_path')}: {os.path.basename(self.book_path)}", id="file-path"),
                 
                 # 新书名输入
                 Horizontal(
                     Label(get_global_i18n().t("bookshelf.new_title"), id="new-title-label"),
-                    Input(placeholder=get_global_i18n().t("bookshelf.enter_new_title"), id="new-title-input"),
+                    Input(placeholder=get_global_i18n().t("common.enter_new_title"), id="new-title-input"),
                     id="input-row"
                 ),
                 
@@ -74,7 +74,7 @@ class RenameBookDialog(ModalScreen[dict]):
             new_title = input_widget.value.strip()
             
             if not new_title:
-                self.notify(get_global_i18n().t("bookshelf.title_empty"), severity="warning")
+                self.notify(get_global_i18n().t("common.title_not_empty"), severity="warning")
                 return
             
             if new_title == self.book_title:
@@ -98,7 +98,7 @@ class RenameBookDialog(ModalScreen[dict]):
         new_title = input_widget.value.strip()
         
         if not new_title:
-            self.notify(get_global_i18n().t("bookshelf.title_empty"), severity="warning")
+            self.notify(get_global_i18n().t("common.title_not_empty"), severity="warning")
             return
         
         if new_title == self.book_title:

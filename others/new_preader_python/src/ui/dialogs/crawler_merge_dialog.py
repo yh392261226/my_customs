@@ -102,7 +102,7 @@ class CrawlerMergeDialog(ModalScreen[Dict[str, Any]]):
 
         if not new_title:
             # 显示错误提示，提示使用智能标题或手动输入
-            self.notify(get_global_i18n().t('batch_ops.enter_new_title'), severity="error")
+            self.notify(get_global_i18n().t('common.enter_new_title'), severity="error")
             return
 
         # 返回合并结果

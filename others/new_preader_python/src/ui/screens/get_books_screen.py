@@ -29,17 +29,17 @@ class GetBooksScreen(Screen[None]):
     # 使用 Textual BINDINGS 进行快捷键绑定
     BINDINGS: ClassVar[list[tuple[str, str, str]]] = [
         ("N", "open_novel_sites", get_global_i18n().t('get_books.shortcut_n')),
-        ("P", "open_proxy_list", get_global_i18n().t('get_books.shortcut_p')),
-        ("o", "open_books_folder", get_global_i18n().t('get_books.shortcut_o')),
+        ("P", "open_proxy_list", get_global_i18n().t('common.proxy_settings')),
+        ("o", "open_books_folder", get_global_i18n().t('common.book_toc')),
         ("enter", "open_selected", get_global_i18n().t('get_books.shortcut_enter')),
-        ("space", "open_selected", get_global_i18n().t('get_books.shortcut_space')),
-        ("p", "prev_page", get_global_i18n().t('crawler.shortcut_p')),
-        ("n", "next_page", get_global_i18n().t('crawler.shortcut_n')),
+        ("space", "open_selected", get_global_i18n().t('common.enter')),
+        ("p", "prev_page", get_global_i18n().t('common.prev_page')),
+        ("n", "next_page", get_global_i18n().t('common.next_page')),
         ("x", "clear_search_params", get_global_i18n().t('crawler.clear_search_params')),
         ("j", "jump_to", get_global_i18n().t('bookshelf.jump_to')),
-        ("r", "clear_all_invalid", get_global_i18n().t('get_books.shortcut_d')),
-        ("C", "check_all_sites", get_global_i18n().t('get_books.shortcut_C')),
-        ("b", "view_book_catalog", get_global_i18n().t('get_books.shortcut_b')),
+        ("r", "clear_all_invalid", get_global_i18n().t('common.clean_invalid')),
+        ("C", "check_all_sites", get_global_i18n().t('common.one_click_check')),
+        ("b", "view_book_catalog", get_global_i18n().t('common.book_toc')),
     ]
 
 
@@ -55,7 +55,7 @@ class GetBooksScreen(Screen[None]):
             theme_manager: 主题管理器
         """
         super().__init__()
-        self.title = get_global_i18n().t('get_books.title')
+        self.title = get_global_i18n().t('common.get_books')
         self.theme_manager = theme_manager
         self.database_manager = DatabaseManager()
         self.novel_sites = []  # 书籍网站列表
@@ -95,17 +95,17 @@ class GetBooksScreen(Screen[None]):
             Grid(
                 # 顶部区域：描述、按钮、搜索栏
                 Vertical(
-                    # Label(get_global_i18n().t('get_books.title'), id="get-books-title", classes="section-title"),
+                    # Label(get_global_i18n().t('common.get_books'), id="get-books-title", classes="section-title"),
                     Label(get_global_i18n().t('get_books.description'), id="get-books-description", classes="section-title"),
                     
                     # 功能按钮区域
                     Horizontal(
-                        Button(get_global_i18n().t('get_books.novel_sites'), id="novel-sites-btn", classes="btn"),
-                        Button(get_global_i18n().t('get_books.proxy_settings'), id="proxy-settings-btn", classes="btn"),
+                        Button(get_global_i18n().t('common.book_site_manage'), id="novel-sites-btn", classes="btn"),
+                        Button(get_global_i18n().t('common.proxy_settings'), id="proxy-settings-btn", classes="btn"),
                         Button(get_global_i18n().t('get_books.check_all'), id="check-all-sites-btn", classes="btn"),
                         Button(get_global_i18n().t('get_books.clear_all_invalid'), id="clear-all-invalid-btn", classes="btn", variant="error"),
-                        Button(get_global_i18n().t('get_books.shortcut_o'), id="open-books-folder-btn", classes="btn"),
-                        Button(get_global_i18n().t('get_books.back'), id="back-btn", classes="btn"),
+                        Button(get_global_i18n().t('common.book_toc'), id="open-books-folder-btn", classes="btn"),
+                        Button(get_global_i18n().t('common.back'), id="back-btn", classes="btn"),
                         id="get-books-buttons",
                         classes="btn-row"
                     ),
@@ -143,8 +143,8 @@ class GetBooksScreen(Screen[None]):
                             id="novel-sites-status-filter",
                             options=[
                                 (get_global_i18n().t('search.all_status'), "all"),
-                                (get_global_i18n().t('crawler.status_success'), "normal"),
-                                (get_global_i18n().t('crawler.status_failed'), "abnormal")
+                                (get_global_i18n().t('common.success'), "normal"),
+                                (get_global_i18n().t('common.failed'), "abnormal")
                             ],
                             value="all",
                             prompt=get_global_i18n().t('search.select_status_prompt'),
@@ -224,17 +224,17 @@ class GetBooksScreen(Screen[None]):
         table.clear(columns=True)
         
         # 添加列定义
-        table.add_column(get_global_i18n().t('get_books.sequence'), key="sequence")
-        table.add_column(get_global_i18n().t('get_books.site_name'), key="name")
-        table.add_column(get_global_i18n().t('get_books.site_url'), key="url")
-        table.add_column(get_global_i18n().t('get_books.status'), key="status")
-        table.add_column(get_global_i18n().t('get_books.proxy_enabled'), key="proxy_enabled")
-        table.add_column(get_global_i18n().t('get_books.parser'), key="parser")
-        table.add_column(get_global_i18n().t('get_books.tags'), key="tags")
-        table.add_column(get_global_i18n().t('get_books.rating'), key="rating")
+        table.add_column(get_global_i18n().t('common.serial'), key="sequence")
+        table.add_column(get_global_i18n().t('common.site_name'), key="name")
+        table.add_column(get_global_i18n().t('common.site_url'), key="url")
+        table.add_column(get_global_i18n().t('common.status'), key="status")
+        table.add_column(get_global_i18n().t('common.proxy_enabled'), key="proxy_enabled")
+        table.add_column(get_global_i18n().t('common.parser'), key="parser")
+        table.add_column(get_global_i18n().t('common.tag'), key="tags")
+        table.add_column(get_global_i18n().t('common.rating'), key="rating")
         table.add_column(get_global_i18n().t('get_books.books_count'), key="books_count")
         table.add_column(get_global_i18n().t('get_books.check'), key="check")
-        table.add_column(get_global_i18n().t('get_books.enter'), key="enter")
+        table.add_column(get_global_i18n().t('common.enter'), key="enter")
         
         # 启用隔行变色效果
         table.zebra_stripes = True
@@ -424,7 +424,7 @@ class GetBooksScreen(Screen[None]):
                 "rating": rating_display,
                 "books_count": str(books_count),
                 "check": "🔍 " + get_global_i18n().t('get_books.check'),
-                "enter": "➤ " + get_global_i18n().t('get_books.enter'),
+                "enter": "➤ " + get_global_i18n().t('common.enter'),
                 "_row_key": f"{site.get('id', '')}_{global_index}",
                 "_global_index": global_index
             }
@@ -922,9 +922,9 @@ class GetBooksScreen(Screen[None]):
         # 更新代理状态显示
         status_label = self.query_one("#proxy-status-info", Label)
         if enabled_proxy:
-            status_text = f"{get_global_i18n().t('get_books.proxy_enabled')}: {enabled_proxy.get('name', '未知')} ({enabled_proxy.get('host', '未知')}:{enabled_proxy.get('port', '未知')})"
+            status_text = f"{get_global_i18n().t('common.proxy_enabled')}: {enabled_proxy.get('name', '未知')} ({enabled_proxy.get('host', '未知')}:{enabled_proxy.get('port', '未知')})"
         else:
-            status_text = get_global_i18n().t('get_books.proxy_disabled')
+            status_text = get_global_i18n().t('common.proxy_disabled')
         status_label.update(status_text)
     
     def _has_permission(self, permission_key: str) -> bool:
@@ -985,7 +985,7 @@ class GetBooksScreen(Screen[None]):
         # 检查权限
         button_id = event.button.id or ""
         if not self._has_button_permission(button_id):
-            self.notify(get_global_i18n().t('get_books.np_action'), severity="warning")
+            self.notify(get_global_i18n().t('common.no_permission_op'), severity="warning")
             return
             
         # 处理分页按钮
@@ -1652,7 +1652,7 @@ class GetBooksScreen(Screen[None]):
             self.app.push_screen(
                 ConfirmDialog(
                     self.theme_manager,
-                    get_global_i18n().t('get_books.clear_all_invalid_confirm'),
+                    get_global_i18n().t('common.confirm_clean_invalid'),
                     get_global_i18n().t('get_books.clear_all_invalid_desc', count=len(invalid_records))
                 ),
                 handle_clear_confirmation

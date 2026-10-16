@@ -267,7 +267,7 @@ class _MergePreviewDialog(ModalScreen[None]):
                 self.notify(self.i18n.t("crawler.preview_empty"), severity="information", timeout=2)
                 return
             self._render_preview_content(preview_content, content, "crawler.preview_full_note")
-            full_btn.label = self.i18n.t("crawler.preview_back")
+            full_btn.label = self.i18n.t("common.preview")
             self._is_full = True
         else:
             # 全文预览 → 回到前 2000 字截断预览
@@ -310,21 +310,21 @@ class CrawlerMergeDetailDialog(ModalScreen[Dict[str, Any]]):
         ("space", "toggle_row", get_global_i18n().t('batch_ops.toggle_row')),
         ("k", "move_up", get_global_i18n().t('merge_detail.move_up')),
         ("j", "move_down", get_global_i18n().t('merge_detail.move_down')),
-        ("y", "copy_title", get_global_i18n().t('merge_detail.copy_title')),
-        ("x", "clear_title", get_global_i18n().t('merge_detail.clear_title')),
-        ("v", "preview_book", get_global_i18n().t('merge_detail.preview')),
+        ("y", "copy_title", get_global_i18n().t('common.copy_title')),
+        ("x", "clear_title", get_global_i18n().t('common.clean')),
+        ("v", "preview_book", get_global_i18n().t('common.preview')),
         ("d", "delete_book", get_global_i18n().t('merge_detail.delete_current')),
         ("D", "delete_selected", get_global_i18n().t('novel_sites.batch_delete')),
-        ("a", "toggle_select_all", get_global_i18n().t('batch_ops.select_all')),
+        ("a", "toggle_select_all", get_global_i18n().t('common.select_all')),
         ("g", "merge_this", get_global_i18n().t('merge_detail.merge_this')),
         ("t", "skip_this", get_global_i18n().t('merge_detail.skip_this')),
         ("m", "smart_title", get_global_i18n().t('merge_detail.smart_title')),
-        ("X", "select_books", get_global_i18n().t('crawler.select_books')),
+        ("X", "select_books", get_global_i18n().t('common.select_book')),
         ("s", "toggle_crawl", get_global_i18n().t('crawler.toggle_crawl')),
-        ("e", "toggle_monitor", get_global_i18n().t('crawler.toggle_monitor')),
+        ("e", "toggle_monitor", get_global_i18n().t('common.start_listen')),
         ("f", "fill_missing", get_global_i18n().t('merge_detail.fill_missing')),
-        ("S", "search_chapters", get_global_i18n().t('crawler.search_chapters_shortcut')),
-        ("F", "view_current_file", get_global_i18n().t('crawler.shortcut_f')),
+        ("S", "search_chapters", get_global_i18n().t('common.search_chapter')),
+        ("F", "view_current_file", get_global_i18n().t('common.view_file')),
         ("p", "prev_group", get_global_i18n().t('duplicate_books.prev_group')),
         ("n", "next_group", get_global_i18n().t('duplicate_books.next_group')),
     ]
@@ -468,7 +468,7 @@ class CrawlerMergeDetailDialog(ModalScreen[Dict[str, Any]]):
                 Horizontal(
                     Label(self.i18n.t('merge_detail.merged_title_label'), id="title-label"),
                     Input(placeholder=self.i18n.t('merge_detail.title_placeholder'), id="merge-title-input"),
-                    Button(self.i18n.t('merge_detail.clear_title'), id="clear-title-btn"),
+                    Button(self.i18n.t('common.clean'), id="clear-title-btn"),
                     id="title-row",
                 ),
                 # 提示说明
@@ -483,22 +483,22 @@ class CrawlerMergeDetailDialog(ModalScreen[Dict[str, Any]]):
                     Button(self.i18n.t('merge_detail.select_all'), id="select-all-btn"),
                     Button(self.i18n.t('merge_detail.deselect_all'), id="deselect-all-btn"),
                     Button(self.i18n.t('merge_detail.smart_title'), id="smart-title-btn", variant="success"),
-                    Button(self.i18n.t('crawler.search_chapters'), id="search-chapters-btn", variant="warning"),
+                    Button(self.i18n.t('common.search_chapter'), id="search-chapters-btn", variant="warning"),
                     Button(self.i18n.t('merge_detail.fill_missing'), id="fill-missing-btn", variant="primary"),
                     id="sort-buttons",
                 ),
                 # 补足缺失章节操作行（默认隐藏；书库合并模式下同样可用，按光标书籍反查来源站点）
                 Vertical(
                     Horizontal(
-                        *([Button(self.i18n.t('crawler.select_books'), id="md-choose-books-btn")] if self.novel_site.get("selectable_enabled", True) else []),
+                        *([Button(self.i18n.t('common.select_book'), id="md-choose-books-btn")] if self.novel_site.get("selectable_enabled", True) else []),
                         Input(placeholder=self.i18n.t('crawler.novel_id_placeholder_multi'), id="md-novel-id-input"),
                         Button(self.i18n.t('crawler.start_crawl'), id="md-toggle-crawl-btn", variant="primary"),
-                        Button(self.i18n.t('crawler.copy_ids'), id="md-copy-ids-btn"),
-                        Button(self.i18n.t('crawler.toggle_monitor'), id="md-toggle-monitor-btn", variant="success"),
+                        Button(self.i18n.t('common.copy_id'), id="md-copy-ids-btn"),
+                        Button(self.i18n.t('common.start_listen'), id="md-toggle-monitor-btn", variant="success"),
                         Select(
                             id="md-browser-select",
                             options=[
-                                (self.i18n.t('crawler.browser_label'), "chrome"),
+                                (self.i18n.t('common.browser'), "chrome"),
                                 ("Chrome", "chrome"),
                                 ("Safari", "safari"),
                                 ("Brave", "brave"),
@@ -520,9 +520,9 @@ class CrawlerMergeDetailDialog(ModalScreen[Dict[str, Any]]):
                 ),
                 # 快速定位行
                 Horizontal(
-                    Label(self.i18n.t('merge_detail.move_to_pos'), id="pos-label"),
+                    Label(self.i18n.t('common.move_to'), id="pos-label"),
                     Input(
-                        placeholder=self.i18n.t('merge_detail.pos_placeholder'),
+                        placeholder=self.i18n.t('common.line_no'),
                         id="move-to-pos-input",
                         type="integer",
                     ),
@@ -658,33 +658,33 @@ class CrawlerMergeDetailDialog(ModalScreen[Dict[str, Any]]):
             table.add_column("✓", key="selected", width=3)
             table.add_column(self.i18n.t('merge_detail.col_seq'), key="seq", width=4)
             table.add_column(
-                (self.i18n.t('merge_detail.col_book_id') + arrow) if self._sort_column == "book_id" else self.i18n.t('merge_detail.col_book_id'),
+                (self.i18n.t('common.book_id') + arrow) if self._sort_column == "book_id" else self.i18n.t('common.book_id'),
                 key="book_id", width=14,
             )
             table.add_column(
-                (self.i18n.t('merge_detail.col_title') + arrow) if self._sort_column == "title" else self.i18n.t('merge_detail.col_title'),
+                (self.i18n.t('common.book_title') + arrow) if self._sort_column == "title" else self.i18n.t('common.book_title'),
                 key="title", width=60,
             )
-            table.add_column(self.i18n.t('merge_detail.col_author'), key="author", width=18)
+            table.add_column(self.i18n.t('common.author'), key="author", width=18)
             table.add_column(
-                (self.i18n.t('merge_detail.col_time') + arrow) if self._sort_column == "time" else self.i18n.t('merge_detail.col_time'),
+                (self.i18n.t('common.crawl_time') + arrow) if self._sort_column == "time" else self.i18n.t('common.crawl_time'),
                 key="time", width=10,
             )
             table.add_column(
-                (self.i18n.t('merge_detail.col_size') + arrow) if self._sort_column == "size" else self.i18n.t('merge_detail.col_size'),
+                (self.i18n.t('common.size') + arrow) if self._sort_column == "size" else self.i18n.t('common.size'),
                 key="size", width=5,
             )
-            table.add_column(self.i18n.t('merge_detail.col_preview'), key="preview", width=6)
-            table.add_column(self.i18n.t('crawler.shortcut_f'), key="file", width=10)
-            table.add_column(self.i18n.t('merge_detail.col_delete'), key="delete", width=10)
+            table.add_column(self.i18n.t('common.preview'), key="preview", width=6)
+            table.add_column(self.i18n.t('common.view_file'), key="file", width=10)
+            table.add_column(self.i18n.t('common.delete'), key="delete", width=10)
         elif self._sort_column:
             # 已有列定义时，更新排序列的标题显示箭头
             arrow = " ▼" if self._sort_reverse else " ▲"
             col_labels = {
-                "book_id": self.i18n.t('merge_detail.col_book_id'),
-                "title": self.i18n.t('merge_detail.col_title'),
-                "time": self.i18n.t('merge_detail.col_time'),
-                "size": self.i18n.t('merge_detail.col_size'),
+                "book_id": self.i18n.t('common.book_id'),
+                "title": self.i18n.t('common.book_title'),
+                "time": self.i18n.t('common.crawl_time'),
+                "size": self.i18n.t('common.size'),
             }
             base_label = col_labels.get(self._sort_column, '')
             if base_label:
@@ -745,7 +745,7 @@ class CrawlerMergeDetailDialog(ModalScreen[Dict[str, Any]]):
                 crawl_time,
                 size_str,
                 self.i18n.t('merge_detail.preview_btn'),
-                self.i18n.t('crawler.shortcut_f'),
+                self.i18n.t('common.view_file'),
                 delete_label,
                 key=str(bid),
             )
@@ -1242,7 +1242,7 @@ class CrawlerMergeDetailDialog(ModalScreen[Dict[str, Any]]):
         """v键：预览当前光标所在行的书籍"""
         book = self._get_cursor_book()
         if book is None:
-            self.notify(self.i18n.t('batch_ops.no_selected_rows'), severity="warning", timeout=2)
+            self.notify(self.i18n.t('common.no_row_selected'), severity="warning", timeout=2)
             return
         self._preview_book(book)
 
@@ -1261,7 +1261,7 @@ class CrawlerMergeDetailDialog(ModalScreen[Dict[str, Any]]):
         state = self._group_state[self._current_index]
         selected_ids = state['selected_ids'].copy()
         if not selected_ids:
-            self.notify(self.i18n.t('batch_ops.no_selected_rows'), severity="warning", timeout=2)
+            self.notify(self.i18n.t('common.no_row_selected'), severity="warning", timeout=2)
             return
 
         # 若选中的书都已标记为待删除，再次按下则为「取消删除」
@@ -1324,10 +1324,10 @@ class CrawlerMergeDetailDialog(ModalScreen[Dict[str, Any]]):
             # 状态栏提示
             direction = self.i18n.t('merge_detail.sort_desc') if self._sort_reverse else self.i18n.t('merge_detail.sort_asc')
             column_names = {
-                "book_id": self.i18n.t('merge_detail.col_book_id'),
-                "title": self.i18n.t('merge_detail.col_title'),
-                "time": self.i18n.t('merge_detail.col_time'),
-                "size": self.i18n.t('merge_detail.col_size'),
+                "book_id": self.i18n.t('common.book_id'),
+                "title": self.i18n.t('common.book_title'),
+                "time": self.i18n.t('common.crawl_time'),
+                "size": self.i18n.t('common.size'),
             }
             col_name = column_names.get(column_key, column_key)
             status = self.query_one("#merge-detail-status", Label)
@@ -1365,7 +1365,7 @@ class CrawlerMergeDetailDialog(ModalScreen[Dict[str, Any]]):
                 self.notify(self.i18n.t('crawler.no_file_path'), severity="warning", timeout=2)
                 return
             if not os.path.exists(file_path):
-                self.notify(self.i18n.t('crawler.file_not_exists'), severity="warning", timeout=2)
+                self.notify(self.i18n.t('common.file_not_exist'), severity="warning", timeout=2)
                 return
 
             # 读取文件前 2000 字，自动检测编码（支持 GBK/GB2312/Big5 等，避免乱码）
@@ -1809,7 +1809,7 @@ class CrawlerMergeDetailDialog(ModalScreen[Dict[str, Any]]):
                 绕过隐藏的书籍ID输入框（书库模式下该输入框不渲染）。
         """
         if not self.novel_site:
-            self.notify(self.i18n.t('crawler.no_site_id'), severity="warning", timeout=2)
+            self.notify(self.i18n.t('common.cannot_get_site_id'), severity="warning", timeout=2)
             return
         if self.is_crawling:
             self._stop_crawl()
@@ -1844,7 +1844,7 @@ class CrawlerMergeDetailDialog(ModalScreen[Dict[str, Any]]):
 
             site_id = self.novel_site.get('id')
             if not site_id:
-                self.notify(self.i18n.t('crawler.no_site_id'), severity="warning", timeout=2)
+                self.notify(self.i18n.t('common.cannot_get_site_id'), severity="warning", timeout=2)
                 return
 
             # 检查代理要求
@@ -1870,7 +1870,7 @@ class CrawlerMergeDetailDialog(ModalScreen[Dict[str, Any]]):
 
             crawler_manager = self._get_crawler_manager()
             if not crawler_manager:
-                self.notify(self.i18n.t('crawler.start_crawl_failed'), severity="error", timeout=3)
+                self.notify(self.i18n.t('common.start_crawl_failed'), severity="error", timeout=3)
                 return
 
             self.is_crawling = True
@@ -1885,11 +1885,11 @@ class CrawlerMergeDetailDialog(ModalScreen[Dict[str, Any]]):
                 )
             else:
                 self.is_crawling = False
-                self.notify(self.i18n.t('crawler.start_crawl_failed'), severity="error", timeout=3)
+                self.notify(self.i18n.t('common.start_crawl_failed'), severity="error", timeout=3)
         except Exception as e:
             self.is_crawling = False
             logger.error(f"启动爬取失败: {e}")
-            self.notify(f"{self.i18n.t('crawler.start_crawl_failed')}: {e}", severity="error", timeout=3)
+            self.notify(f"{self.i18n.t('common.start_crawl_failed')}: {e}", severity="error", timeout=3)
 
     def _stop_crawl(self) -> None:
         """停止爬取"""
@@ -1906,7 +1906,7 @@ class CrawlerMergeDetailDialog(ModalScreen[Dict[str, Any]]):
             self.is_crawling = False
             self.current_task_id = None
             self._update_crawl_button_state()
-            self.notify(self.i18n.t('crawler.crawl_stopped'), timeout=2)
+            self.notify(self.i18n.t('common.crawl_stopped'), timeout=2)
         except Exception as e:
             logger.error(f"停止爬取失败: {e}")
 
@@ -1957,7 +1957,7 @@ class CrawlerMergeDetailDialog(ModalScreen[Dict[str, Any]]):
         state = self._group_state[self._current_index]
         selected_ids = state['selected_ids']
         if not selected_ids:
-            self.notify(self.i18n.t('batch_ops.no_selected_rows'), severity="warning", timeout=2)
+            self.notify(self.i18n.t('common.no_row_selected'), severity="warning", timeout=2)
             return
 
         book_ids = []
@@ -1995,7 +1995,7 @@ class CrawlerMergeDetailDialog(ModalScreen[Dict[str, Any]]):
     def _open_select_books_dialog(self) -> None:
         """打开选择书籍对话框"""
         if not self.novel_site:
-            self.notify(self.i18n.t('crawler.no_site_id'), severity="warning", timeout=2)
+            self.notify(self.i18n.t('common.cannot_get_site_id'), severity="warning", timeout=2)
             return
         if not self.novel_site.get("selectable_enabled", True):
             return
@@ -2173,7 +2173,7 @@ class CrawlerMergeDetailDialog(ModalScreen[Dict[str, Any]]):
         """开始监听"""
         try:
             if not self.novel_site:
-                self.notify(self.i18n.t('crawler.no_site_id'), severity="warning", timeout=2)
+                self.notify(self.i18n.t('common.cannot_get_site_id'), severity="warning", timeout=2)
                 return
             if self.library_mode and self.browser_monitor:
                 # 书库模式来源站点随光标书籍变化，需先停掉并按当前站点重建监听器
@@ -2248,7 +2248,7 @@ class CrawlerMergeDetailDialog(ModalScreen[Dict[str, Any]]):
                 btn.label = self.i18n.t('crawler.stop_monitor')
                 btn.variant = "error"
             else:
-                btn.label = self.i18n.t('crawler.start_monitor')
+                btn.label = self.i18n.t('common.start_listen')
                 btn.variant = "success"
         except Exception:
             pass
@@ -2513,7 +2513,7 @@ class CrawlerMergeDetailDialog(ModalScreen[Dict[str, Any]]):
         if self.library_mode:
             site, _ = self._resolve_library_source()
             if not site:
-                self.notify(self.i18n.t('crawler.no_site_id'), severity="warning", timeout=2)
+                self.notify(self.i18n.t('common.cannot_get_site_id'), severity="warning", timeout=2)
                 return
             # 复用合并详情页每组的补足缺失章节功能：设置来源站点并展开内嵌补足缺失章节行，
             # 输入框保持为空，由用户手动输入小说ID（与合并详情页每组补足缺失章节一致）。
@@ -2527,7 +2527,7 @@ class CrawlerMergeDetailDialog(ModalScreen[Dict[str, Any]]):
         if self.library_mode:
             site, _ = self._resolve_library_source()
             if not site:
-                self.notify(self.i18n.t('crawler.no_site_id'), severity="warning", timeout=2)
+                self.notify(self.i18n.t('common.cannot_get_site_id'), severity="warning", timeout=2)
                 return
             self.novel_site = site
             self._open_search_chapters()
@@ -2550,7 +2550,7 @@ class CrawlerMergeDetailDialog(ModalScreen[Dict[str, Any]]):
                 return
 
             if not os.path.exists(file_path):
-                self.notify(self.i18n.t('crawler.file_not_exists'), severity="warning", timeout=2)
+                self.notify(self.i18n.t('common.file_not_exist'), severity="warning", timeout=2)
                 return
 
             import platform
@@ -2567,6 +2567,6 @@ class CrawlerMergeDetailDialog(ModalScreen[Dict[str, Any]]):
         except Exception as e:
             logger.error(f"查看文件失败: {e}")
             self.notify(
-                f"{self.i18n.t('crawler.open_file_failed')}: {e}",
+                f"{self.i18n.t('common.open_file_failed')}: {e}",
                 severity="error", timeout=3,
             )

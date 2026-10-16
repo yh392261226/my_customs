@@ -34,7 +34,7 @@ class VocabularyDialog(ModalScreen[Dict[str, Any]]):
         """组合对话框界面"""
         with Container(id="vocabulary-dialog-container", classes="panel"):
             yield Label(
-                get_global_i18n().t("vocabulary_dialog.title"),
+                get_global_i18n().t("common.wordbook"),
                 id="dialog-title",
                 classes="section-title"
             )
@@ -117,11 +117,11 @@ class VocabularyDialog(ModalScreen[Dict[str, Any]]):
         """初始化数据表格"""
         table = self.query_one("#words-table", DataTable)
         table.add_columns(
-            get_global_i18n().t("vocabulary_dialog.column_word"),
-            get_global_i18n().t("vocabulary_dialog.column_translation"),
-            get_global_i18n().t("vocabulary_dialog.column_language"),
-            get_global_i18n().t("vocabulary_dialog.column_mastery"),
-            get_global_i18n().t("vocabulary_dialog.column_reviews")
+            get_global_i18n().t("common.word"),
+            get_global_i18n().t("common.translate"),
+            get_global_i18n().t("common.language"),
+            get_global_i18n().t("common.mastery"),
+            get_global_i18n().t("common.review_count")
         )
         table.zebra_stripes = True
         # 启用行选择功能
@@ -299,11 +299,11 @@ class VocabularyDialog(ModalScreen[Dict[str, Any]]):
         
         details_text = f"""
 {get_global_i18n().t("vocabulary_dialog.words")}: {word_item.word}
-{get_global_i18n().t("vocabulary_dialog.translate")}: {word_item.translation}
-{get_global_i18n().t("vocabulary_dialog.languege")}: {word_item.language}
-{get_global_i18n().t("vocabulary_dialog.mastery")}: {"★" * word_item.mastery_level + "☆" * (5 - word_item.mastery_level)}
-{get_global_i18n().t("vocabulary_dialog.reviews")}: {word_item.review_count}
-{get_global_i18n().t("vocabulary_dialog.context")}: {word_item.context or 'None'}
+{get_global_i18n().t("common.translate")}: {word_item.translation}
+{get_global_i18n().t("common.language")}: {word_item.language}
+{get_global_i18n().t("common.mastery")}: {"★" * word_item.mastery_level + "☆" * (5 - word_item.mastery_level)}
+{get_global_i18n().t("common.review_count")}: {word_item.review_count}
+{get_global_i18n().t("common.context")}: {word_item.context or 'None'}
 {get_global_i18n().t("vocabulary_dialog.add_time")}: {word_item.created_at.strftime('%Y-%m-%d %H:%M') if word_item.created_at else 'N/A'}
 {get_global_i18n().t("vocabulary_dialog.last_review")}: {word_item.last_reviewed.strftime('%Y-%m-%d %H:%M') if word_item.last_reviewed else 'None'}
 """

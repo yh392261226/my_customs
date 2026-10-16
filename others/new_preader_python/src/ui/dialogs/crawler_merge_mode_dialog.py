@@ -544,12 +544,12 @@ class CrawlerMergeModeDialog(ModalScreen[Dict[str, Any]]):
 
     BINDINGS = [
         ("escape", "cancel", get_global_i18n().t('common.cancel')),
-        ("g", "confirm_merge", get_global_i18n().t('merge_mode.confirm_merge')),
+        ("g", "confirm_merge", get_global_i18n().t('common.merge_selected')),
         ("space", "toggle_row", get_global_i18n().t('batch_ops.toggle_row')),
-        ("a", "toggle_select_all", get_global_i18n().t('batch_ops.select_all')),
+        ("a", "toggle_select_all", get_global_i18n().t('common.select_all')),
         ("r", "invert_selection", get_global_i18n().t('merge_mode.invert_selection')),
         ("s", "skip_group", get_global_i18n().t('merge_mode.skip_group')),
-        ("y", "copy_title", get_global_i18n().t('merge_detail.copy_title')),
+        ("y", "copy_title", get_global_i18n().t('common.copy_title')),
     ]
 
     def __init__(
@@ -769,7 +769,7 @@ class CrawlerMergeModeDialog(ModalScreen[Dict[str, Any]]):
             Vertical(
                 # 标题
                 Label(
-                    f"📑 {self.i18n.t('batch_merge.full_title' if self.library_mode else ('merge_mode.full_title' if self.full_scan else 'merge_mode.title'))} — {self.site_name}",
+                    f"📑 {self.i18n.t('common.merge_mode' if self.library_mode else ('merge_mode.full_title' if self.full_scan else 'merge_mode.title'))} — {self.site_name}",
                     id="merge-mode-title",
                 ),
                 # 全合并/书库模式不提供日期筛选：直接排查全部书籍
@@ -797,11 +797,11 @@ class CrawlerMergeModeDialog(ModalScreen[Dict[str, Any]]):
                 DataTable(id="merge-group-table"),
                 # 底部按钮
                 Horizontal(
-                    Button(self.i18n.t('merge_mode.select_all'), id="select-all-btn"),
-                    Button(self.i18n.t('merge_mode.deselect_all'), id="deselect-all-btn"),
+                    Button(self.i18n.t('common.select_all'), id="select-all-btn"),
+                    Button(self.i18n.t('common.deselect'), id="deselect-all-btn"),
                     Button(self.i18n.t('merge_mode.invert_selection'), id="invert-btn"),
                     Button(self.i18n.t('merge_mode.skip_group'), id="skip-group-btn", variant="warning"),
-                    Button(self.i18n.t('merge_mode.merge_selected'), id="confirm-merge-btn", variant="primary"),
+                    Button(self.i18n.t('common.merge_selected'), id="confirm-merge-btn", variant="primary"),
                     Button(self.i18n.t('common.cancel'), id="cancel-btn"),
                     id="merge-mode-buttons",
                 ),
@@ -850,7 +850,7 @@ class CrawlerMergeModeDialog(ModalScreen[Dict[str, Any]]):
         table.add_column(self.i18n.t('merge_mode.col_book_count'), width=10)
         table.add_column(self.i18n.t('merge_mode.col_date'), width=22)
         table.add_column(self.i18n.t('merge_mode.col_type'), width=12)
-        table.add_column(self.i18n.t('merge_mode.col_skip'), width=8)
+        table.add_column(self.i18n.t('common.skip'), width=8)
 
         if self.full_scan:
             # 全合并模式：后台线程排查全站所有书籍（数据量大，避免阻塞 UI）
@@ -1349,7 +1349,7 @@ class CrawlerMergeModeDialog(ModalScreen[Dict[str, Any]]):
             # 跳过优先于选中：被标记跳过的组不显示为已选
             is_sel = (group.group_id in self._selected_group_ids) and not is_skipped
             check_mark = "☑" if is_sel else "☐"
-            skip_mark = self.i18n.t('merge_mode.col_skip') if is_skipped else ""
+            skip_mark = self.i18n.t('common.skip') if is_skipped else ""
             type_label = "章节合集" if group.is_auto_same_book else "相似书籍"
 
             table.add_row(

@@ -91,7 +91,7 @@ class HelpScreen(Screen[None]):
     ALLOW_IN_MAXIMIZED_VIEW: ClassVar[str | None] = ""
     BINDINGS: ClassVar[list[tuple[str, str, str]]] = [
         ("t", "next_tab", get_global_i18n().t('help.next_tab')),
-        ("r", "refresh_help", t('statistics.refresh')),
+        ("r", "refresh_help", t('common.refresh')),
     ]
 
     def __init__(self):
@@ -128,7 +128,7 @@ class HelpScreen(Screen[None]):
                                 yield Static(sec_md, markup=True, classes="help-sec-body")
         # 底部操作栏（专注模式下隐藏）
         yield Horizontal(
-            Button(get_global_i18n().t("help.back"), id="back-btn"),
+            Button(get_global_i18n().t("common.back"), id="back-btn"),
             id="help-controls", classes="btn-row"
         )
         yield Footer()
@@ -178,10 +178,10 @@ class HelpScreen(Screen[None]):
                     if idx < len(md_widgets):
                         md_widgets[idx].update(sec_md)
                     idx += 1
-            self.notify(t('statistics.refresh'), timeout=2)
+            self.notify(t('common.refresh'), timeout=2)
         except Exception as e:
             logger.error(f"刷新帮助内容失败: {e}")
-            self.notify(t('statistics.refresh'), timeout=2)
+            self.notify(t('common.refresh'), timeout=2)
 
     def on_key(self, event) -> None:
         """

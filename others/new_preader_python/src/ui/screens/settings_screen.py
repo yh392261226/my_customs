@@ -84,8 +84,8 @@ class SettingsScreen(Screen[Any]):
         
         # 设置快捷键绑定
         self.BINDINGS = [
-            ("enter", "save_settings", get_global_i18n().t("settings.save")),
-            ("r", "reset_settings", get_global_i18n().t("settings.reset")),
+            ("enter", "save_settings", get_global_i18n().t("common.save")),
+            ("r", "reset_settings", get_global_i18n().t("common.reset")),
         ]
         
         # 当前选中的主题名（由 ThemeFilterScreen 回调更新）
@@ -99,7 +99,7 @@ class SettingsScreen(Screen[Any]):
         # 从配置加载设置值
         self.config_adapter.load_config_to_settings()
         
-        self.title = get_global_i18n().t("settings.title")
+        self.title = get_global_i18n().t("common.settings")
     
     def compose(self) -> ComposeResult:
         """
@@ -111,7 +111,7 @@ class SettingsScreen(Screen[Any]):
         yield Header()
         with Container(id="settings-container"):
             # yield Horizontal(
-            #     Label(get_global_i18n().t("settings.title"), id="settings-title", classes="settings-title"), 
+            #     Label(get_global_i18n().t("common.settings"), id="settings-title", classes="settings-title"), 
             #     id="settings-title-container"
             #     )
 
@@ -129,7 +129,7 @@ class SettingsScreen(Screen[Any]):
                     yield from self._compose_audio_settings()
                 
                 # 翻译设置标签页
-                with TabPane(get_global_i18n().t("settings.translation"), id="translation-tab"):
+                with TabPane(get_global_i18n().t("common.translate"), id="translation-tab"):
                     yield from self._compose_translation_settings()
                 
                 # 数据库管理标签页
@@ -141,7 +141,7 @@ class SettingsScreen(Screen[Any]):
                     yield from self._compose_path_settings()
                 
                 # 浏览器设置标签页
-                with TabPane(get_global_i18n().t("settings.browser"), id="browser-tab"):
+                with TabPane(get_global_i18n().t("common.browser"), id="browser-tab"):
                     yield from self._compose_browser_settings()
                 
                 # 高级设置标签页
@@ -156,9 +156,9 @@ class SettingsScreen(Screen[Any]):
             
             # 控制按钮
             with Horizontal(id="settings-controls", classes="btn-row"):
-                yield Button(get_global_i18n().t("settings.save"), id="save-btn", variant="primary")
-                yield Button(get_global_i18n().t("settings.cancel"), id="cancel-btn")
-                yield Button(get_global_i18n().t("settings.reset"), id="reset-btn", variant="warning")
+                yield Button(get_global_i18n().t("common.save"), id="save-btn", variant="primary")
+                yield Button(get_global_i18n().t("common.cancel"), id="cancel-btn")
+                yield Button(get_global_i18n().t("common.reset"), id="reset-btn", variant="warning")
             
             # 快捷键状态栏
             # with Horizontal(id="settings-shortcuts-bar", classes="status-bar"):
@@ -171,7 +171,7 @@ class SettingsScreen(Screen[Any]):
         """组合外观设置"""
         with ScrollableContainer(id="appearance-settings", classes="settings-scrollable"):
             # 主题设置 — 使用带搜索过滤的主题选择器，与快捷键 t / Ctrl+P 保持一致
-            yield Label(get_global_i18n().t("settings.theme"), classes="setting-label")
+            yield Label(get_global_i18n().t("common.theme"), classes="setting-label")
             theme_setting = self.setting_registry.get_setting("appearance.theme")
             if theme_setting and isinstance(theme_setting, SelectSetting):
                 # 从 ThemeManager 获取最新主题列表（支持热更新）
@@ -196,7 +196,7 @@ class SettingsScreen(Screen[Any]):
                     )
             
             # 边框样式
-            yield Label(get_global_i18n().t("settings.border_style"), classes="setting-label hidden")
+            yield Label(get_global_i18n().t("common.border_style"), classes="setting-label hidden")
             border_setting = self.setting_registry.get_setting("appearance.border_style")
             if border_setting and isinstance(border_setting, SelectSetting):
                 yield Select(
@@ -207,7 +207,7 @@ class SettingsScreen(Screen[Any]):
                 )
             
             # 显示图标
-            yield Label(get_global_i18n().t("settings.show_icons"), classes="setting-label")
+            yield Label(get_global_i18n().t("common.show_icon"), classes="setting-label")
             icons_setting = self.setting_registry.get_setting("appearance.show_icons")
             if icons_setting:
                 yield Switch(
@@ -216,7 +216,7 @@ class SettingsScreen(Screen[Any]):
                 )
             
             # 启用动画
-            yield Label(get_global_i18n().t("settings.animation_enabled"), classes="setting-label")
+            yield Label(get_global_i18n().t("common.enable_animation"), classes="setting-label")
             animation_setting = self.setting_registry.get_setting("appearance.animation_enabled")
             if animation_setting:
                 yield Switch(
@@ -225,7 +225,7 @@ class SettingsScreen(Screen[Any]):
                 )
             
             # 进度条样式
-            yield Label(get_global_i18n().t("settings.progress_bar_style"), classes="setting-label")
+            yield Label(get_global_i18n().t("common.progress_bar_style"), classes="setting-label")
             progress_setting = self.setting_registry.get_setting("appearance.progress_bar_style")
             if progress_setting and isinstance(progress_setting, SelectSetting):
                 options_text = options_by_locale(progress_setting.options, progress_setting.option_labels)
@@ -239,7 +239,7 @@ class SettingsScreen(Screen[Any]):
         """组合阅读设置"""
         with ScrollableContainer(id="reading-settings"):
             # 字体大小
-            yield Label(get_global_i18n().t("settings.font_size"), classes="setting-label")
+            yield Label(get_global_i18n().t("common.font_size"), classes="setting-label")
             font_setting = self.setting_registry.get_setting("reading.font_size")
             if font_setting:
                 yield Input(
@@ -250,7 +250,7 @@ class SettingsScreen(Screen[Any]):
             
 
             # 行间距
-            yield Label(get_global_i18n().t("settings.line_spacing"), classes="setting-label")
+            yield Label(get_global_i18n().t("common.line_spacing"), classes="setting-label")
             spacing_setting = self.setting_registry.get_setting("reading.line_spacing")
             if spacing_setting:
                 # 将存储的浮点值转换为整数，确保与选项值匹配
@@ -275,7 +275,7 @@ class SettingsScreen(Screen[Any]):
                 )
 
             # 段落间距
-            yield Label(get_global_i18n().t("settings.paragraph_spacing"), classes="setting-label")
+            yield Label(get_global_i18n().t("common.paragraph_spacing"), classes="setting-label")
             para_setting = self.setting_registry.get_setting("reading.paragraph_spacing")
             if para_setting:
                 # 将存储的浮点值转换为整数，确保与选项值匹配
@@ -300,7 +300,7 @@ class SettingsScreen(Screen[Any]):
                 )
             
             # 自动翻页间隔
-            yield Label(get_global_i18n().t("settings.auto_page_turn_interval"), classes="setting-label")
+            yield Label(get_global_i18n().t("common.auto_page_interval"), classes="setting-label")
             auto_setting = self.setting_registry.get_setting("reading.auto_page_turn_interval")
             if auto_setting:
                 yield Input(
@@ -310,7 +310,7 @@ class SettingsScreen(Screen[Any]):
                 )
             
             # 记住阅读位置
-            yield Label(get_global_i18n().t("settings.remember_position"), classes="setting-label")
+            yield Label(get_global_i18n().t("common.remember_pos"), classes="setting-label")
             remember_setting = self.setting_registry.get_setting("reading.remember_position")
             if remember_setting:
                 yield Switch(
@@ -319,7 +319,7 @@ class SettingsScreen(Screen[Any]):
                 )
             
             # 高亮搜索结果
-            yield Label(get_global_i18n().t("settings.highlight_search"), classes="setting-label")
+            yield Label(get_global_i18n().t("common.highlight_result"), classes="setting-label")
             highlight_setting = self.setting_registry.get_setting("reading.highlight_search")
             if highlight_setting:
                 yield Switch(
@@ -350,7 +350,7 @@ class SettingsScreen(Screen[Any]):
         """组合音频设置"""
         with ScrollableContainer(id="audio-settings"):
             # 启用文本朗读
-            yield Label(get_global_i18n().t("settings.tts_enabled"), classes="setting-label")
+            yield Label(get_global_i18n().t("common.enable_tts"), classes="setting-label")
             tts_setting = self.setting_registry.get_setting("audio.tts_enabled")
             if tts_setting:
                 yield Switch(
@@ -359,7 +359,7 @@ class SettingsScreen(Screen[Any]):
                 )
             
             # 朗读速度
-            yield Label(get_global_i18n().t("settings.tts_speed"), classes="setting-label")
+            yield Label(get_global_i18n().t("common.tts_speed"), classes="setting-label")
             speed_setting = self.setting_registry.get_setting("audio.tts_speed")
             if speed_setting:
                 yield Input(
@@ -369,7 +369,7 @@ class SettingsScreen(Screen[Any]):
                 )
             
             # 朗读声音
-            yield Label(get_global_i18n().t("settings.tts_voice"), classes="setting-label")
+            yield Label(get_global_i18n().t("common.tts_voice"), classes="setting-label")
             voice_setting = self.setting_registry.get_setting("audio.tts_voice")
             if voice_setting and isinstance(voice_setting, SelectSetting):
                 options_text = options_by_locale(voice_setting.options, voice_setting.option_labels)
@@ -380,7 +380,7 @@ class SettingsScreen(Screen[Any]):
                 )
             
             # 朗读音量
-            yield Label(get_global_i18n().t("settings.tts_volume"), classes="setting-label")
+            yield Label(get_global_i18n().t("common.tts_volume"), classes="setting-label")
             volume_setting = self.setting_registry.get_setting("audio.tts_volume")
             if volume_setting:
                 yield Input(
@@ -413,7 +413,7 @@ class SettingsScreen(Screen[Any]):
                 )
             
             # 目标语言
-            yield Label(get_global_i18n().t("settings.target_language"), classes="setting-label")
+            yield Label(get_global_i18n().t("common.target_language"), classes="setting-label")
             target_setting = self.setting_registry.get_setting("translation.target_language")
             if target_setting:
                 yield Input(
@@ -748,7 +748,7 @@ class SettingsScreen(Screen[Any]):
                     variant="primary"
                 )
                 yield Static(
-                    get_global_i18n().t("settings.port_not_checked", default="Not checked"),
+                    get_global_i18n().t("common.not_detected", default="Not checked"),
                     id="browser-server-port-status",
                     classes="port-status"
                 )
@@ -757,7 +757,7 @@ class SettingsScreen(Screen[Any]):
         """组合高级设置"""
         with ScrollableContainer(id="advanced-settings"):
             # 界面语言
-            yield Label(get_global_i18n().t("settings.language"), classes="setting-label")
+            yield Label(get_global_i18n().t("common.language"), classes="setting-label")
             lang_setting = self.setting_registry.get_setting("advanced.language")
             if lang_setting and isinstance(lang_setting, SelectSetting):
                 yield Select(
@@ -767,7 +767,7 @@ class SettingsScreen(Screen[Any]):
                 )
             
             # 启用统计
-            yield Label(get_global_i18n().t("settings.statistics_enabled"), classes="setting-label")
+            yield Label(get_global_i18n().t("common.enable_stats"), classes="setting-label")
             stats_setting = self.setting_registry.get_setting("advanced.statistics_enabled")
             if stats_setting:
                 yield Switch(
@@ -776,7 +776,7 @@ class SettingsScreen(Screen[Any]):
                 )
             
             # 调试模式
-            yield Label(get_global_i18n().t("settings.debug_mode"), classes="setting-label")
+            yield Label(get_global_i18n().t("common.debug_mode"), classes="setting-label")
             debug_setting = self.setting_registry.get_setting("advanced.debug_mode")
             if debug_setting:
                 yield Switch(
@@ -823,10 +823,10 @@ class SettingsScreen(Screen[Any]):
         """组合数据库管理设置"""
         with ScrollableContainer(id="database-settings"):
             # 数据库信息标题
-            yield Label(get_global_i18n().t("settings.database"), classes="setting-section-title")
+            yield Label(get_global_i18n().t("common.db_path"), classes="setting-section-title")
             
             # 数据库路径信息
-            yield Label(get_global_i18n().t("settings.database_path_label"), classes="setting-label")
+            yield Label(get_global_i18n().t("common.db_path"), classes="setting-label")
             config = self.config_manager.get_config()
             db_path = os.path.expanduser(config["paths"]["database"])
             yield Label(db_path, classes="setting-value")
@@ -885,12 +885,12 @@ class SettingsScreen(Screen[Any]):
             config = self.config_manager.get_config()
 
             # 配置目录（只读，仅供参考）
-            yield Label(get_global_i18n().t("settings.config_dir"), classes="setting-section-title")
+            yield Label(get_global_i18n().t("common.config_dir"), classes="setting-section-title")
             config_dir = os.path.expanduser(config["paths"]["config_dir"])
             yield Label(config_dir, classes="setting-value")
 
             # 数据库路径（只读，仅供参考）
-            yield Label(get_global_i18n().t("settings.database"), classes="setting-section-title")
+            yield Label(get_global_i18n().t("common.db_path"), classes="setting-section-title")
             db_path = os.path.expanduser(config["paths"]["database"])
             yield Label(db_path, classes="setting-value")
 
@@ -898,14 +898,14 @@ class SettingsScreen(Screen[Any]):
             yield Horizontal(id="path-separator", classes="setting-separator")
 
             # 书籍库路径（可编辑）
-            yield Label(get_global_i18n().t("settings.library"), classes="setting-section-title")
+            yield Label(get_global_i18n().t("common.book_lib_path"), classes="setting-section-title")
             # yield Label(get_global_i18n().t("settings.library_desc") if get_global_i18n().t("settings.library_desc") != "settings.library_desc" else "默认书籍存储目录", classes="setting-description")
             with Horizontal(id="library-path-row"):
                 library_path = os.path.expanduser(config["paths"]["library"])
                 yield Input(
                     value=library_path,
                     id="paths-library-input",
-                    placeholder=get_global_i18n().t("settings.library"),
+                    placeholder=get_global_i18n().t("common.book_lib_path"),
                 )
                 # yield Button(
                 #     get_global_i18n().t("settings.browse"),
@@ -999,7 +999,7 @@ class SettingsScreen(Screen[Any]):
         all_settings = self.setting_registry.get_all_settings()
         logger.debug(f"{get_global_i18n().t('settings.settings_count')}: {len(all_settings)}")
         for key, setting in all_settings.items():
-            logger.debug(f"{get_global_i18n().t('settings.settings_key')} {key}: {setting.value} ({get_global_i18n().t('settings.settings_type')}: {type(setting).__name__})")
+            logger.debug(f"{get_global_i18n().t('settings.settings_key')} {key}: {setting.value} ({get_global_i18n().t('common.type')}: {type(setting).__name__})")
         
         # 应用当前主题
         self.theme_manager.apply_theme_to_screen(self)
@@ -1047,14 +1047,14 @@ class SettingsScreen(Screen[Any]):
             # 检查权限并设置按钮状态
             if not self._has_permission("settings.save"):
                 save_btn.disabled = True
-                save_btn.tooltip = get_global_i18n().t('settings.no_permission')
+                save_btn.tooltip = get_global_i18n().t('common.no_permission')
             else:
                 save_btn.disabled = False
                 save_btn.tooltip = None
                 
             if not self._has_permission("settings.reset"):
                 reset_btn.disabled = True
-                reset_btn.tooltip = get_global_i18n().t('settings.no_permission')
+                reset_btn.tooltip = get_global_i18n().t('common.no_permission')
             else:
                 reset_btn.disabled = False
                 reset_btn.tooltip = None
@@ -1071,7 +1071,7 @@ class SettingsScreen(Screen[Any]):
         """
         # 检查权限
         if not self._has_button_permission(event.button.id):
-            self.notify(get_global_i18n().t("settings.np_action"), severity="warning")
+            self.notify(get_global_i18n().t("common.no_permission_op"), severity="warning")
             return
             
         if event.button.id == "save-btn":
@@ -1279,7 +1279,7 @@ class SettingsScreen(Screen[Any]):
                 self.notify(get_global_i18n().t("settings.saved"), severity="information")
                 self.app.pop_screen()
             else:
-                self.notify(get_global_i18n().t("settings.save_failed"), severity="error")
+                self.notify(get_global_i18n().t("common.save_failed"), severity="error")
                 
         except Exception as e:
             logger.error(f"Failed to save settings: {e}")
@@ -1316,7 +1316,7 @@ class SettingsScreen(Screen[Any]):
                     severity="information"
                 )
             else:
-                self.notify(get_global_i18n().t("settings.reset_failed"), severity="warning")
+                self.notify(get_global_i18n().t("common.reset_failed"), severity="warning")
                 
         except Exception as e:
             logger.error(f"Failed to reset settings: {e}")
@@ -1660,7 +1660,7 @@ class SettingsScreen(Screen[Any]):
             )
         except Exception as e:
             logger.error(f"打开目录选择对话框失败: {e}")
-            self.notify(get_global_i18n().t("error.error") + f": {e}", severity="error")
+            self.notify(get_global_i18n().t("common.error") + f": {e}", severity="error")
 
     def _open_theme_filter(self) -> None:
         """打开带搜索过滤的主题选择器"""
@@ -1687,7 +1687,7 @@ class SettingsScreen(Screen[Any]):
             )
         except Exception as e:
             logger.error(f"打开主题过滤器失败: {e}")
-            self.notify(get_global_i18n().t("error.error") + f": {e}", severity="error")
+            self.notify(get_global_i18n().t("common.error") + f": {e}", severity="error")
 
     def _sync_current_theme(self) -> None:
         """将当前实际使用的主题（快捷键 t / Ctrl+P / Ctrl+P 内置选择 等所有方式）同步为设置中心的选中主题"""
@@ -1813,7 +1813,7 @@ class SettingsScreen(Screen[Any]):
             )
         except Exception as e:
             logger.error(f"打开文件选择器失败: {e}")
-            self.notify(get_global_i18n().t("error.error") + f": {e}", severity="error")
+            self.notify(get_global_i18n().t("common.error") + f": {e}", severity="error")
 
     def _perform_database_restore(self, backup_path: str) -> None:
         """执行数据库恢复"""

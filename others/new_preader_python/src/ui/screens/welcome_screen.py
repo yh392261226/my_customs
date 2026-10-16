@@ -33,15 +33,15 @@ class WelcomeScreen(QuickIsolationMixin, Screen[None]):
 
     # 使用 Textual BINDINGS 进行快捷键绑定
     BINDINGS: ClassVar[list[tuple[str, str, str]]] = [
-        ("f1,1", "open_book", get_global_i18n().t('welcome.shortcut_f1')),
+        ("f1,1", "open_book", get_global_i18n().t('common.open_book')),
         ("f2,2", "browse_library", get_global_i18n().t('welcome.shortcut_f2')),
-        ("f3,3", "get_books", get_global_i18n().t('welcome.shortcut_f3')),
-        ("f4,4", "open_browser_reader", get_global_i18n().t('welcome.shortcut_f4')),
+        ("f3,3", "get_books", get_global_i18n().t('common.get_books')),
+        ("f4,4", "open_browser_reader", get_global_i18n().t('common.web_reader')),
         ("f5,5", "open_user_management", get_global_i18n().t('welcome.shortcut_f5')),
         ("f6,6", "open_settings", get_global_i18n().t('welcome.shortcut_f6')),
         ("f7,7", "open_statistics", get_global_i18n().t('welcome.shortcut_f7')),
-        ("f8,8", "open_help", get_global_i18n().t('welcome.shortcut_f8')),
-        ("escape,q", "exit_app", get_global_i18n().t('welcome.shortcut_esc'))
+        ("f8,8", "open_help", get_global_i18n().t('common.help_center')),
+        ("escape,q", "exit_app", get_global_i18n().t('common.exit'))
     ]
     
     def __init__(self, theme_manager: ThemeManager, bookshelf: Bookshelf):
@@ -106,14 +106,14 @@ class WelcomeScreen(QuickIsolationMixin, Screen[None]):
                 ),
                 # 快捷键状态栏
                 # Horizontal(
-                #     Label(get_global_i18n().t('welcome.shortcut_f1'), id="shortcut-f1"),
+                #     Label(get_global_i18n().t('common.open_book'), id="shortcut-f1"),
                 #     Label(get_global_i18n().t('welcome.shortcut_f2'), id="shortcut-f2"),
-                #     Label(get_global_i18n().t('welcome.shortcut_f3'), id="shortcut-f3"),
-                #     Label(get_global_i18n().t('welcome.shortcut_f4'), id="shortcut-f4"),
+                #     Label(get_global_i18n().t('common.get_books'), id="shortcut-f3"),
+                #     Label(get_global_i18n().t('common.web_reader'), id="shortcut-f4"),
                 #     Label(get_global_i18n().t('welcome.shortcut_f5'), id="shortcut-f5"),
                 #     Label(get_global_i18n().t('welcome.shortcut_f6'), id="shortcut-f6"),
                 #     Label(get_global_i18n().t('welcome.shortcut_f7'), id="shortcut-f7"),
-                #     Label(get_global_i18n().t('welcome.shortcut_esc'), id="shortcut-esc"),
+                #     Label(get_global_i18n().t('common.exit'), id="shortcut-esc"),
                 #     id="shortcuts-bar", classes="status-bar"
                 # ),
                 id="welcome-container"

@@ -60,7 +60,7 @@ class WebReaderScreen(QuickIsolationMixin, Screen[None]):
 
     def __init__(self, theme_manager: ThemeManager):
         super().__init__()
-        self.title = t("web_reader.title")
+        self.title = t("common.web_reader")
         self.sub_title = t("app.description")
         self.theme_manager = theme_manager
 
@@ -71,7 +71,7 @@ class WebReaderScreen(QuickIsolationMixin, Screen[None]):
         i18n = get_global_i18n()
         yield Header(time_format=None, show_clock=True, id="web-reader-header", name="web-reader-header")
         yield Container(
-            # Label(i18n.t('web_reader.title'), id="wr-title"),
+            # Label(i18n.t('common.web_reader'), id="wr-title"),
             Label(i18n.t('web_reader.description'), id="wr-title"),
             # 顶部按钮行（参考欢迎页）
             Horizontal(
@@ -202,8 +202,8 @@ class WebReaderScreen(QuickIsolationMixin, Screen[None]):
             self.query_one("#wr-status-label", Label).styles.color = (
                 "green" if running else "red"
             )
-            self.query_one("#wr-host-label", Label).update(f"{i18n.t('web_reader.host')}: {host}")
-            self.query_one("#wr-port-label", Label).update(f"{i18n.t('web_reader.port')}: {port}")
+            self.query_one("#wr-host-label", Label).update(f"{i18n.t('common.host')}: {host}")
+            self.query_one("#wr-port-label", Label).update(f"{i18n.t('common.port')}: {port}")
             self.query_one("#wr-addr-label", Label).update(f"{i18n.t('web_reader.address')}: http://{host}:{port}")
             toggle_btn = self.query_one("#wr-toggle-btn", Button)
             toggle_btn.label = i18n.t('web_reader.toggle_server_stop') if running else i18n.t('web_reader.toggle_server')

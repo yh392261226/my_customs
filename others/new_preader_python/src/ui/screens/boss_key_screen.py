@@ -193,7 +193,7 @@ class BossKeyScreen(Screen[None]):
             
         except Exception as e:
             self.output_lines.append(f"Error executing command: {e}")
-            logger.error(f"{get_global_i18n().t('boss_key.exec_command_failed')}: {e}")
+            logger.error(f"{get_global_i18n().t('common.exec_cmd_failed')}: {e}")
     
     def _handle_cd_command(self, command: str) -> None:
         """处理cd命令"""

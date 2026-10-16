@@ -85,8 +85,8 @@ class LoginScreen(Screen[Optional[Dict[str, Any]]]):
     def compose(self) -> ComposeResult:
         t = get_global_i18n()
         title = t.t("login.title")
-        username_ph = t.t("login.username")
-        password_ph = t.t("login.password")
+        username_ph = t.t("common.username")
+        password_ph = t.t("common.password")
         ok_text = t.t("login.login")
         guest_text = t.t("login.guest")
 

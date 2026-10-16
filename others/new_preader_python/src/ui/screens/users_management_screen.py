@@ -60,8 +60,8 @@ class UsersManagementScreen(Screen[None]):
                     id="um-new-user",
                 ),
                 Horizontal(
-                    Input(placeholder=t.t('users_management.username'), id="edit-username"),
-                    Input(placeholder=t.t('users_management.password'), password=True, id="edit-password"),
+                    Input(placeholder=t.t('common.username'), id="edit-username"),
+                    Input(placeholder=t.t('common.password'), password=True, id="edit-password"),
                     Button(t.t("common.edit"), id="edit-user"),
                     Button(t.t("common.cancel"), id="cancel-edit-user"),
                     id="um-edit-user",
@@ -142,7 +142,7 @@ class UsersManagementScreen(Screen[None]):
             # 检查权限并设置按钮状态
             if not self._has_permission("users.add"):
                 add_user_btn.disabled = True
-                add_user_btn.tooltip = get_global_i18n().t('users_management.no_permission')
+                add_user_btn.tooltip = get_global_i18n().t('common.no_permission')
             else:
                 add_user_btn.disabled = False
                 add_user_btn.tooltip = None
@@ -173,10 +173,10 @@ class UsersManagementScreen(Screen[None]):
         # 初始化用户表
         table = self.query_one("#users-table", DataTable)
         table.add_column("ID", key="id")
-        table.add_column(get_global_i18n().t('users_management.username'), key="username")
+        table.add_column(get_global_i18n().t('common.username'), key="username")
         table.add_column(get_global_i18n().t('users_management.role'), key="role")
         table.add_column(get_global_i18n().t('users_management.perms'), key="perms")
-        table.add_column(get_global_i18n().t('users_management.view_perms'), key="view_perms")
+        table.add_column(get_global_i18n().t('common.view_permission'), key="view_perms")
         table.add_column(get_global_i18n().t('common.edit'), key="edit")
         table.add_column(get_global_i18n().t('common.delete'), key="delete")
         
@@ -225,10 +225,10 @@ class UsersManagementScreen(Screen[None]):
             
             # 重新添加列
             table.add_column("ID", key="id")
-            table.add_column(get_global_i18n().t('users_management.username'), key="username")
+            table.add_column(get_global_i18n().t('common.username'), key="username")
             table.add_column(get_global_i18n().t('users_management.role'), key="role")
             table.add_column(get_global_i18n().t('users_management.perms'), key="perms")
-            table.add_column(get_global_i18n().t('users_management.view_perms'), key="view_perms")
+            table.add_column(get_global_i18n().t('common.view_permission'), key="view_perms")
             table.add_column(get_global_i18n().t('common.edit'), key="edit")
             table.add_column(get_global_i18n().t('common.delete'), key="delete")
             
@@ -243,7 +243,7 @@ class UsersManagementScreen(Screen[None]):
                 # 为每个操作按钮创建独立的列
                 if uid_int != 1:
                     perms_col = get_global_i18n().t('users_management.perms')
-                    view_perms_col = get_global_i18n().t('users_management.view_perms')
+                    view_perms_col = get_global_i18n().t('common.view_permission')
                     edit_col = get_global_i18n().t('common.edit')
                     delete_col = get_global_i18n().t('common.delete')
                 else:
@@ -643,7 +643,7 @@ class UsersManagementScreen(Screen[None]):
                 return
             # 检查权限
             if not self._has_table_action_permission(column, uid):
-                self.notify(get_global_i18n().t('users_management.np_action'), severity="warning")
+                self.notify(get_global_i18n().t('common.no_permission_op'), severity="warning")
                 return
                 
             if column == "perms":
@@ -731,7 +731,7 @@ class UsersManagementScreen(Screen[None]):
                 self.app.push_screen(
                     ConfirmDialog(
                         self.theme_manager,
-                        get_global_i18n().t('users_management.confirm_delete'),
+                        get_global_i18n().t('common.confirm_delete'),
                         get_global_i18n().t('users_management.confirm_delete_user')
                     ),
                     callback=lambda confirmed: on_confirm(confirmed, uid)
@@ -760,7 +760,7 @@ class UsersManagementScreen(Screen[None]):
         # 检查权限
         button_id = event.button.id or ""
         if not self._has_button_permission(button_id):
-            self.notify(get_global_i18n().t('users_management.np_action'), severity="warning")
+            self.notify(get_global_i18n().t('common.no_permission_op'), severity="warning")
             return
             
         if event.button.id == "add-user":

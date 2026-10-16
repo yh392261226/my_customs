@@ -35,14 +35,14 @@ class FillMissingDialog(ModalScreen[Dict[str, Any]]):
     BINDINGS: ClassVar[list[tuple[str, str, str]]] = [
         ("escape", "cancel", get_global_i18n().t('common.close')),
         ("s", "toggle_crawl", get_global_i18n().t('crawler.toggle_crawl')),
-        ("e", "toggle_monitor", get_global_i18n().t('crawler.toggle_monitor')),
+        ("e", "toggle_monitor", get_global_i18n().t('common.start_listen')),
         ("/", "search_preview", get_global_i18n().t('fill_missing.search_key')),
         ("a", "toggle_select_all", get_global_i18n().t('fill_missing.toggle_select_shortcut')),
-        ("p", "move_up", get_global_i18n().t('fill_missing.move_up_shortcut')),
-        ("n", "move_down", get_global_i18n().t('fill_missing.move_down_shortcut')),
+        ("p", "move_up", get_global_i18n().t('common.move_up')),
+        ("n", "move_down", get_global_i18n().t('common.move_down')),
         ("space", "toggle_row", get_global_i18n().t('fill_missing.toggle_row_shortcut')),
         ("v", "visual_merge", get_global_i18n().t('fill_missing.visual_merge_btn')),
-        ("S", "search_chapters", get_global_i18n().t('crawler.search_chapters_shortcut')),
+        ("S", "search_chapters", get_global_i18n().t('common.search_chapter')),
         ("y", "copy_title", get_global_i18n().t('fill_missing.copy_title_shortcut')),
     ]
 
@@ -130,14 +130,14 @@ class FillMissingDialog(ModalScreen[Dict[str, Any]]):
 
                 # ═══ 顶部：爬取操作行（始终可见，可继续爬取）═══
                 Horizontal(
-                    *([Button(self.i18n.t('crawler.select_books'), id="fm-choose-books-btn")]
+                    *([Button(self.i18n.t('common.select_book'), id="fm-choose-books-btn")]
                       if self.novel_site.get("selectable_enabled", True) else []),
                     Input(placeholder=self.i18n.t('crawler.novel_id_placeholder_multi'), id="fm-novel-id-input"),
                     Button(self.i18n.t('crawler.start_crawl'), id="fm-toggle-crawl-btn", variant="primary"),
-                    Button(self.i18n.t('crawler.copy_ids'), id="fm-copy-ids-btn"),
-                    Button(self.i18n.t('crawler.toggle_monitor'), id="fm-toggle-monitor-btn", variant="success"),
+                    Button(self.i18n.t('common.copy_id'), id="fm-copy-ids-btn"),
+                    Button(self.i18n.t('common.start_listen'), id="fm-toggle-monitor-btn", variant="success"),
                     Select(id="fm-browser-select",
-                        options=[(self.i18n.t('crawler.browser_label'), "chrome"), ("Chrome", "chrome"), ("Safari", "safari"), ("Brave", "brave")],
+                        options=[(self.i18n.t('common.browser'), "chrome"), ("Chrome", "chrome"), ("Safari", "safari"), ("Brave", "brave")],
                         value="chrome",
                     ),
                     Select(id="fm-window-select", options=[(self.i18n.t('crawler.all_windows'), "all")], value="all"),
@@ -153,12 +153,12 @@ class FillMissingDialog(ModalScreen[Dict[str, Any]]):
                         DataTable(id="fm-books-table"),
                         # 选择+分配按钮行
                         Horizontal(
-                            Button(self.i18n.t('fill_missing.select_all'), id="fm-select-all-btn", variant="default"),
-                            Button(self.i18n.t('fill_missing.move_up'), id="fm-move-up-btn", variant="default"),
-                            Button(self.i18n.t('fill_missing.move_down'), id="fm-move-down-btn", variant="default"),
+                            Button(self.i18n.t('common.select_all'), id="fm-select-all-btn", variant="default"),
+                            Button(self.i18n.t('common.move_up'), id="fm-move-up-btn", variant="default"),
+                            Button(self.i18n.t('common.move_down'), id="fm-move-down-btn", variant="default"),
                             Label(self.i18n.t('fill_missing.move_to_pos'), id="fm-pos-label"),
                             Input(
-                                placeholder=self.i18n.t('fill_missing.pos_placeholder'),
+                                placeholder=self.i18n.t('common.line_no'),
                                 id="fm-move-to-pos-input",
                                 type="integer",
                             ),
@@ -187,9 +187,9 @@ class FillMissingDialog(ModalScreen[Dict[str, Any]]):
                                 id="fm-quick-pos-select",
                                 options=[
                                     (self.i18n.t('fill_missing.quick_pos_hint'), ""),
-                                    (self.i18n.t('fill_missing.quick_pos_beginning'), "beginning"),
+                                    (self.i18n.t('common.start'), "beginning"),
                                     (self.i18n.t('fill_missing.quick_pos_middle'), "middle"),
-                                    (self.i18n.t('fill_missing.quick_pos_end'), "end"),
+                                    (self.i18n.t('common.end'), "end"),
                                 ],
                                 value="",
                             ),
@@ -203,14 +203,14 @@ class FillMissingDialog(ModalScreen[Dict[str, Any]]):
                 # 搜索+预览区（含导航按钮）
                 Horizontal(
                     Input(placeholder=self.i18n.t('fill_missing.search_placeholder'), id="fm-search-input"),
-                    Button(self.i18n.t('fill_missing.search_btn'), id="fm-search-btn"),
+                    Button(self.i18n.t('common.search'), id="fm-search-btn"),
                     Button("◀", id="fm-search-prev-btn", variant="default"),
                     Label("", id="fm-search-match-label", classes="label-text"),
                     Button("▶", id="fm-search-next-btn", variant="default"),
                     Button(self.i18n.t('fill_missing.set_as_insert_pos'), id="fm-set-insert-pos-btn", variant="warning"),
                     Button(self.i18n.t('fill_missing.load_preview_btn'), id="fm-load-preview-btn"),
                     Button(self.i18n.t('fill_missing.visual_merge_btn'), id="fm-visual-merge-btn", variant="success"),
-                    Button(self.i18n.t('crawler.search_chapters'), id="fm-search-chapters-btn", variant="warning"),
+                    Button(self.i18n.t('common.search_chapter'), id="fm-search-chapters-btn", variant="warning"),
                     id="fm-search-row",
                 ),
                 # 预览区（DataTable，支持点击行号设为插入位置）
@@ -330,7 +330,7 @@ class FillMissingDialog(ModalScreen[Dict[str, Any]]):
                     return base + (" ▼" if self._sort_reverse else " ▲")
                 return base
 
-            table.add_column(_col_label(get_global_i18n().t('batch_ops.selected'), "selected"), key="selected", width=5)
+            table.add_column(_col_label(get_global_i18n().t('common.selected'), "selected"), key="selected", width=5)
             table.add_column("#", key="idx", width=4)
             table.add_column(_col_label(self.i18n.t('fill_missing.col_title'), "title"), key="title", width=60)
             table.add_column(_col_label(self.i18n.t('fill_missing.col_group'), "group"), width=4)
@@ -511,9 +511,9 @@ class FillMissingDialog(ModalScreen[Dict[str, Any]]):
         # 更新按钮文字显示当前状态
         btn = self.query_one("#fm-select-all-btn", Button)
         if self._selected_indices >= all_nids:
-            btn.label = self.i18n.t('fill_missing.deselect_all')
+            btn.label = self.i18n.t('common.deselect')
         else:
-            btn.label = self.i18n.t('fill_missing.select_all')
+            btn.label = self.i18n.t('common.select_all')
 
     # ─── 上移/下移排序（按钮 + 快捷键 p/n）───────────────────
 
@@ -584,7 +584,7 @@ class FillMissingDialog(ModalScreen[Dict[str, Any]]):
                 return
             target_pos = int(raw)
         except (ValueError, TypeError):
-            self.notify(self.i18n.t('fill_missing.pos_placeholder'), severity="warning", timeout=2)
+            self.notify(self.i18n.t('common.line_no'), severity="warning", timeout=2)
             return
 
         # 1-based 行号 -> 0-based 索引，并钳制到合法范围
@@ -1097,7 +1097,7 @@ class FillMissingDialog(ModalScreen[Dict[str, Any]]):
         if not matches:
             self._search_current_match = -1
             self._update_search_nav_ui()
-            self._update_status_text(self.i18n.t('fill_missing.no_match'))
+            self._update_status_text(self.i18n.t('common.no_match'))
             return
 
         # 默认显示第一个匹配
@@ -1623,7 +1623,7 @@ class FillMissingDialog(ModalScreen[Dict[str, Any]]):
 
     def _start_crawl(self) -> None:
         if not self.novel_site:
-            self.notify(self.i18n.t('crawler.no_site_id'), severity="warning", timeout=2); return
+            self.notify(self.i18n.t('common.cannot_get_site_id'), severity="warning", timeout=2); return
         if self.is_crawling: self._stop_crawl(); return
         try:
             novel_id_input = self.query_one("#fm-novel-id-input", Input)
@@ -1638,7 +1638,7 @@ class FillMissingDialog(ModalScreen[Dict[str, Any]]):
             novel_ids = [unquote(id.strip()) for id in ids_input.split(',') if id.strip()]
             site_id = self.novel_site.get('id')
             if not site_id:
-                self.notify(self.i18n.t('crawler.no_site_id'), severity="warning", timeout=2); return
+                self.notify(self.i18n.t('common.cannot_get_site_id'), severity="warning", timeout=2); return
 
             # ── 智能预检：过滤已爬取成功的ID，直接复用 ──
             cached_ids, uncached_ids = self._precheck_existing_crawls(novel_ids)
@@ -1671,7 +1671,7 @@ class FillMissingDialog(ModalScreen[Dict[str, Any]]):
 
             cm = self._get_crawler_manager()
             if not cm:
-                self.notify(self.i18n.t('crawler.start_crawl_failed'), severity="error", timeout=3); return
+                self.notify(self.i18n.t('common.start_crawl_failed'), severity="error", timeout=3); return
             self.is_crawling = True
             if not self._crawling_novel_ids:
                 self._crawling_novel_ids = list(uncached_ids)
@@ -1687,11 +1687,11 @@ class FillMissingDialog(ModalScreen[Dict[str, Any]]):
                 self._update_status_text(f"{self.i18n.t('crawler.starting_crawl')} ({len(uncached_ids)} {self.i18n.t('crawler.books')}{hint_msg})")
             else:
                 self.is_crawling = False
-                self.notify(self.i18n.t('crawler.start_crawl_failed'), severity="error", timeout=3)
+                self.notify(self.i18n.t('common.start_crawl_failed'), severity="error", timeout=3)
         except Exception as e:
             self.is_crawling = False
             logger.error(f"启动爬取失败: {e}")
-            self.notify(f"{self.i18n.t('crawler.start_crawl_failed')}: {e}", severity="error", timeout=3)
+            self.notify(f"{self.i18n.t('common.start_crawl_failed')}: {e}", severity="error", timeout=3)
 
     def _stop_crawl(self) -> None:
         try:
@@ -1706,7 +1706,7 @@ class FillMissingDialog(ModalScreen[Dict[str, Any]]):
                 self._crawler_manager.stop_crawl_task(self.current_task_id)
             self.is_crawling = False; self.current_task_id = None
             self._update_crawl_button_state()
-            self.notify(self.i18n.t('crawler.crawl_stopped'), timeout=2)
+            self.notify(self.i18n.t('common.crawl_stopped'), timeout=2)
         except Exception as e:
             logger.error(f"停止爬取失败: {e}")
 
@@ -1927,7 +1927,7 @@ class FillMissingDialog(ModalScreen[Dict[str, Any]]):
             if self.browser_monitor_active:
                 btn.label = self.i18n.t('crawler.stop_monitor'); btn.variant = "error"
             else:
-                btn.label = self.i18n.t('crawler.start_monitor'); btn.variant = "success"
+                btn.label = self.i18n.t('common.start_listen'); btn.variant = "success"
         except Exception: pass
 
     # ─── 执行多组合并（核心逻辑）──────────────────────────

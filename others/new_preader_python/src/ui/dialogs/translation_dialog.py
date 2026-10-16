@@ -50,7 +50,7 @@ class TranslationDialog(ModalScreen[Dict[str, Any]]):
         """组合对话框界面"""
         with Container(id="translation-dialog-container", classes="panel"):
             yield Label(
-                get_global_i18n().t("translation_dialog.title"),
+                get_global_i18n().t("common.translate"),
                 id="translation-dialog-title",
                 classes="section-title"
             )
@@ -81,7 +81,7 @@ class TranslationDialog(ModalScreen[Dict[str, Any]]):
                 # 翻译输入区域
                 with Horizontal(id="translation-input-section", classes="trans_section"):
                     yield Label(
-                        get_global_i18n().t("translation_dialog.target_language"),
+                        get_global_i18n().t("common.target_language"),
                         classes="field-label"
                     )
                     with Horizontal():
@@ -265,12 +265,12 @@ class TranslationDialog(ModalScreen[Dict[str, Any]]):
                 self.query_one("#add-vocabulary-button", Button).disabled = False
             else:
                 # 显示错误信息
-                error_msg = self.translation_result.get('error', get_global_i18n().t("translation_dialog.translation_failed"))
-                result_display.update(f"{get_global_i18n().t('translation_dialog.error')}: {error_msg}")
+                error_msg = self.translation_result.get('error', get_global_i18n().t("common.translate_failed"))
+                result_display.update(f"{get_global_i18n().t('common.error')}: {error_msg}")
                 self.query_one("#add-vocabulary-button", Button).disabled = True
                 
         except Exception as e:
-            result_display.update(f"{get_global_i18n().t('translation_dialog.error')}: {str(e)}")
+            result_display.update(f"{get_global_i18n().t('common.error')}: {str(e)}")
             self.query_one("#add-vocabulary-button", Button).disabled = True
     
     def on_button_pressed(self, event: Button.Pressed) -> None:
@@ -342,7 +342,7 @@ class TranslationDialog(ModalScreen[Dict[str, Any]]):
         except Exception as e:
             # 显示异常消息
             result_display = self.query_one("#translation-result", Static)
-            error_msg = f"{get_global_i18n().t('translation_dialog.error')}: {str(e)}"
+            error_msg = f"{get_global_i18n().t('common.error')}: {str(e)}"
             result_display.update(error_msg)
     
     def on_input_submitted(self, event: Input.Submitted) -> None:

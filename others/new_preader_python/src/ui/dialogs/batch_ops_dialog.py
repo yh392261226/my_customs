@@ -310,7 +310,7 @@ class LogViewerPopup(ModalScreen[None]):
 
         # 更新按钮文本
         toggle_btn = self.query_one("#toggle-scroll-btn", Button)
-        toggle_btn.label = f"{get_global_i18n().t('crawler.auto_scroll')}: {'开' if self.auto_scroll else '关'}"
+        toggle_btn.label = f"{get_global_i18n().t('common.auto_scroll')}: {'开' if self.auto_scroll else '关'}"
 
         if self.auto_scroll:
             self.app.notify(get_global_i18n().t('crawler.auto_scroll_enabled'))
@@ -475,24 +475,24 @@ class BatchOpsDialog(ModalScreen[Dict[str, Any]]):
     CSS_PATH = "../styles/batch_ops_overrides.tcss"
     BINDINGS = [
         ("space", "toggle_row", get_global_i18n().t('batch_ops.toggle_row')),
-        ("n", "next_page", get_global_i18n().t('batch_ops.next_page')),
-        ("p", "prev_page", get_global_i18n().t('batch_ops.prev_page')),
-        # ("d", "find_duplicates", get_global_i18n().t('batch_ops.find_duplicates')),
-        ("x", "clear_search_params", get_global_i18n().t('bookshelf.clear_search_params')),
+        ("n", "next_page", get_global_i18n().t('common.next_page')),
+        ("p", "prev_page", get_global_i18n().t('common.prev_page')),
+        # ("d", "find_duplicates", get_global_i18n().t('common.batch_dedupe')),
+        ("x", "clear_search_params", get_global_i18n().t('common.clear_search')),
         ("j", "jump_to", get_global_i18n().t('bookshelf.jump_to')),
-        ("l", "view_logs", get_global_i18n().t('crawler.view_logs')),
-        ("escape", "cancel", get_global_i18n().t('batch_ops.cancel')),
-        ("a", "toggle_select_all", get_global_i18n().t('batch_ops.shortcut_a')),
+        ("l", "view_logs", get_global_i18n().t('common.view_log')),
+        ("escape", "cancel", get_global_i18n().t('common.cancel')),
+        ("a", "toggle_select_all", get_global_i18n().t('common.toggle_select_all')),
         ("C", "merge_selected", get_global_i18n().t('batch_ops.shortcut_C')),
-        ("D", "compare_read", get_global_i18n().t('batch_ops.shortcut_D')),
-        ("u", "deduplicate", get_global_i18n().t('batch_ops.shortcut_u')),
-        ("w", "set_author", get_global_i18n().t('batch_ops.shortcut_w')),
-        ("t", "set_tags", get_global_i18n().t('batch_ops.shortcut_t')),
-        ("T", "clear_tags", get_global_i18n().t('batch_ops.shortcut_T')),
+        ("D", "compare_read", get_global_i18n().t('common.compare_read')),
+        ("u", "deduplicate", get_global_i18n().t('common.batch_dedupe')),
+        ("w", "set_author", get_global_i18n().t('common.set_author')),
+        ("t", "set_tags", get_global_i18n().t('common.set_tags')),
+        ("T", "clear_tags", get_global_i18n().t('common.clear_tags')),
         ("c", "convert_traditional", get_global_i18n().t('batch_ops.shortcut_c')),
-        ("r", "delete_selected", get_global_i18n().t('batch_ops.shortcut_r')),
+        ("r", "delete_selected", get_global_i18n().t('common.delete_selected')),
         ("R", "remove_missing", get_global_i18n().t('batch_ops.shortcut_R')),
-        ("v", "preview_book", get_global_i18n().t('batch_ops.shortcut_v')),
+        ("v", "preview_book", get_global_i18n().t('common.preview_book')),
         ("z", "merge_mode", get_global_i18n().t('batch_ops.shortcut_z')),
     ]
     # 支持的书籍文件扩展名（从配置文件读取）
@@ -531,7 +531,7 @@ class BatchOpsDialog(ModalScreen[Dict[str, Any]]):
     def compose(self) -> ComposeResult:
         """组合对话框界面"""
         # 动态生成搜索选择框选项
-        search_options = [(get_global_i18n().t("search.all_formats"), "all")]
+        search_options = [(get_global_i18n().t("common.all_formats"), "all")]
         # 根据SUPPORTED_EXTENSIONS生成格式选项
         for ext in self.SUPPORTED_EXTENSIONS:
             # 去掉点号，转换为大写作为显示名称
@@ -544,28 +544,28 @@ class BatchOpsDialog(ModalScreen[Dict[str, Any]]):
         yield Container(
             Vertical(
                 # 标题
-                Label(get_global_i18n().t("bookshelf.batch_ops.title"), id="batch-ops-title", classes="section-title"),
+                Label(get_global_i18n().t("common.batch_ops"), id="batch-ops-title", classes="section-title"),
                 
                 # 操作按钮区域
                 Horizontal(
-                    Button(get_global_i18n().t("bookshelf.batch_ops.select_all"), id="select-all-btn"),
-                    Button(get_global_i18n().t("bookshelf.batch_ops.invert_selection"), id="invert-selection-btn"),
-                    Button(get_global_i18n().t("bookshelf.batch_ops.deselect_all"), id="deselect-all-btn"),
-                    Button(get_global_i18n().t("batch_ops.move_up"), id="move-up-btn"),
-                    Button(get_global_i18n().t("batch_ops.move_down"), id="move-down-btn"),
+                    Button(get_global_i18n().t("common.select_all"), id="select-all-btn"),
+                    Button(get_global_i18n().t("common.invert_select"), id="invert-selection-btn"),
+                    Button(get_global_i18n().t("common.deselect"), id="deselect-all-btn"),
+                    Button(get_global_i18n().t("common.move_up"), id="move-up-btn"),
+                    Button(get_global_i18n().t("common.move_down"), id="move-down-btn"),
                     Button(get_global_i18n().t("batch_ops.merge"), id="merge-btn", variant="warning"),
-                    Button(get_global_i18n().t("batch_ops.merge_mode"), id="merge-mode-btn", variant="primary"),
-                    Button(get_global_i18n().t("batch_ops.compare_read"), id="compare-read-btn", variant="success"),
-                    Button(get_global_i18n().t("batch_ops.find_duplicates"), id="find-duplicates-btn", variant="primary"),
-                    Button(get_global_i18n().t("bookshelf.batch_ops.set_author"), id="set-author-btn", variant="primary"),
-                    Button(get_global_i18n().t("bookshelf.batch_ops.set_tags"), id="set-tags-btn", variant="primary"),
-                    Button(get_global_i18n().t("bookshelf.batch_ops.clear_tags"), id="clear-tags-btn", variant="warning"),
-                    Button(get_global_i18n().t("batch_ops.convert_traditional_to_simplified"), id="convert-traditional-btn", variant="primary"),
-                    Button(get_global_i18n().t("bookshelf.batch_ops.delete"), id="delete-btn", variant="error"),
-                    Button(get_global_i18n().t("batch_ops.remove_missing"), id="remove-missing-btn", variant="error"),
-                    Button(get_global_i18n().t("bookshelf.batch_ops.export"), id="export-btn"),
-                    Button(get_global_i18n().t('crawler.view_logs'), id="view-logs-btn", variant="success"),
-                    Button(get_global_i18n().t("bookshelf.batch_ops.cancel"), id="cancel-btn"),
+                    Button(get_global_i18n().t("common.merge_mode"), id="merge-mode-btn", variant="primary"),
+                    Button(get_global_i18n().t("common.compare_read"), id="compare-read-btn", variant="success"),
+                    Button(get_global_i18n().t("common.batch_dedupe"), id="find-duplicates-btn", variant="primary"),
+                    Button(get_global_i18n().t("common.set_author"), id="set-author-btn", variant="primary"),
+                    Button(get_global_i18n().t("common.set_tags"), id="set-tags-btn", variant="primary"),
+                    Button(get_global_i18n().t("common.clear_tags"), id="clear-tags-btn", variant="warning"),
+                    Button(get_global_i18n().t("common.trad_to_simp"), id="convert-traditional-btn", variant="primary"),
+                    Button(get_global_i18n().t("common.delete"), id="delete-btn", variant="error"),
+                    Button(get_global_i18n().t("common.clean_invalid_short"), id="remove-missing-btn", variant="error"),
+                    Button(get_global_i18n().t("common.export"), id="export-btn"),
+                    Button(get_global_i18n().t('common.view_log'), id="view-logs-btn", variant="success"),
+                    Button(get_global_i18n().t("common.cancel"), id="cancel-btn"),
                     id="batch-ops-buttons", classes="btn-row"
                 ),
 
@@ -630,13 +630,13 @@ class BatchOpsDialog(ModalScreen[Dict[str, Any]]):
         
         # 添加带键的列
         table.add_column(get_global_i18n().t("batch_ops.index"), key="index")
-        table.add_column(get_global_i18n().t("bookshelf.title"), key="title")
-        table.add_column(get_global_i18n().t("bookshelf.author"), key="author")
-        table.add_column(get_global_i18n().t("bookshelf.format"), key="format")
-        table.add_column(get_global_i18n().t("bookshelf.tags"), key="tags")
-        table.add_column(get_global_i18n().t("bookshelf.view_file"), key="view_action")  # 查看文件按钮列
-        table.add_column(get_global_i18n().t("batch_ops.preview"), key="preview_action")  # 预览按钮列
-        table.add_column(get_global_i18n().t("batch_ops.selected"), key="selected")
+        table.add_column(get_global_i18n().t("common.bookshelf"), key="title")
+        table.add_column(get_global_i18n().t("common.author"), key="author")
+        table.add_column(get_global_i18n().t("common.format"), key="format")
+        table.add_column(get_global_i18n().t("common.tag"), key="tags")
+        table.add_column(get_global_i18n().t("common.view_file"), key="view_action")  # 查看文件按钮列
+        table.add_column(get_global_i18n().t("common.preview"), key="preview_action")  # 预览按钮列
+        table.add_column(get_global_i18n().t("common.selected"), key="selected")
         
         # 启用隔行变色效果
         table.zebra_stripes = True
@@ -743,9 +743,9 @@ class BatchOpsDialog(ModalScreen[Dict[str, Any]]):
             selection_marker = "✓" if is_selected else "□"
             
             # 添加查看文件按钮
-            view_file_button = f"[{get_global_i18n().t('bookshelf.view_file')}]"
+            view_file_button = f"[{get_global_i18n().t('common.view_file')}]"
             # 添加预览按钮
-            preview_button = f"[{get_global_i18n().t('batch_ops.preview')}]"
+            preview_button = f"[{get_global_i18n().t('common.preview')}]"
 
             table.add_row(
                 str(index),  # 序号
@@ -1363,7 +1363,7 @@ class BatchOpsDialog(ModalScreen[Dict[str, Any]]):
             
             # 检查文件是否存在
             if not os.path.exists(book_path):
-                self.notify(f"{get_global_i18n().t('bookshelf.file_not_exists')}: {book_path}", severity="error")
+                self.notify(f"{get_global_i18n().t('common.file_not_exist')}: {book_path}", severity="error")
                 return
             
             # 根据操作系统打开文件管理器
@@ -1411,13 +1411,13 @@ class BatchOpsDialog(ModalScreen[Dict[str, Any]]):
         """预览书籍内容（显示前2000字，复用统一预览弹窗）"""
         try:
             if not os.path.exists(book_path):
-                self.notify(get_global_i18n().t('crawler.file_not_exists'), severity="warning")
+                self.notify(get_global_i18n().t('common.file_not_exist'), severity="warning")
                 return
 
             # 获取书籍信息
             book = self.bookshelf.get_book(book_path)
             if not book:
-                self.notify(get_global_i18n().t("bookshelf.find_book_failed"), severity="error")
+                self.notify(get_global_i18n().t("common.book_not_found"), severity="error")
                 return
 
             # 读取文件前2000字，自动检测编码（支持 GBK/GB2312/Big5 等，避免乱码）
@@ -1644,7 +1644,7 @@ class BatchOpsDialog(ModalScreen[Dict[str, Any]]):
                     all_history,
                     db_manager=self.bookshelf.db_manager,
                     site_id=0,
-                    site_name=get_global_i18n().t("batch_ops.merge_mode"),
+                    site_name=get_global_i18n().t("common.merge_mode"),
                     full_scan=True,
                     novel_site={},
                     library_mode=True,
@@ -1901,7 +1901,7 @@ class BatchOpsDialog(ModalScreen[Dict[str, Any]]):
     def _delete_selected_books(self) -> None:
         """删除选中的书籍"""
         if not self.selected_books:
-            self.notify(get_global_i18n().t("batch_ops.no_books_selected"), severity="warning")
+            self.notify(get_global_i18n().t("common.no_book_selected"), severity="warning")
             return
         
         # 这里实现删除逻辑（同时删除物理文件）
@@ -1957,7 +1957,7 @@ class BatchOpsDialog(ModalScreen[Dict[str, Any]]):
     def _export_selected_books(self) -> None:
         """导出选中的书籍"""
         if not self.selected_books:
-            self.notify(get_global_i18n().t("batch_ops.no_books_selected"), severity="warning")
+            self.notify(get_global_i18n().t("common.no_book_selected"), severity="warning")
             return
         
         try:
@@ -2012,7 +2012,7 @@ class BatchOpsDialog(ModalScreen[Dict[str, Any]]):
     async def _set_author_for_selected_books(self) -> None:
         """为选中的书籍设置作者"""
         if not self.selected_books:
-            self.notify(get_global_i18n().t("batch_ops.no_books_selected"), severity="warning")
+            self.notify(get_global_i18n().t("common.no_book_selected"), severity="warning")
             return
         
         def handle_author_input(author: Optional[str]) -> None:
@@ -2050,9 +2050,9 @@ class BatchOpsDialog(ModalScreen[Dict[str, Any]]):
         # 弹出输入对话框获取作者
         self.app.push_screen(
             BatchInputDialog(
-                get_global_i18n().t("batch_ops.set_author"),
-                get_global_i18n().t("bookshelf.author"),
-                get_global_i18n().t("batch_ops.set_author")
+                get_global_i18n().t("common.set_author"),
+                get_global_i18n().t("common.author"),
+                get_global_i18n().t("common.set_author")
             ),
             callback=handle_author_input
         )
@@ -2062,7 +2062,7 @@ class BatchOpsDialog(ModalScreen[Dict[str, Any]]):
     async def _set_tags_for_selected_books(self) -> None:
         """为选中的书籍设置标签"""
         if not self.selected_books:
-            self.notify(get_global_i18n().t("batch_ops.no_books_selected"), severity="warning")
+            self.notify(get_global_i18n().t("common.no_book_selected"), severity="warning")
             return
         
         # 弹出输入对话框获取标签（逗号分隔）
@@ -2103,9 +2103,9 @@ class BatchOpsDialog(ModalScreen[Dict[str, Any]]):
         
         self.app.push_screen(
             BatchInputDialog(
-                get_global_i18n().t("batch_ops.set_tags"),
-                get_global_i18n().t("bookshelf.tags"),
-                get_global_i18n().t("batch_ops.set_tags") + "\n" + get_global_i18n().t("common.comma_separated") + "\n" + "请输入完整的标签，如：小说,科幻,经典"
+                get_global_i18n().t("common.set_tags"),
+                get_global_i18n().t("common.tag"),
+                get_global_i18n().t("common.set_tags") + "\n" + get_global_i18n().t("common.comma_separated") + "\n" + "请输入完整的标签，如：小说,科幻,经典"
             ),
             callback=on_tags_input
         )
@@ -2114,7 +2114,7 @@ class BatchOpsDialog(ModalScreen[Dict[str, Any]]):
         """为选中的书籍执行繁体转简体"""
         if not self.selected_books:
             self.notify(
-                get_global_i18n().t("batch_ops.no_books_selected"),
+                get_global_i18n().t("common.no_book_selected"),
                 severity="warning"
             )
             return
@@ -2164,7 +2164,7 @@ class BatchOpsDialog(ModalScreen[Dict[str, Any]]):
         """清空选中书籍的标签"""
         if not self.selected_books:
             self.notify(
-                get_global_i18n().t("batch_ops.no_books_selected"),
+                get_global_i18n().t("common.no_book_selected"),
                 severity="warning"
             )
             return
@@ -2569,7 +2569,7 @@ class BatchOpsDialog(ModalScreen[Dict[str, Any]]):
         """将选中的书籍上移一位，优先使用光标所在行，若无光标则使用第一个选中的书籍"""
         # 1. 验证是否有选中的书籍数据
         if not self.selected_books:
-            self.notify(get_global_i18n().t("batch_ops.no_books_selected"), severity="warning")
+            self.notify(get_global_i18n().t("common.no_book_selected"), severity="warning")
             return
         
         # 获取当前表格
@@ -2669,7 +2669,7 @@ class BatchOpsDialog(ModalScreen[Dict[str, Any]]):
         """将选中的书籍下移一位，优先使用光标所在行，若无光标则使用第一个选中的书籍"""
         # 1. 验证是否有选中的书籍数据
         if not self.selected_books:
-            self.notify(get_global_i18n().t("batch_ops.no_books_selected"), severity="warning")
+            self.notify(get_global_i18n().t("common.no_book_selected"), severity="warning")
             return
         
         # 获取当前表格
@@ -2768,7 +2768,7 @@ class BatchOpsDialog(ModalScreen[Dict[str, Any]]):
     async def _merge_selected_books(self) -> None:
         """合并选中的书籍"""
         if not self.selected_books:
-            self.notify(get_global_i18n().t("batch_ops.no_books_selected"), severity="warning")
+            self.notify(get_global_i18n().t("common.no_book_selected"), severity="warning")
             return
         
         if len(self.selected_books) < 2:

@@ -46,7 +46,7 @@ class BookmarksScreen(Screen[None]):
     def __init__(self, book_id: str):
         super().__init__()
         self.book_id = book_id
-        self.screen_title = get_global_i18n().t("bookmarks.title")
+        self.screen_title = get_global_i18n().t("common.bookmark_list")
         # 设置类的TITLE属性
         self.__class__.TITLE = self.screen_title
         self.bookmark_manager = BookmarkManager()
@@ -106,7 +106,7 @@ class BookmarksScreen(Screen[None]):
                     Button(get_global_i18n().t("bookmarks.goto"), id="goto-selected-btn", variant="primary", classes="btn"),
                     Button(get_global_i18n().t("common.delete"), id="delete-selected-btn", variant="error", classes="btn"),
                     Button(get_global_i18n().t("common.edit"), id="edit-note-btn", variant="default", classes="btn"),
-                    Button(get_global_i18n().t("bookmarks.clear_all"), id="clear-all-btn", variant="warning", classes="btn"),
+                    Button(get_global_i18n().t("common.clear"), id="clear-all-btn", variant="warning", classes="btn"),
                     Button(get_global_i18n().t("common.back"), id="back-button", variant="error", classes="btn"),
                     id="action-buttons",
                     classes="btn-row"
@@ -366,7 +366,7 @@ class BookmarksScreen(Screen[None]):
         elif event.key == "down":
             # 下键：如果到达当前页底部且有下一页，则翻到下一页
             if not self._has_permission("bookmarks.navigation"):
-                self.notify(get_global_i18n().t("bookmarks.np_turn_page"), severity="error")
+                self.notify(get_global_i18n().t("common.no_perm_page"), severity="error")
                 event.stop()
                 return
             list_view = self.query_one("#bookmarks-list", ListView)
@@ -379,7 +379,7 @@ class BookmarksScreen(Screen[None]):
         elif event.key == "up":
             # 上键：如果到达当前页顶部且有上一页，则翻到上一页
             if not self._has_permission("bookmarks.navigation"):
-                self.notify(get_global_i18n().t("bookmarks.np_turn_page"), severity="error")
+                self.notify(get_global_i18n().t("common.no_perm_page"), severity="error")
                 event.stop()
                 return
             list_view = self.query_one("#bookmarks-list", ListView)
@@ -451,9 +451,9 @@ class BookmarksScreen(Screen[None]):
                     if bookmark.id and self.bookmark_manager.remove_bookmark(bookmark.id, user_id):
                         self.bookmarks.pop(actual_index)
                         self._refresh_bookmark_list()
-                        self.notify(get_global_i18n().t("bookmarks.bookmark_deleted"), severity="information")
+                        self.notify(get_global_i18n().t("common.bookmark_deleted"), severity="information")
                     else:
-                        self.notify(get_global_i18n().t("bookmarks.failed_to_delete_bookmark"), severity="error")
+                        self.notify(get_global_i18n().t("common.delete_bookmark_failed"), severity="error")
                 else:
                     self.notify(get_global_i18n().t("bookmarks.select_valid_bookmark"), severity="warning")
             else:
@@ -482,7 +482,7 @@ class BookmarksScreen(Screen[None]):
                         page_num = int(bookmark.position) + 1
                         bookmark_info = get_global_i18n().t('reader.page_current', page=page_num)
                     except (ValueError, TypeError):
-                        bookmark_info = f"{get_global_i18n().t('search.position')}: {bookmark.position}"
+                        bookmark_info = f"{get_global_i18n().t('common.position')}: {bookmark.position}"
                     
                     # 打开编辑对话框
                     dialog = BookmarkEditDialog(bookmark_info, bookmark.note or "")

@@ -36,8 +36,8 @@ class StatisticsScreen(Screen[None]):
     # 使用 Textual BINDINGS 进行快捷键绑定（不移除 on_key，逐步过渡）
     BINDINGS: ClassVar[list[tuple[str, str, str]]] = [
         ("escape", "back", get_global_i18n().t('common.back')),
-        ("r", "refresh_stats", get_global_i18n().t('bookshelf.refresh')),
-        ("e", "export_stats", get_global_i18n().t('batch_ops.export')),
+        ("r", "refresh_stats", get_global_i18n().t('common.refresh')),
+        ("e", "export_stats", get_global_i18n().t('common.export')),
     ]
     
     def __init__(self, theme_manager: ThemeManager, statistics_manager: StatisticsManagerDirect):
@@ -51,7 +51,7 @@ class StatisticsScreen(Screen[None]):
         super().__init__()
         self.theme_manager = theme_manager
         self.statistics_manager = statistics_manager
-        self.title = get_global_i18n().t("statistics.title")
+        self.title = get_global_i18n().t("common.statistics")
         
         # 初始化统计数据为空，将在 on_mount 中加载
         self.global_stats = {}
@@ -68,7 +68,7 @@ class StatisticsScreen(Screen[None]):
         yield Header()
         with Container(id="stats-container"):
             # yield Horizontal(
-            #     Label(get_global_i18n().t("statistics.title"), id="statistics-title"), 
+            #     Label(get_global_i18n().t("common.statistics"), id="statistics-title"), 
             #     id="statistics-title-container"
             #     )
                 
@@ -89,7 +89,7 @@ class StatisticsScreen(Screen[None]):
                     yield Vertical(
                         Label(get_global_i18n().t("statistics.most_read_books"), id="books-title", classes="section-title"),
                         DataTable(id="book-stats-table"),
-                        Label(get_global_i18n().t("statistics.reading_progress"), id="progress-title", classes="section-title"),
+                        Label(get_global_i18n().t("common.read_progress"), id="progress-title", classes="section-title"),
                         DataTable(id="progress-table"),
                         id="books-tab"
                     )
@@ -106,10 +106,10 @@ class StatisticsScreen(Screen[None]):
             
             # 底部控制按钮区域
             with Horizontal(id="stats-controls", classes="btn-row"):
-                yield Button(get_global_i18n().t("statistics.refresh"), id="refresh-btn")
-                yield Button(get_global_i18n().t("statistics.export"), id="export-btn")
-                yield Button(get_global_i18n().t("statistics.reset"), id="reset-btn")
-                yield Button(get_global_i18n().t("statistics.back"), id="back-btn")
+                yield Button(get_global_i18n().t("common.refresh"), id="refresh-btn")
+                yield Button(get_global_i18n().t("common.export"), id="export-btn")
+                yield Button(get_global_i18n().t("common.reset"), id="reset-btn")
+                yield Button(get_global_i18n().t("common.back"), id="back-btn")
             
             # # 快捷键状态栏
             # with Horizontal(id="shortcuts-bar", classes="status-bar"):
@@ -197,21 +197,21 @@ class StatisticsScreen(Screen[None]):
             # 检查权限并设置按钮状态
             if not self._has_permission("statistics.refresh"):
                 refresh_btn.disabled = True
-                refresh_btn.tooltip = get_global_i18n().t("statistics.no_permission")
+                refresh_btn.tooltip = get_global_i18n().t("common.no_permission")
             else:
                 refresh_btn.disabled = False
                 refresh_btn.tooltip = None
                 
             if not self._has_permission("statistics.export"):
                 export_btn.disabled = True
-                export_btn.tooltip = get_global_i18n().t("statistics.no_permission")
+                export_btn.tooltip = get_global_i18n().t("common.no_permission")
             else:
                 export_btn.disabled = False
                 export_btn.tooltip = None
                 
             if not self._has_permission("statistics.reset"):
                 reset_btn.disabled = True
-                reset_btn.tooltip = get_global_i18n().t("statistics.no_permission")
+                reset_btn.tooltip = get_global_i18n().t("common.no_permission")
             else:
                 reset_btn.disabled = False
                 reset_btn.tooltip = None
@@ -259,7 +259,7 @@ class StatisticsScreen(Screen[None]):
         return f"""
 {get_global_i18n().t("statistics.total_reading_time")}: {self._format_time(total_time)}
 {get_global_i18n().t("statistics.total_books")}: {total_books}
-{get_global_i18n().t("statistics.total_pages")}: {total_pages}
+{get_global_i18n().t("common.total_pages")}: {total_pages}
 """
     
     def _format_time(self, seconds: int) -> str:
@@ -383,7 +383,7 @@ class StatisticsScreen(Screen[None]):
                     progress = progress_val * 100
 
                     virtual_data.append({
-                        "title": book_stats.get("title", get_global_i18n().t("statistics.unknown_book")),
+                        "title": book_stats.get("title", get_global_i18n().t("common.unknown_book")),
                         "reading_time": self._format_time(reading_time),
                         "open_count": str(open_count),
                         "progress": f"{progress:.1f}%",
@@ -425,7 +425,7 @@ class StatisticsScreen(Screen[None]):
             else:
                 for idx, author_stats in enumerate(self.authors_stats):
                     virtual_data.append({
-                        "author": author_stats.get("author", get_global_i18n().t("statistics.unknown_author")),
+                        "author": author_stats.get("author", get_global_i18n().t("common.unknown_author")),
                         "reading_time": self._format_time(author_stats.get("reading_time", 0)),
                         "book_count": str(author_stats.get("book_count", 0)),
                         "_row_key": f"author_{idx}"
@@ -580,7 +580,7 @@ class StatisticsScreen(Screen[None]):
         """
         # 检查权限
         if not self._has_button_permission(event.button.id):
-            self.notify(get_global_i18n().t("statistics.np_action"), severity="warning")
+            self.notify(get_global_i18n().t("common.no_permission_op"), severity="warning")
             return
             
         if event.button.id == "refresh-btn":
@@ -593,7 +593,7 @@ class StatisticsScreen(Screen[None]):
                 import asyncio
                 asyncio.create_task(self._export_stats())
             else:
-                self.notify(get_global_i18n().t("statistics.np_export"), severity="warning")
+                self.notify(get_global_i18n().t("common.no_perm_export_stats"), severity="warning")
         elif event.button.id == "reset-btn":
             if self._has_permission("statistics.reset"):
                 import asyncio
@@ -616,7 +616,7 @@ class StatisticsScreen(Screen[None]):
             
             # 检查权限
             if export_user_id == -1:
-                self.notify(get_global_i18n().t("statistics.no_permission_export"), severity="warning")
+                self.notify(get_global_i18n().t("common.no_perm_export_stats"), severity="warning")
                 return
             
             # 获取所有统计数据
@@ -809,7 +809,7 @@ class StatisticsScreen(Screen[None]):
             import asyncio
             asyncio.create_task(self._export_stats())
         else:
-            self.notify(get_global_i18n().t("statistics.np_export"), severity="warning")
+            self.notify(get_global_i18n().t("common.no_perm_export_stats"), severity="warning")
     
     def _format_reading_trend(self) -> str:
         """格式化阅读趋势数据"""
@@ -861,7 +861,7 @@ class StatisticsScreen(Screen[None]):
             books_read = daily_stats.get("books_read", 0)
 
             return f"""{get_global_i18n().t("statistics.today_stats")}:
-{get_global_i18n().t("statistics.reading_time")}: {self._format_time(reading_time)}
+{get_global_i18n().t("common.read_time")}: {self._format_time(reading_time)}
 {get_global_i18n().t("statistics.reading_books")}: {books_read} {get_global_i18n().t("bookshelf.books")}"""
         except Exception as e:
             logger.error(f"{get_global_i18n().t("statistics.format_daily_failed")}: {e}")
@@ -892,8 +892,8 @@ class StatisticsScreen(Screen[None]):
                 monthly_stats = self.statistics_manager.get_period_stats(month_ago, today.strftime("%Y-%m-%d"))
 
             return f"""{get_global_i18n().t("statistics.period_stats")}:
-{get_global_i18n().t("statistics.nearly_7days")}: {self._format_time(weekly_stats.get('reading_time', 0))} ({weekly_stats.get('books_read', 0)} {get_global_i18n().t("statistics.books_unit")})
-{get_global_i18n().t("statistics.nearly_30days")}: {self._format_time(monthly_stats.get('reading_time', 0))} ({monthly_stats.get('books_read', 0)} {get_global_i18n().t("statistics.books_unit")})"""
+{get_global_i18n().t("statistics.nearly_7days")}: {self._format_time(weekly_stats.get('reading_time', 0))} ({weekly_stats.get('books_read', 0)} {get_global_i18n().t("common.this_book")})
+{get_global_i18n().t("statistics.nearly_30days")}: {self._format_time(monthly_stats.get('reading_time', 0))} ({monthly_stats.get('books_read', 0)} {get_global_i18n().t("common.this_book")})"""
         except Exception as e:
             logger.error(f"{get_global_i18n().t("statistics.format_period_data_failed")}: {e}")
             return get_global_i18n().t("statistics.load_period_data_failed")
@@ -906,9 +906,9 @@ class StatisticsScreen(Screen[None]):
                 book_table = self.query_one("#book-stats-table", DataTable)
                 if not book_table.columns:  # 避免重复添加列
                     book_table.add_column(get_global_i18n().t("statistics.book_title"), key="title")
-                    book_table.add_column(get_global_i18n().t("statistics.reading_time"), key="reading_time")
+                    book_table.add_column(get_global_i18n().t("common.read_time"), key="reading_time")
                     book_table.add_column(get_global_i18n().t("statistics.open_count"), key="open_count")
-                    book_table.add_column(get_global_i18n().t("statistics.progress"), key="progress")
+                    book_table.add_column(get_global_i18n().t("common.read_progress"), key="progress")
             except Exception as e:
                 logger.warning(f"初始化书籍统计表失败: {e}")
             
@@ -916,9 +916,9 @@ class StatisticsScreen(Screen[None]):
             try:
                 authors_table = self.query_one("#authors-table", DataTable)
                 if not authors_table.columns:  # 避免重复添加列
-                    authors_table.add_column(get_global_i18n().t("statistics.author"), key="author")
-                    authors_table.add_column(get_global_i18n().t("statistics.reading_time"), key="reading_time")
-                    authors_table.add_column(get_global_i18n().t("statistics.book_count"), key="book_count")
+                    authors_table.add_column(get_global_i18n().t("common.author"), key="author")
+                    authors_table.add_column(get_global_i18n().t("common.read_time"), key="reading_time")
+                    authors_table.add_column(get_global_i18n().t("common.book_count"), key="book_count")
             except Exception as e:
                 logger.warning(f"初始化作者统计表失败: {e}")
             
@@ -927,9 +927,9 @@ class StatisticsScreen(Screen[None]):
                 progress_table = self.query_one("#progress-table", DataTable)
                 if not progress_table.columns:  # 避免重复添加列
                     progress_table.add_column(get_global_i18n().t("statistics.book_title"), key="title")
-                    progress_table.add_column(get_global_i18n().t("statistics.current_page"), key="current_page")
-                    progress_table.add_column(get_global_i18n().t("statistics.total_pages"), key="total_pages")
-                    progress_table.add_column(get_global_i18n().t("statistics.progress"), key="progress")
+                    progress_table.add_column(get_global_i18n().t("common.current_page"), key="current_page")
+                    progress_table.add_column(get_global_i18n().t("common.total_pages"), key="total_pages")
+                    progress_table.add_column(get_global_i18n().t("common.read_progress"), key="progress")
             except Exception as e:
                 logger.warning(f"初始化进度统计表失败: {e}")
             

@@ -29,11 +29,11 @@ class ProxyListScreen(Screen[None]):
     # 使用 Textual BINDINGS 进行快捷键绑定
     BINDINGS: ClassVar[list[tuple[str, str, str]]] = [
         ("a", "add_proxy", get_global_i18n().t('common.add')),
-        ("t", "test_connection", get_global_i18n().t('proxy_settings.test_connection')),
+        ("t", "test_connection", get_global_i18n().t('common.test_connection')),
         ("e", "edit_proxy", get_global_i18n().t('common.edit')),
         ("d", "delete_proxy", get_global_i18n().t('common.delete')),
-        ("p", "prev_page", get_global_i18n().t('crawler.shortcut_p')),
-        ("n", "next_page", get_global_i18n().t('crawler.shortcut_n')),
+        ("p", "prev_page", get_global_i18n().t('common.prev_page')),
+        ("n", "next_page", get_global_i18n().t('common.next_page')),
         ("j", "jump_to", get_global_i18n().t('bookshelf.jump_to')),
     ]
 
@@ -86,11 +86,11 @@ class ProxyListScreen(Screen[None]):
         title = i18n.t('proxy_list.title')
         description = i18n.t('proxy_list.description')
         add_proxy = i18n.t('proxy_list.add_proxy')
-        test_connection = i18n.t('proxy_list.test_connection')
+        test_connection = i18n.t('common.test_connection')
         edit_proxy = i18n.t('proxy_list.edit_proxy')
         delete_proxy = i18n.t('proxy_list.delete_proxy')
         enable_proxy = i18n.t('proxy_list.enable_proxy')
-        back = i18n.t('proxy_list.back')
+        back = i18n.t('common.back')
         shortcut_a = f"{i18n.t('proxy_list.shortcut_a') } {i18n.t('proxy_list.shortcut_t')} {i18n.t('proxy_list.shortcut_e')} {i18n.t('proxy_list.shortcut_d')} {i18n.t('proxy_list.shortcut_esc')}"
         
         
@@ -530,7 +530,7 @@ class ProxyListScreen(Screen[None]):
                 self._update_status(get_global_i18n().t('proxy_settings.port_range_error'), "error")
                 return
         except (ValueError, TypeError):
-            self._update_status(get_global_i18n().t('proxy_settings.port_must_be_number'), "error")
+            self._update_status(get_global_i18n().t('common.port_must_be_number'), "error")
             return
         
         # 测试连接
@@ -552,9 +552,9 @@ class ProxyListScreen(Screen[None]):
         test_result = self._real_test_proxy_connection(proxy_url)
         
         if test_result:
-            self._update_status(get_global_i18n().t('proxy_settings.act_success'), "success")
+            self._update_status(get_global_i18n().t('common.action_success'), "success")
         else:
-            self._update_status(get_global_i18n().t('proxy_settings.act_failed'), "error")
+            self._update_status(get_global_i18n().t('common.action_failed'), "error")
     
     # Actions for BINDINGS
     def action_add_proxy(self) -> None:

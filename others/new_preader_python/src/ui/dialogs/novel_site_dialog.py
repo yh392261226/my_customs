@@ -106,7 +106,7 @@ class NovelSiteDialog(ModalScreen[Optional[Dict[str, Any]]]):
                     # 网站基本信息
                     Vertical(
                         Horizontal(
-                            Label(get_global_i18n().t('novel_site_dialog.site_name'), id="site-name-label"),
+                            Label(get_global_i18n().t('common.site_name'), id="site-name-label"),
                             Input(
                                 placeholder=get_global_i18n().t('novel_site_dialog.site_name_placeholder'),
                                 id="site-name-input"
@@ -114,7 +114,7 @@ class NovelSiteDialog(ModalScreen[Optional[Dict[str, Any]]]):
                             id="site-name-container", classes="form-row"
                         ),
                         Horizontal(
-                            Label(get_global_i18n().t('novel_site_dialog.site_url'), id="site-url-label"),
+                            Label(get_global_i18n().t('common.site_url'), id="site-url-label"),
                             Input(
                                 placeholder=get_global_i18n().t('novel_site_dialog.site_url_placeholder'),
                                 id="site-url-input"
@@ -122,7 +122,7 @@ class NovelSiteDialog(ModalScreen[Optional[Dict[str, Any]]]):
                             id="site-url-container", classes="form-row"
                         ),
                         Horizontal(
-                            Label(get_global_i18n().t('novel_site_dialog.storage_folder'), id="storage-folder-label"),
+                            Label(get_global_i18n().t('common.storage_folder'), id="storage-folder-label"),
                             Input(
                                 placeholder=get_global_i18n().t('novel_site_dialog.storage_folder_placeholder'),
                                 id="storage-folder-input"
@@ -130,7 +130,7 @@ class NovelSiteDialog(ModalScreen[Optional[Dict[str, Any]]]):
                             id="storage-folder-container", classes="form-row"
                         ),
                         Horizontal(
-                            Label(get_global_i18n().t('novel_site_dialog.tags'), id="tags-label"),
+                            Label(get_global_i18n().t('common.tag'), id="tags-label"),
                             Input(
                                 placeholder=get_global_i18n().t('novel_site_dialog.tags_placeholder'),
                                 id="tags-input"
@@ -183,7 +183,7 @@ class NovelSiteDialog(ModalScreen[Optional[Dict[str, Any]]]):
                     # 解析器设置
                     Vertical(
                         Horizontal(
-                            Label(get_global_i18n().t('novel_site_dialog.parser'), id="parser-label"),
+                            Label(get_global_i18n().t('common.parser'), id="parser-label"),
                             Select(
                                 get_parser_options() or [("", get_global_i18n().t('novel_site_dialog.no_parser'))],
                                 id="parser-select"
@@ -196,7 +196,7 @@ class NovelSiteDialog(ModalScreen[Optional[Dict[str, Any]]]):
                     # 代理设置
                     Vertical(
                         Horizontal(
-                            Label(get_global_i18n().t('novel_site_dialog.enable_proxy'), id="enable-proxy-label"),
+                            Label(get_global_i18n().t('common.enable_proxy'), id="enable-proxy-label"),
                             Switch(id="enable-proxy"),
                             id="proxy-enable-container", classes="form-row"
                         ),
@@ -217,8 +217,8 @@ class NovelSiteDialog(ModalScreen[Optional[Dict[str, Any]]]):
 
                 # 操作按钮（底部固定）
                 Horizontal(
-                    Button(get_global_i18n().t('novel_site_dialog.save'), id="save-btn", variant="primary"),
-                    Button(get_global_i18n().t('novel_site_dialog.cancel'), id="cancel-btn"),
+                    Button(get_global_i18n().t('common.save'), id="save-btn", variant="primary"),
+                    Button(get_global_i18n().t('common.cancel'), id="cancel-btn"),
                     id="novel-site-dialog-buttons", classes="btn-row"
                 ),
 

@@ -325,7 +325,7 @@ class LogViewerPopup(ModalScreen):
         
         # 更新按钮文本
         toggle_btn = self.query_one("#toggle-scroll-btn", Button)
-        toggle_btn.label = f"{get_global_i18n().t('crawler.auto_scroll')}: {'开' if self.auto_scroll else '关'}"
+        toggle_btn.label = f"{get_global_i18n().t('common.auto_scroll')}: {'开' if self.auto_scroll else '关'}"
         
         if self.auto_scroll:
             self.app.notify(get_global_i18n().t('crawler.auto_scroll_enabled'))
@@ -684,7 +684,7 @@ class BookPreviewDialog(ModalScreen):
                 self.notify(get_global_i18n().t("crawler.preview_empty"), severity="information")
                 return
             self._render_preview_content(preview_content, content, "crawler.preview_full_note")
-            full_btn.label = get_global_i18n().t("crawler.preview_back")
+            full_btn.label = get_global_i18n().t("common.preview")
             self._is_full = True
         else:
             # 全文预览 → 回到前 2000 字截断预览
@@ -725,34 +725,34 @@ class CrawlerManagementScreen(Screen[None]):
     # 统一快捷键绑定（含 ESC 返回）
     BINDINGS: ClassVar[list[tuple[str, str, str]]] = [
         ("o", "open_browser", get_global_i18n().t('crawler.shortcut_o')),
-        ("R", "view_history", get_global_i18n().t('crawler.shortcut_r')),
-        ("B", "note", get_global_i18n().t('crawler.shortcut_b')),
-        ("l", "view_logs", get_global_i18n().t('crawler.view_logs')),
+        ("R", "view_history", get_global_i18n().t('common.refresh_history')),
+        ("B", "note", get_global_i18n().t('common.note')),
+        ("l", "view_logs", get_global_i18n().t('common.view_log')),
         ("escape", "back", get_global_i18n().t('common.back')),
-        ("X", "select_books", get_global_i18n().t('crawler.select_books')),
+        ("X", "select_books", get_global_i18n().t('common.select_book')),
         ("s", "toggle_crawl", get_global_i18n().t('crawler.toggle_crawl')),
-        ("p", "prev_page", get_global_i18n().t('crawler.shortcut_p')),
-        ("n", "next_page", get_global_i18n().t('crawler.shortcut_n')),
+        ("p", "prev_page", get_global_i18n().t('common.prev_page')),
+        ("n", "next_page", get_global_i18n().t('common.next_page')),
         ("x", "clear_search_params", get_global_i18n().t('crawler.clear_search_params')),
         ("j", "jump_to", get_global_i18n().t('bookshelf.jump_to')),
         ("space", "toggle_row", get_global_i18n().t('batch_ops.toggle_row')),
-        ("a", "select_all_rows", get_global_i18n().t('crawler.shortcut_a')),
-        ("A", "select_all_pages", get_global_i18n().t('crawler.shortcut_A')),
+        ("a", "select_all_rows", get_global_i18n().t('common.toggle_select_all')),
+        ("A", "select_all_pages", get_global_i18n().t('common.select_all_pages')),
         ("C", "merge_selected", get_global_i18n().t('crawler.shortcut_C')),
-        ("d", "delete_file", get_global_i18n().t('crawler.shortcut_d_delete')),
-        ("r", "clear_invalid", get_global_i18n().t('crawler.shortcut_r_clear')),
-        ("Y", "copy_ids", get_global_i18n().t('crawler.shortcut_Y')),
-        ("y", "copy_title", get_global_i18n().t('crawler.shortcut_y')),
-        ("v", "preview_book", get_global_i18n().t('crawler.shortcut_v')),
-        ("F", "view_current_file", get_global_i18n().t('crawler.shortcut_f')),
+        ("d", "delete_file", get_global_i18n().t('common.delete_file')),
+        ("r", "clear_invalid", get_global_i18n().t('common.clean_invalid')),
+        ("Y", "copy_ids", get_global_i18n().t('common.copy_id')),
+        ("y", "copy_title", get_global_i18n().t('common.copy_title')),
+        ("v", "preview_book", get_global_i18n().t('common.preview')),
+        ("F", "view_current_file", get_global_i18n().t('common.view_file')),
         ("f", "fill_missing", get_global_i18n().t('merge_detail.fill_missing')),
-        ("i", "copy_book_ids_pages", get_global_i18n().t('crawler.shortcut_i')),
-        ("e", "toggle_monitor", get_global_i18n().t('crawler.toggle_monitor')),
-        ("z", "merge_mode", get_global_i18n().t('crawler.merge_mode')),
-        ("Z", "merge_mode_all", get_global_i18n().t('crawler.shortcut_Z')),
+        ("i", "copy_book_ids_pages", get_global_i18n().t('common.copy_book_id')),
+        ("e", "toggle_monitor", get_global_i18n().t('common.start_listen')),
+        ("z", "merge_mode", get_global_i18n().t('common.merge_mode')),
+        ("Z", "merge_mode_all", get_global_i18n().t('common.full_merge_mode')),
         ("g", "toggle_smart_search", get_global_i18n().t('crawler.smart_search')),
-        ("m", "format_title", get_global_i18n().t('crawler.format_title')),
-        ("b", "browser_read", get_global_i18n().t('crawler.shortcut_B')),
+        ("m", "format_title", get_global_i18n().t('common.format_title')),
+        ("b", "browser_read", get_global_i18n().t('common.browser_read')),
     ]
 
     def action_open_browser(self) -> None:
@@ -765,7 +765,7 @@ class CrawlerManagementScreen(Screen[None]):
 
     def action_toggle_crawl(self) -> None:
         self._toggle_crawl()
-        status_text = get_global_i18n().t('crawler.crawling') if self.is_crawling else get_global_i18n().t('crawler.crawl_stopped')
+        status_text = get_global_i18n().t('crawler.crawling') if self.is_crawling else get_global_i18n().t('common.crawl_stopped')
         self._update_status(status_text, "warning")
 
     def action_note(self) -> None:
@@ -1240,31 +1240,31 @@ class CrawlerManagementScreen(Screen[None]):
                 # 显示星级评分
                 Label(self._get_rating_display(self.novel_site.get('rating', 2)), id="rating-label", classes="rating-display"),
                 # 对书籍ID示例进行URL解码，避免显示乱码
-                Label(f"{get_global_i18n().t('crawler.book_id_example')}: {unquote(self.novel_site.get('book_id_example', ''))}", id="book-id-example-label"),
+                Label(f"{get_global_i18n().t('common.book_id_sample')}: {unquote(self.novel_site.get('book_id_example', ''))}", id="book-id-example-label"),
 
                 # 顶部操作按钮（固定）
                 Horizontal(
                     Button(get_global_i18n().t('crawler.open_browser'), id="open-browser-btn"),
-                    Button(get_global_i18n().t('crawler.view_history'), id="view-history-btn"),
-                    Button(get_global_i18n().t('crawler.note'), id="note-btn"),
-                    Button(get_global_i18n().t('crawler.view_logs'), id="view-logs-btn", variant="success"),
+                    Button(get_global_i18n().t('common.refresh_history'), id="view-history-btn"),
+                    Button(get_global_i18n().t('common.note'), id="note-btn"),
+                    Button(get_global_i18n().t('common.view_log'), id="view-logs-btn", variant="success"),
                     Button(get_global_i18n().t('crawler.clear_invalid'), id="clear-invalid-btn", variant="error"),
                     # 多选操作按钮
-                    Button(get_global_i18n().t('bookshelf.batch_ops.select_all'), id="select-all-btn"),
-                    Button(get_global_i18n().t('batch_ops.select_all_pages'), id="select-all-pages-btn"),
-                    Button(get_global_i18n().t('crawler.copy_book_ids_btn'), id="copy-book-ids-btn", variant="success"),
-                    Button(get_global_i18n().t('bookshelf.batch_ops.invert_selection'), id="invert-selection-btn"),
-                    Button(get_global_i18n().t('batch_ops.move_up'), id="move-up-btn"),
-                    Button(get_global_i18n().t('batch_ops.move_down'), id="move-down-btn"),
+                    Button(get_global_i18n().t('common.select_all'), id="select-all-btn"),
+                    Button(get_global_i18n().t('common.select_all_pages'), id="select-all-pages-btn"),
+                    Button(get_global_i18n().t('common.copy_book_id'), id="copy-book-ids-btn", variant="success"),
+                    Button(get_global_i18n().t('common.invert_select'), id="invert-selection-btn"),
+                    Button(get_global_i18n().t('common.move_up'), id="move-up-btn"),
+                    Button(get_global_i18n().t('common.move_down'), id="move-down-btn"),
                     Button(get_global_i18n().t('batch_ops.merge'), id="merge-btn", variant="warning"),
-                    Button(get_global_i18n().t('crawler.merge_mode'), id="merge-mode-btn", variant="primary"),
-                    Button(get_global_i18n().t('crawler.merge_mode_all'), id="merge-mode-all-btn", variant="primary"),
-                    Button(get_global_i18n().t('batch_ops.compare_read'), id="compare-read-btn", variant="success"),
+                    Button(get_global_i18n().t('common.merge_mode'), id="merge-mode-btn", variant="primary"),
+                    Button(get_global_i18n().t('common.full_merge_mode'), id="merge-mode-all-btn", variant="primary"),
+                    Button(get_global_i18n().t('common.compare_read'), id="compare-read-btn", variant="success"),
                     Button(get_global_i18n().t('crawler.set_serial_mode'), id="set-serial-btn", variant="success"),
                     Button(get_global_i18n().t('crawler.batch_crawl_latest'), id="batch-crawl-latest-btn", variant="primary"),
-                    Button(get_global_i18n().t('crawler.delete_file'), id="delete-file-btn", variant="warning"),
+                    Button(get_global_i18n().t('common.delete_file'), id="delete-file-btn", variant="warning"),
                     Button(get_global_i18n().t('crawler.delete_record'), id="delete-record-btn", variant="warning"),
-                    Button(get_global_i18n().t('crawler.back'), id="back-btn"),
+                    Button(get_global_i18n().t('common.back'), id="back-btn"),
                     id="crawler-buttons", classes="btn-row"
                 ),
 
@@ -1295,17 +1295,17 @@ class CrawlerManagementScreen(Screen[None]):
                                 tooltip="选择本次爬取使用的解析器（仅本次临时生效，不修改网站默认配置）"
                             ),
                             # 根据书籍网站的"是否支持选择书籍"设置显示选择书籍按钮
-                            *([Button(get_global_i18n().t('crawler.select_books'), id="choose-books-btn")] if self.novel_site.get("selectable_enabled", True) else []),
+                            *([Button(get_global_i18n().t('common.select_book'), id="choose-books-btn")] if self.novel_site.get("selectable_enabled", True) else []),
                             Input(placeholder=get_global_i18n().t('crawler.novel_id_placeholder_multi'), id="novel-id-input"),
                             Button(get_global_i18n().t('crawler.start_crawl'), id="toggle-crawl-btn", variant="primary"),
-                            Button(get_global_i18n().t('crawler.copy_ids'), id="copy-ids-btn"),
+                            Button(get_global_i18n().t('common.copy_id'), id="copy-ids-btn"),
                             Button(get_global_i18n().t('crawler.clear_ids'), id="clear-ids-btn"),
-                            Button(get_global_i18n().t('crawler.toggle_monitor'), id="toggle-monitor-btn", variant="success"),
-                            # Label(get_global_i18n().t('crawler.browser_label'), id="browser-label", classes="browser-label"),
+                            Button(get_global_i18n().t('common.start_listen'), id="toggle-monitor-btn", variant="success"),
+                            # Label(get_global_i18n().t('common.browser'), id="browser-label", classes="browser-label"),
                             Select(
                                 id="browser-select",
                                 options=[
-                                    (get_global_i18n().t('crawler.browser_label'), "chrome"),
+                                    (get_global_i18n().t('common.browser'), "chrome"),
                                     ("Chrome", "chrome"),
                                     ("Safari", "safari"),
                                     ("Brave", "brave")
@@ -1358,13 +1358,13 @@ class CrawlerManagementScreen(Screen[None]):
                 # 快捷键状态栏
                 # Horizontal(
                 #     Label(get_global_i18n().t('crawler.shortcut_o'), id="shortcut-o"),
-                #     Label(get_global_i18n().t('crawler.shortcut_r'), id="shortcut-r"),
+                #     Label(get_global_i18n().t('common.refresh_history'), id="shortcut-r"),
                 #     Label(get_global_i18n().t('crawler.shortcut_s'), id="shortcut-s"),
-                #     Label(get_global_i18n().t('crawler.shortcut_v'), id="shortcut-v"),
-                #     Label(get_global_i18n().t('crawler.shortcut_b'), id="shortcut-b"),
-                #     Label(get_global_i18n().t('crawler.shortcut_p'), id="shortcut-p"),
-                #     Label(get_global_i18n().t('crawler.shortcut_n'), id="shortcut-n"),
-                #     Label(get_global_i18n().t('crawler.shortcut_esc'), id="shortcut-esc"),
+                #     Label(get_global_i18n().t('common.preview'), id="shortcut-v"),
+                #     Label(get_global_i18n().t('common.note'), id="shortcut-b"),
+                #     Label(get_global_i18n().t('common.prev_page'), id="shortcut-p"),
+                #     Label(get_global_i18n().t('common.next_page'), id="shortcut-n"),
+                #     Label(get_global_i18n().t('common.back'), id="shortcut-esc"),
                 #     id="shortcuts-bar", classes="status-bar"
                 # ),
                 id="crawler-container"
@@ -1394,27 +1394,27 @@ class CrawlerManagementScreen(Screen[None]):
         table.clear(columns=True)
         
         # 添加列定义
-        table.add_column(get_global_i18n().t('batch_ops.selected'), key="selected")
-        table.add_column(get_global_i18n().t('crawler.sequence'), key="sequence")
-        table.add_column(get_global_i18n().t('crawler.novel_id'), key="novel_id")
-        table.add_column(get_global_i18n().t('crawler.novel_title'), key="novel_title")
-        table.add_column(get_global_i18n().t('crawler.book_type'), key="book_type")
+        table.add_column(get_global_i18n().t('common.selected'), key="selected")
+        table.add_column(get_global_i18n().t('common.serial'), key="sequence")
+        table.add_column(get_global_i18n().t('common.book_id'), key="novel_id")
+        table.add_column(get_global_i18n().t('common.book_title_alt'), key="novel_title")
+        table.add_column(get_global_i18n().t('common.type'), key="book_type")
         table.add_column(get_global_i18n().t('crawler.chapters'), key="chapter_info")
         table.add_column(get_global_i18n().t('crawler.serial_mode'), key="serial_mode")
-        table.add_column(get_global_i18n().t('bookshelf.size'), key="file_size")
+        table.add_column(get_global_i18n().t('common.size'), key="file_size")
         table.add_column(get_global_i18n().t('crawler.last_update_time'), key="last_update_time")
-        table.add_column(get_global_i18n().t('crawler.crawl_time'), key="crawl_time")
-        table.add_column(get_global_i18n().t('crawler.status'), key="status")
-        table.add_column(get_global_i18n().t('crawler.view_file'), key="view_file")
-        table.add_column(get_global_i18n().t('crawler.read_book'), key="read_book")
-        table.add_column(get_global_i18n().t('crawler.browser_read_book'), key="browser_read_book")
-        table.add_column(get_global_i18n().t('crawler.delete_file'), key="delete_file")
+        table.add_column(get_global_i18n().t('common.crawl_time'), key="crawl_time")
+        table.add_column(get_global_i18n().t('common.status'), key="status")
+        table.add_column(get_global_i18n().t('common.view_file'), key="view_file")
+        table.add_column(get_global_i18n().t('common.read'), key="read_book")
+        table.add_column(get_global_i18n().t('common.browser'), key="browser_read_book")
+        table.add_column(get_global_i18n().t('common.delete_file'), key="delete_file")
         table.add_column(get_global_i18n().t('crawler.delete_record'), key="delete_record")
         table.add_column(get_global_i18n().t('crawler.view_reason'), key="view_reason")
         table.add_column(get_global_i18n().t('crawler.retry'), key="retry")
         table.add_column(get_global_i18n().t('crawler.crawl_latest'), key="crawl_latest")
-        table.add_column(get_global_i18n().t('crawler.rename_novel'), key="rename_novel")
-        table.add_column(get_global_i18n().t('crawler.preview'), key="preview")
+        table.add_column(get_global_i18n().t('common.rename'), key="rename_novel")
+        table.add_column(get_global_i18n().t('common.preview'), key="preview")
         table.add_column(get_global_i18n().t('merge_detail.fill_missing'), key="fill_missing")
         
         table.zebra_stripes = True
@@ -1471,11 +1471,11 @@ class CrawlerManagementScreen(Screen[None]):
                 
                 # 显示最终结果
                 if task.status == CrawlStatus.COMPLETED:
-                    status_text = f"{get_global_i18n().t('crawler.crawl_completed')}: {task.success_count} {get_global_i18n().t('crawler.success')}, {task.failed_count} {get_global_i18n().t('crawler.failed')}"
+                    status_text = f"{get_global_i18n().t('crawler.crawl_completed')}: {task.success_count} {get_global_i18n().t('common.success')}, {task.failed_count} {get_global_i18n().t('common.failed')}"
                 elif task.status == CrawlStatus.FAILED:
                     status_text = f"{get_global_i18n().t('crawler.crawl_failed')}: {task.error_message}"
                 else:
-                    status_text = get_global_i18n().t('crawler.crawl_stopped')
+                    status_text = get_global_i18n().t('common.crawl_stopped')
                 
                 self.app.call_later(self._update_status, status_text)
                 self.app.call_later(self._update_crawl_button_state)
@@ -1565,7 +1565,7 @@ class CrawlerManagementScreen(Screen[None]):
                 self.crawler_history = []
                 for item in db_history:
                     # 转换状态显示文本
-                    status_text = get_global_i18n().t('crawler.status_success') if item['status'] == 'success' else get_global_i18n().t('crawler.status_failed')
+                    status_text = get_global_i18n().t('common.success') if item['status'] == 'success' else get_global_i18n().t('common.failed')
                     
                     # 转换时间格式
                     try:
@@ -1696,17 +1696,17 @@ class CrawlerManagementScreen(Screen[None]):
                     "last_update_time": item.get("last_update_time", item.get("crawl_time", "")),
                     "crawl_time": item["crawl_time"],
                     "status": item["status"],
-                    "view_file": get_global_i18n().t('crawler.view_file') if item["status"] == get_global_i18n().t('crawler.status_success') else "",
-                    "read_book": get_global_i18n().t('crawler.read_book') if item["status"] == get_global_i18n().t('crawler.status_success') else "",
-                    "browser_read_book": get_global_i18n().t('crawler.browser_read_book') if item["status"] == get_global_i18n().t('crawler.status_success') else "",
-                    "delete_file": get_global_i18n().t('crawler.delete_file') if item["status"] == get_global_i18n().t('crawler.status_success') else "",
+                    "view_file": get_global_i18n().t('common.view_file') if item["status"] == get_global_i18n().t('common.success') else "",
+                    "read_book": get_global_i18n().t('common.read') if item["status"] == get_global_i18n().t('common.success') else "",
+                    "browser_read_book": get_global_i18n().t('common.browser') if item["status"] == get_global_i18n().t('common.success') else "",
+                    "delete_file": get_global_i18n().t('common.delete_file') if item["status"] == get_global_i18n().t('common.success') else "",
                     "delete_record": get_global_i18n().t('crawler.delete_record'),
-                    "view_reason": get_global_i18n().t('crawler.view_reason') if item["status"] == get_global_i18n().t('crawler.status_failed') else "",
-                    "retry": get_global_i18n().t('crawler.retry') if item["status"] == get_global_i18n().t('crawler.status_failed') else "",
-                    "crawl_latest": get_global_i18n().t('crawler.crawl_latest') if item.get("serial_mode") == 1 and item["status"] == get_global_i18n().t('crawler.status_success') else "",
-                    "rename_novel": get_global_i18n().t('crawler.rename') if item["status"] == get_global_i18n().t('crawler.status_success') else "",
-                    "preview": get_global_i18n().t('crawler.preview') if item["status"] == get_global_i18n().t('crawler.status_success') else "",
-                    "fill_missing": get_global_i18n().t('merge_detail.fill_missing') if item["status"] == get_global_i18n().t('crawler.status_success') else ""
+                    "view_reason": get_global_i18n().t('crawler.view_reason') if item["status"] == get_global_i18n().t('common.failed') else "",
+                    "retry": get_global_i18n().t('crawler.retry') if item["status"] == get_global_i18n().t('common.failed') else "",
+                    "crawl_latest": get_global_i18n().t('crawler.crawl_latest') if item.get("serial_mode") == 1 and item["status"] == get_global_i18n().t('common.success') else "",
+                    "rename_novel": get_global_i18n().t('common.rename') if item["status"] == get_global_i18n().t('common.success') else "",
+                    "preview": get_global_i18n().t('common.preview') if item["status"] == get_global_i18n().t('common.success') else "",
+                    "fill_missing": get_global_i18n().t('merge_detail.fill_missing') if item["status"] == get_global_i18n().t('common.success') else ""
                 }
                 
                 # 调试：打印row_data
@@ -1870,7 +1870,7 @@ class CrawlerManagementScreen(Screen[None]):
                 self._update_status(get_global_i18n().t('crawler.all_records_shown'))
         except Exception as e:
             logger.error(f"搜索失败: {e}")
-            self._update_status(get_global_i18n().t('crawler.search_failed'), "error")
+            self._update_status(get_global_i18n().t('common.search_failed'), "error")
     
     def _clear_search(self) -> None:
         """清除搜索"""
@@ -1969,8 +1969,8 @@ class CrawlerManagementScreen(Screen[None]):
                 str(self.crawler_history[i]["id"]) in self.selected_history
                 for i in range(start_index, end_index)
             )
-            label = get_global_i18n().t('bookshelf.batch_ops.deselect_all') if has_selection \
-                else get_global_i18n().t('bookshelf.batch_ops.select_all')
+            label = get_global_i18n().t('common.deselect') if has_selection \
+                else get_global_i18n().t('common.select_all')
             self.query_one("#select-all-btn", Button).label = label
         except Exception:
             pass
@@ -2611,7 +2611,7 @@ class CrawlerManagementScreen(Screen[None]):
             
             # 检查是否都是成功状态
             for item in selected_items:
-                if item["status"] != get_global_i18n().t('crawler.status_success'):
+                if item["status"] != get_global_i18n().t('common.success'):
                     self._update_status(get_global_i18n().t('crawler.merge_successful_records'))
                     return
             
@@ -2668,7 +2668,7 @@ class CrawlerManagementScreen(Screen[None]):
         try:
             site_id = self.novel_site.get('id')
             if not site_id:
-                self._update_status(get_global_i18n().t('merge_mode.no_site_id'), "error")
+                self._update_status(get_global_i18n().t('common.cannot_get_site_id'), "error")
                 return
 
             all_history = self.db_manager.get_crawl_history_by_site(site_id, limit=None)
@@ -3264,7 +3264,7 @@ class CrawlerManagementScreen(Screen[None]):
 
             novel_title = history_item.get('novel_title', '')
             if not novel_title:
-                self._update_status(get_global_i18n().t('crawler.unknown_book'), "warning")
+                self._update_status(get_global_i18n().t('common.unknown_book'), "warning")
                 return
 
             # 使用pyperclip复制到剪贴板
@@ -3329,7 +3329,7 @@ class CrawlerManagementScreen(Screen[None]):
                 # 直接调用已有的复制方法，传入行键值
                 self._copy_novel_title_to_clipboard(str(history_item.get("id")))
             else:
-                self._update_status(get_global_i18n().t('crawler.unknown_book'), "warning")
+                self._update_status(get_global_i18n().t('common.unknown_book'), "warning")
                     
         except Exception as e:
             logger.error(f"复制焦点书籍标题失败: {e}")
@@ -3444,7 +3444,7 @@ class CrawlerManagementScreen(Screen[None]):
             # 获取网站ID
             site_id = self.novel_site.get('id')
             if not site_id:
-                self._update_status(get_global_i18n().t('crawler.no_site_id'), "error")
+                self._update_status(get_global_i18n().t('common.cannot_get_site_id'), "error")
                 return
             
             # 筛选出连载模式且状态为成功的记录
@@ -3458,7 +3458,7 @@ class CrawlerManagementScreen(Screen[None]):
                         skipped_count += 1
                         continue
                     # 检查状态是否为成功
-                    if item.get("status") != get_global_i18n().t('crawler.status_success'):
+                    if item.get("status") != get_global_i18n().t('common.success'):
                         skipped_count += 1
                         continue
                     # 添加到待爬取列表
@@ -3545,7 +3545,7 @@ class CrawlerManagementScreen(Screen[None]):
             # 获取网站ID
             site_id = self.novel_site.get('id')
             if not site_id:
-                self._update_status(get_global_i18n().t('crawler.no_site_id'), "error")
+                self._update_status(get_global_i18n().t('common.cannot_get_site_id'), "error")
                 return
             
             # 显示开始爬取提示
@@ -3695,9 +3695,9 @@ class CrawlerManagementScreen(Screen[None]):
         from src.ui.dialogs.input_dialog import InputDialog
         dialog = InputDialog(
             self.theme_manager,
-            title=get_global_i18n().t('crawler.goto_page'),
+            title=get_global_i18n().t('common.jump_page'),
             prompt=get_global_i18n().t('crawler.goto_page_message'),
-            placeholder=get_global_i18n().t('crawler.page_number')
+            placeholder=get_global_i18n().t('common.page_no')
         )
         self.app.push_screen(dialog, handle_jump_result)
     
@@ -3740,7 +3740,7 @@ class CrawlerManagementScreen(Screen[None]):
             # 获取当前网站的备注内容
             site_id = self.novel_site.get('id')
             if not site_id:
-                self._update_status(get_global_i18n().t('crawler.no_site_id'), "error")
+                self._update_status(get_global_i18n().t('common.cannot_get_site_id'), "error")
                 return
             
             # 从数据库加载现有备注
@@ -3753,7 +3753,7 @@ class CrawlerManagementScreen(Screen[None]):
                     if self.db_manager.save_novel_site_note(site_id, result):
                         self._update_status(get_global_i18n().t('crawler.note_saved'), "success")
                     else:
-                        self._update_status(get_global_i18n().t('crawler.note_save_failed'), "error")
+                        self._update_status(get_global_i18n().t('common.save_note_failed'), "error")
                 # 如果result为None，表示用户取消了操作
             
             self.app.push_screen(
@@ -3822,12 +3822,12 @@ class CrawlerManagementScreen(Screen[None]):
         # 如果有后台任务，停止它
         if self.current_task_id:
             if self.crawler_manager.stop_crawl_task(self.current_task_id):
-                self._update_status(get_global_i18n().t('crawler.crawl_stopped'))
+                self._update_status(get_global_i18n().t('common.crawl_stopped'))
             else:
                 self._update_status(get_global_i18n().t('crawler.stop_crawl_failed'), "error")
         else:
             # 如果没有后台任务，直接显示停止状态
-            self._update_status(get_global_i18n().t('crawler.crawl_stopped'))
+            self._update_status(get_global_i18n().t('common.crawl_stopped'))
     
     def _copy_novel_ids(self) -> None:
         """复制输入框中的所有书籍ID"""
@@ -3857,7 +3857,7 @@ class CrawlerManagementScreen(Screen[None]):
             try:
                 import pyperclip
                 pyperclip.copy(ids_text)
-                self._update_status(f"{get_global_i18n().t('crawler.copy_ids_success')}: {count} {get_global_i18n().t('crawler.books_count')}")
+                self._update_status(f"{get_global_i18n().t('crawler.copy_ids_success')}: {count} {get_global_i18n().t('common.this_book')}")
             except ImportError:
                 # 如果pyperclip未安装，尝试使用系统命令
                 import subprocess
@@ -3876,7 +3876,7 @@ class CrawlerManagementScreen(Screen[None]):
                     except (subprocess.SubprocessError, FileNotFoundError):
                         process = subprocess.run(['xsel', '--clipboard', '--input'], input=ids_text, text=True, check=True)
                 
-                self._update_status(f"{get_global_i18n().t('crawler.copy_ids_success')}: {count} {get_global_i18n().t('crawler.books_count')}")
+                self._update_status(f"{get_global_i18n().t('crawler.copy_ids_success')}: {count} {get_global_i18n().t('common.this_book')}")
             
         except Exception as e:
             self._update_status(f"{get_global_i18n().t('crawler.copy_ids_failed')}: {str(e)}", "error")
@@ -4071,7 +4071,7 @@ class CrawlerManagementScreen(Screen[None]):
             # 回滚爬取状态
             self.is_crawling = False
             self._update_crawl_button_state()
-            self._update_status(get_global_i18n().t('crawler.no_site_id'), "error")
+            self._update_status(get_global_i18n().t('common.cannot_get_site_id'), "error")
             return
         
         # 启动后台爬取任务（解析器统一取下拉框当前选择，与站点默认不一致时即临时覆盖本次爬取）
@@ -4085,7 +4085,7 @@ class CrawlerManagementScreen(Screen[None]):
                 # 任务启动失败，回滚状态
                 self.is_crawling = False
                 self._update_crawl_button_state()
-                self._update_status(get_global_i18n().t('crawler.start_crawl_failed'), "error")
+                self._update_status(get_global_i18n().t('common.start_crawl_failed'), "error")
                 return
             
             self.current_task_id = task_id
@@ -4098,7 +4098,7 @@ class CrawlerManagementScreen(Screen[None]):
             self.is_crawling = False
             self._update_crawl_button_state()
             logger.error(f"启动爬取任务失败: {e}")
-            self._update_status(f"{get_global_i18n().t('crawler.start_crawl_failed')}: {str(e)}", "error")
+            self._update_status(f"{get_global_i18n().t('common.start_crawl_failed')}: {str(e)}", "error")
             return
         
         # 状态更新由回调函数处理，这里不需要手动设置
@@ -4294,7 +4294,7 @@ class CrawlerManagementScreen(Screen[None]):
             
             for i, novel_id in enumerate(novel_ids):
                 if not self.is_crawling:
-                    self.app.call_later(self._update_status, get_global_i18n().t('crawler.crawl_stopped'))
+                    self.app.call_later(self._update_status, get_global_i18n().t('common.crawl_stopped'))
                     break
                 
                 # 更新当前爬取状态
@@ -4363,7 +4363,7 @@ class CrawlerManagementScreen(Screen[None]):
             
             # 更新最终状态
             if self.is_crawling:
-                self.app.call_later(self._update_status, f"{get_global_i18n().t('crawler.crawl_completed')}: {success_count} {get_global_i18n().t('crawler.success')}, {failed_count} {get_global_i18n().t('crawler.failed')}")
+                self.app.call_later(self._update_status, f"{get_global_i18n().t('crawler.crawl_completed')}: {success_count} {get_global_i18n().t('common.success')}, {failed_count} {get_global_i18n().t('common.failed')}")
                 
                 # 刷新历史记录
                 self.app.call_later(self._load_crawl_history)
@@ -4774,7 +4774,7 @@ class CrawlerManagementScreen(Screen[None]):
                     # 更新内存中的记录
                     history_item['file_path'] = file_path
                 else:
-                    self._update_status(f"{get_global_i18n().t('crawler.file_not_exists')}{get_global_i18n().t('crawler.not_found')}")
+                    self._update_status(f"{get_global_i18n().t('common.file_not_exist')}{get_global_i18n().t('crawler.not_found')}")
                     return
             
             if not os.path.exists(file_path):
@@ -4799,7 +4799,7 @@ class CrawlerManagementScreen(Screen[None]):
                             self._load_crawl_history()
                             break
                 
-                self._update_status(get_global_i18n().t('crawler.file_not_exists'))
+                self._update_status(get_global_i18n().t('common.file_not_exist'))
                 return
                 
             # 在文件管理器中显示文件
@@ -4816,7 +4816,7 @@ class CrawlerManagementScreen(Screen[None]):
             self._update_status(get_global_i18n().t('crawler.file_opened'))
             
         except Exception as e:
-            self._update_status(f"{get_global_i18n().t('crawler.open_file_failed')}: {str(e)}", "error")
+            self._update_status(f"{get_global_i18n().t('common.open_file_failed')}: {str(e)}", "error")
 
     def _delete_file_only(self, history_item: Dict[str, Any]) -> None:
         """只删除文件，不删除数据库记录（同时删除书架中的对应书籍）"""
@@ -4828,7 +4828,7 @@ class CrawlerManagementScreen(Screen[None]):
                 
             import os
             if not os.path.exists(file_path):
-                self._update_status(get_global_i18n().t('crawler.file_not_exists'))
+                self._update_status(get_global_i18n().t('common.file_not_exist'))
                 return
                 
             # 确认删除
@@ -4868,7 +4868,7 @@ class CrawlerManagementScreen(Screen[None]):
                         # 刷新历史记录
                         self._load_crawl_history()
                     except Exception as e:
-                        self._update_status(f"{get_global_i18n().t('crawler.delete_file_failed')}: {str(e)}", "error")
+                        self._update_status(f"{get_global_i18n().t('common.delete_file_failed')}: {str(e)}", "error")
                 elif confirmed is False:
                     self._update_status(get_global_i18n().t('crawler.delete_cancelled'))
             
@@ -4876,14 +4876,14 @@ class CrawlerManagementScreen(Screen[None]):
             self.app.push_screen(
                 ConfirmDialog(
                     self.theme_manager,
-                    f"{get_global_i18n().t('crawler.confirm_delete')}（{get_global_i18n().t('crawler.delete_file_and_book')}）",
+                    f"{get_global_i18n().t('common.confirm_delete')}（{get_global_i18n().t('crawler.delete_file_and_book')}）",
                     f"{get_global_i18n().t('crawler.confirm_delete_message')} {get_global_i18n().t('crawler.delete_book_tip')}"
                 ),
                 handle_delete_confirmation
             )
             
         except Exception as e:
-            self._update_status(f"{get_global_i18n().t('crawler.delete_file_failed')}: {str(e)}", "error")
+            self._update_status(f"{get_global_i18n().t('common.delete_file_failed')}: {str(e)}", "error")
 
     def _delete_record_only(self, history_item: Dict[str, Any]) -> None:
         """只删除数据库记录，不删除文件"""
@@ -4902,7 +4902,7 @@ class CrawlerManagementScreen(Screen[None]):
                         self._load_crawl_history()
                         self._update_status(get_global_i18n().t('crawler.record_deleted'))
                     except Exception as e:
-                        self._update_status(f"{get_global_i18n().t('crawler.delete_file_failed')}: {str(e)}", "error")
+                        self._update_status(f"{get_global_i18n().t('common.delete_file_failed')}: {str(e)}", "error")
                 elif confirmed is False:
                     self._update_status(get_global_i18n().t('crawler.delete_cancelled'))
             
@@ -4910,14 +4910,14 @@ class CrawlerManagementScreen(Screen[None]):
             self.app.push_screen(
                 ConfirmDialog(
                     self.theme_manager,
-                    f"{get_global_i18n().t('crawler.confirm_delete')}（{get_global_i18n().t('crawler.only_delete')}）",
+                    f"{get_global_i18n().t('common.confirm_delete')}（{get_global_i18n().t('crawler.only_delete')}）",
                     f"{get_global_i18n().t('crawler.confirm_delete_message')}"
                 ),
                 handle_delete_confirmation
             )
             
         except Exception as e:
-            self._update_status(f"{get_global_i18n().t('crawler.delete_file_failed')}: {str(e)}", "error")
+            self._update_status(f"{get_global_i18n().t('common.delete_file_failed')}: {str(e)}", "error")
     
     def _delete_file(self, history_item: Dict[str, Any]) -> None:
         """删除文件（同时删除文件和记录）"""
@@ -4929,7 +4929,7 @@ class CrawlerManagementScreen(Screen[None]):
                 
             import os
             if not os.path.exists(file_path):
-                self._update_status(get_global_i18n().t('crawler.file_not_exists'))
+                self._update_status(get_global_i18n().t('common.file_not_exist'))
                 return
                 
             # 确认删除
@@ -4961,7 +4961,7 @@ class CrawlerManagementScreen(Screen[None]):
                         self._load_crawl_history()
                         self._update_status(get_global_i18n().t('crawler.file_deleted'))
                     except Exception as e:
-                        self._update_status(f"{get_global_i18n().t('crawler.delete_file_failed')}: {str(e)}", "error")
+                        self._update_status(f"{get_global_i18n().t('common.delete_file_failed')}: {str(e)}", "error")
                 elif confirmed is False:
                     self._update_status(get_global_i18n().t('crawler.delete_cancelled'))
             
@@ -4969,14 +4969,14 @@ class CrawlerManagementScreen(Screen[None]):
             self.app.push_screen(
                 ConfirmDialog(
                     self.theme_manager,
-                    f"{get_global_i18n().t('crawler.confirm_delete')}（{get_global_i18n().t('crawler.both_file_data')}）",
+                    f"{get_global_i18n().t('common.confirm_delete')}（{get_global_i18n().t('crawler.both_file_data')}）",
                     f"{get_global_i18n().t('crawler.confirm_delete_message')}"
                 ),
                 handle_delete_confirmation
             )
             
         except Exception as e:
-            self._update_status(f"{get_global_i18n().t('crawler.delete_file_failed')}: {str(e)}", "error")
+            self._update_status(f"{get_global_i18n().t('common.delete_file_failed')}: {str(e)}", "error")
     
     def on_key(self, event: events.Key) -> None:
         """处理键盘事件"""
@@ -5015,7 +5015,7 @@ class CrawlerManagementScreen(Screen[None]):
         """查看失败原因"""
         try:
             # 检查是否为失败状态
-            if history_item.get("status") != get_global_i18n().t('crawler.status_failed'):
+            if history_item.get("status") != get_global_i18n().t('common.failed'):
                 self._update_status(get_global_i18n().t('crawler.no_reason_to_view'), "warning")
                 return
                 
@@ -5070,7 +5070,7 @@ class CrawlerManagementScreen(Screen[None]):
                     # 更新内存中的记录
                     history_item['file_path'] = file_path
                 else:
-                    self._update_status(f"{get_global_i18n().t('crawler.file_not_exists')}get_global_i18n().t('crawler.not_found')")
+                    self._update_status(f"{get_global_i18n().t('common.file_not_exist')}get_global_i18n().t('crawler.not_found')")
                     return
             
             if not os.path.exists(file_path):
@@ -5095,18 +5095,18 @@ class CrawlerManagementScreen(Screen[None]):
                             self._load_crawl_history()
                             break
                 
-                self._update_status(get_global_i18n().t('crawler.file_not_exists'))
+                self._update_status(get_global_i18n().t('common.file_not_exist'))
                 return
             
             # 从文件路径创建书籍对象
             from src.core.book import Book
-            book_title = history_item.get('novel_title', get_global_i18n().t('crawler.unknown_book'))
+            book_title = history_item.get('novel_title', get_global_i18n().t('common.unknown_book'))
             book_source = self.novel_site.get('name', get_global_i18n().t('crawler.unknown_source'))
             book = Book(file_path, book_title, book_source)
             
             # 检查书籍是否有效
             if not book.path or not os.path.exists(book.path):
-                self._update_status(get_global_i18n().t('crawler.file_not_exists'))
+                self._update_status(get_global_i18n().t('common.file_not_exist'))
                 return
             
             # 使用 app 的 open_book 方法打开书籍（运行时安全检查，避免类型检查告警）
@@ -5118,7 +5118,7 @@ class CrawlerManagementScreen(Screen[None]):
                 self._update_status(get_global_i18n().t('crawler.cannot_open_book'), "error")
                 
         except Exception as e:
-            self._update_status(f"{get_global_i18n().t('crawler.open_failed')}: {str(e)}", "error")
+            self._update_status(f"{get_global_i18n().t('common.open_book_failed')}: {str(e)}", "error")
     
     def _read_book_in_browser(self, history_item: Dict[str, Any]) -> None:
         """使用浏览器阅读书籍"""
@@ -5160,11 +5160,11 @@ class CrawlerManagementScreen(Screen[None]):
                     # 更新内存中的记录
                     history_item['file_path'] = file_path
                 else:
-                    self._update_status(f"{get_global_i18n().t('crawler.file_not_exists')}get_global_i18n().t('crawler.not_found')")
+                    self._update_status(f"{get_global_i18n().t('common.file_not_exist')}get_global_i18n().t('crawler.not_found')")
                     return
             
             if not os.path.exists(file_path):
-                self._update_status(get_global_i18n().t('crawler.file_not_exists'))
+                self._update_status(get_global_i18n().t('common.file_not_exist'))
                 return
 
             # 捕获文件路径，避免闭包问题
@@ -5257,7 +5257,7 @@ class CrawlerManagementScreen(Screen[None]):
             logger.info(f"[爬取管理-浏览器阅读] 浏览器阅读器打开结果: success={success}, message={message}")
 
             if success:
-                book_title = history_item.get('novel_title', get_global_i18n().t('crawler.unknown_book'))
+                book_title = history_item.get('novel_title', get_global_i18n().t('common.unknown_book'))
                 self._update_status(f"{message}: {book_title}", "success")
             else:
                 self._update_status(message, "error")
@@ -5285,7 +5285,7 @@ class CrawlerManagementScreen(Screen[None]):
                 return
                 
             # 检查记录是否为失败状态
-            if history_item.get('status') != get_global_i18n().t('crawler.status_failed'):
+            if history_item.get('status') != get_global_i18n().t('common.failed'):
                 self._update_status(get_global_i18n().t('crawler.only_retry_failed'), "error")
                 return
             
@@ -5308,7 +5308,7 @@ class CrawlerManagementScreen(Screen[None]):
             
             site_id = self.novel_site.get('id')
             if not site_id:
-                self._update_status(get_global_i18n().t('crawler.no_site_id'), "error")
+                self._update_status(get_global_i18n().t('common.cannot_get_site_id'), "error")
                 return
             
             # 设置爬取状态（仅做即时 UI 反馈，真正的爬取在后台任务中执行）
@@ -5330,7 +5330,7 @@ class CrawlerManagementScreen(Screen[None]):
                 site_id, [novel_id], proxy_config, parser_override=parser_name, force=True
             )
             if not task_id:
-                self._update_status(get_global_i18n().t('crawler.start_crawl_failed'), "error")
+                self._update_status(get_global_i18n().t('common.start_crawl_failed'), "error")
                 self._reset_crawl_state()
                 return
             
@@ -5339,7 +5339,7 @@ class CrawlerManagementScreen(Screen[None]):
             
         except Exception as e:
             logger.error(f"重试爬取失败: {e}")
-            self._update_status(f"{get_global_i18n().t('crawler.retry_failed')}: {str(e)}", "error")
+            self._update_status(f"{get_global_i18n().t('common.retry_failed')}: {str(e)}", "error")
             # 重置爬取状态
             self._reset_crawl_state()
     
@@ -5352,7 +5352,7 @@ class CrawlerManagementScreen(Screen[None]):
             history_id = history_item.get('id')
             
             if not current_title or not history_id:
-                self._update_status(get_global_i18n().t('crawler.unknown_book'), "error")
+                self._update_status(get_global_i18n().t('common.unknown_book'), "error")
                 return
             
             def handle_rename_result(result: Optional[Dict[str, Any]]) -> None:
@@ -5361,7 +5361,7 @@ class CrawlerManagementScreen(Screen[None]):
                     new_title = result.get("new_title", "")
                     
                     if not new_title:
-                        self._update_status(get_global_i18n().t('crawler.title_empty'), "error")
+                        self._update_status(get_global_i18n().t('common.title_not_empty'), "error")
                         return
                     
                     # 更新数据库中的小说标题
@@ -5738,7 +5738,7 @@ class CrawlerManagementScreen(Screen[None]):
                 return
             
             if not os.path.exists(file_path):
-                self._update_status(get_global_i18n().t('crawler.file_not_exists'), "warning")
+                self._update_status(get_global_i18n().t('common.file_not_exist'), "warning")
                 return
             
             # 读取文件前2000字，自动检测编码（支持 GBK/GB2312/Big5 等，避免乱码）
@@ -5909,7 +5909,7 @@ class CrawlerManagementScreen(Screen[None]):
             # 使用后台爬取管理器启动任务
             site_id = self.novel_site.get('id')
             if not site_id:
-                self._update_status(get_global_i18n().t('crawler.no_site_id'), "error")
+                self._update_status(get_global_i18n().t('common.cannot_get_site_id'), "error")
                 return
             
             # 启动后台爬取任务
@@ -6022,7 +6022,7 @@ class CrawlerManagementScreen(Screen[None]):
             # 获取选中的记录ID
             selected_ids = self.selected_history
             if not selected_ids:
-                self._update_status(get_global_i18n().t('batch_ops.no_selected_rows'), "warning")
+                self._update_status(get_global_i18n().t('common.no_row_selected'), "warning")
                 return
             
             # 从crawler_history中获取对应的完整行数据
@@ -6037,7 +6037,7 @@ class CrawlerManagementScreen(Screen[None]):
             
             # 检查权限
             if not getattr(self.app, "has_permission", lambda k: True)("crawler.delete_file"):
-                self._update_status(get_global_i18n().t('crawler.np_delete_file'), "error")
+                self._update_status(get_global_i18n().t('common.delete_file_failed'), "error")
                 return
             
             # 确认删除
@@ -6125,12 +6125,12 @@ class CrawlerManagementScreen(Screen[None]):
             # 获取选中的记录ID
             selected_ids = self.selected_history
             if not selected_ids:
-                self._update_status(get_global_i18n().t('batch_ops.no_selected_rows'), "warning")
+                self._update_status(get_global_i18n().t('common.no_row_selected'), "warning")
                 return
             
             # 检查权限
             if not getattr(self.app, "has_permission", lambda k: True)("crawler.delete_record"):
-                self._update_status(get_global_i18n().t('crawler.np_delete_record'), "error")
+                self._update_status(get_global_i18n().t('common.delete_record_failed'), "error")
                 return
             
             # 确认删除
@@ -6189,7 +6189,7 @@ class CrawlerManagementScreen(Screen[None]):
             # 获取网站ID
             site_id = self.novel_site.get('id')
             if not site_id:
-                self._update_status(get_global_i18n().t('crawler.no_site_id'), "error")
+                self._update_status(get_global_i18n().t('common.cannot_get_site_id'), "error")
                 return
 
             # 检查权限
@@ -6282,7 +6282,7 @@ class CrawlerManagementScreen(Screen[None]):
             self.app.push_screen(
                 ConfirmDialog(
                     self.theme_manager,
-                    get_global_i18n().t('crawler.clear_invalid_confirm'),
+                    get_global_i18n().t('common.confirm_clean_invalid'),
                     get_global_i18n().t('crawler.clear_invalid_desc', count=len(invalid_records))
                 ),
                 handle_clear_confirmation
@@ -6692,7 +6692,7 @@ class CrawlerManagementScreen(Screen[None]):
                 toggle_btn.label = get_global_i18n().t("crawler.stop_monitor")
                 toggle_btn.variant = "error"
             else:
-                toggle_btn.label = get_global_i18n().t("crawler.start_monitor")
+                toggle_btn.label = get_global_i18n().t("common.start_listen")
                 toggle_btn.variant = "success"
         except Exception:
             pass

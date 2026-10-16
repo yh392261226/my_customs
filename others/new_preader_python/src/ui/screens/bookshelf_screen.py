@@ -55,20 +55,20 @@ class BookshelfScreen(Screen[None]):
     auto_focus = "#books-table"
     BINDINGS: ClassVar[list[tuple[str, str, str]]] = [
         ("a", "add_book", get_global_i18n().t('common.add')),
-        ("D", "scan_directory", get_global_i18n().t('bookshelf.scan_directory')),
+        ("D", "scan_directory", get_global_i18n().t('common.scan_dir')),
         ("s", "search_book", get_global_i18n().t('common.search')),
-        ("r", "sort_books", get_global_i18n().t('bookshelf.sort_name')),
-        ("l", "batch_ops", get_global_i18n().t('bookshelf.batch_ops_name')),
-        ("G", "get_books", get_global_i18n().t('bookshelf.get_books')),
-        ("R", "refresh_bookshelf", get_global_i18n().t('bookshelf.refresh')),
+        ("r", "sort_books", get_global_i18n().t('common.sort')),
+        ("l", "batch_ops", get_global_i18n().t('common.batch_ops')),
+        ("G", "get_books", get_global_i18n().t('common.get_books')),
+        ("R", "refresh_bookshelf", get_global_i18n().t('common.refresh')),
         ("d", "delete_book", get_global_i18n().t('bookshelf.shortcut_d')),
-        ("x", "clear_search_params", get_global_i18n().t('bookshelf.clear_search_params')),
+        ("x", "clear_search_params", get_global_i18n().t('common.clear_search')),
         ("g", "toggle_smart_search", get_global_i18n().t('crawler.smart_search')),
         ("j", "jump_to", get_global_i18n().t('bookshelf.jump_to')),
-        ("v", "preview_book", get_global_i18n().t('bookshelf.shortcut_v')),
-        ("f", "view_current_file", get_global_i18n().t('bookshelf.shortcut_f')),
-        ("y", "copy_title", get_global_i18n().t('crawler.shortcut_y')),
-        ("b", "open_in_browser", get_global_i18n().t('bookshelf.shortcut_b')),
+        ("v", "preview_book", get_global_i18n().t('common.preview_book')),
+        ("f", "view_current_file", get_global_i18n().t('common.view_file')),
+        ("y", "copy_title", get_global_i18n().t('common.copy_title')),
+        ("b", "open_in_browser", get_global_i18n().t('common.browser_read')),
     ]
     # 支持的书籍文件扩展名（从配置文件读取）
     SUPPORTED_EXTENSIONS = set(SUPPORTED_FORMATS)
@@ -109,7 +109,7 @@ class BookshelfScreen(Screen[None]):
         self.bookshelf = bookshelf
         self.statistics_manager = statistics_manager
         self.book_manager = book_manager if book_manager is not None else BookManager(bookshelf)
-        self.title = get_global_i18n().t("bookshelf.title")
+        self.title = get_global_i18n().t("common.bookshelf")
         # 设置类的TITLE属性
         self.__class__.TITLE = self.title
         self.logger = get_logger(__name__)
@@ -146,18 +146,18 @@ class BookshelfScreen(Screen[None]):
         self.columns = [
             ("ID", "id"),
             (get_global_i18n().t("common.book_name"), "title"),
-            (get_global_i18n().t("bookshelf.author"), "author"),
-            (get_global_i18n().t("bookshelf.format"), "format"),
-            (get_global_i18n().t("bookshelf.size"), "size"),  # 新增文件大小列
+            (get_global_i18n().t("common.author"), "author"),
+            (get_global_i18n().t("common.format"), "format"),
+            (get_global_i18n().t("common.size"), "size"),  # 新增文件大小列
             (get_global_i18n().t("bookshelf.last_read"), "last_read"),
-            (get_global_i18n().t("bookshelf.progress"), "progress"),
-            (get_global_i18n().t("bookshelf.tags"), "tags"),
-            (get_global_i18n().t("bookshelf.read"), "read_action"),  # 阅读按钮列
-            (get_global_i18n().t("bookshelf.browser_read"), "browser_read_action"),  # 浏览器阅读按钮列
-            (get_global_i18n().t("bookshelf.view_file"), "view_action"),  # 查看文件按钮列
-            (get_global_i18n().t("bookshelf.rename"), "rename_action"),  # 重命名按钮列
-            (get_global_i18n().t("crawler.preview"), "preview_action"),  # 预览按钮列
-            (get_global_i18n().t("bookshelf.delete"), "delete_action"),  # 删除按钮列
+            (get_global_i18n().t("common.progress"), "progress"),
+            (get_global_i18n().t("common.tag"), "tags"),
+            (get_global_i18n().t("common.read"), "read_action"),  # 阅读按钮列
+            (get_global_i18n().t("common.browser"), "browser_read_action"),  # 浏览器阅读按钮列
+            (get_global_i18n().t("common.view_file"), "view_action"),  # 查看文件按钮列
+            (get_global_i18n().t("common.rename"), "rename_action"),  # 重命名按钮列
+            (get_global_i18n().t("common.preview"), "preview_action"),  # 预览按钮列
+            (get_global_i18n().t("common.delete"), "delete_action"),  # 删除按钮列
         ]
         
         # 初始化搜索状态变量
@@ -196,7 +196,7 @@ class BookshelfScreen(Screen[None]):
             ComposeResult: 组合结果
         """
         # 动态生成搜索选择框选项
-        search_options = [(get_global_i18n().t("search.all_formats"), "all")]
+        search_options = [(get_global_i18n().t("common.all_formats"), "all")]
         # 根据SUPPORTED_EXTENSIONS生成格式选项
         for ext in self.SUPPORTED_EXTENSIONS:
             # 去掉点号，转换为大写作为显示名称
@@ -207,10 +207,10 @@ class BookshelfScreen(Screen[None]):
         author_options = self.bookshelf.load_author_options()
         sort_key_options = [
             (get_global_i18n().t("common.book_name"), 'book_name'),
-            (get_global_i18n().t("bookshelf.author"), 'author'),
+            (get_global_i18n().t("common.author"), 'author'),
             (get_global_i18n().t("bookshelf.add_date"), 'add_date'),
             (get_global_i18n().t("bookshelf.last_read"), 'last_read'),
-            (get_global_i18n().t("bookshelf.progress"), 'progress'),
+            (get_global_i18n().t("common.progress"), 'progress'),
             (get_global_i18n().t("bookshelf.file_size"), 'file_size'),
         ]
         sort_order_options = [
@@ -225,14 +225,14 @@ class BookshelfScreen(Screen[None]):
                 Vertical(
                     Label(get_global_i18n().t("bookshelf.library"), id="bookshelf-sub-title"),
                     Horizontal(
-                        Button(get_global_i18n().t("bookshelf.add_book"), id="add-book-btn", classes="btn"),
-                        Button(get_global_i18n().t("bookshelf.scan_directory"), id="scan-directory-btn", classes="btn"),
-                        Button(get_global_i18n().t("bookshelf.search"), id="search-btn", classes="btn"),
-                        Button(get_global_i18n().t("bookshelf.sort.title"), id="sort-btn", classes="btn"),
-                        Button(get_global_i18n().t("bookshelf.batch_ops.title"), id="batch-ops-btn", classes="btn"),
-                        Button(get_global_i18n().t("bookshelf.get_books"), id="get-books-btn", classes="btn"),
-                        Button(get_global_i18n().t("bookshelf.refresh"), id="refresh-btn", classes="btn"),
-                        Button(get_global_i18n().t("bookshelf.back"), id="back-btn", classes="btn"),
+                        Button(get_global_i18n().t("common.add_book"), id="add-book-btn", classes="btn"),
+                        Button(get_global_i18n().t("common.scan_dir"), id="scan-directory-btn", classes="btn"),
+                        Button(get_global_i18n().t("common.search"), id="search-btn", classes="btn"),
+                        Button(get_global_i18n().t("common.sort"), id="sort-btn", classes="btn"),
+                        Button(get_global_i18n().t("common.batch_ops"), id="batch-ops-btn", classes="btn"),
+                        Button(get_global_i18n().t("common.get_books"), id="get-books-btn", classes="btn"),
+                        Button(get_global_i18n().t("common.refresh"), id="refresh-btn", classes="btn"),
+                        Button(get_global_i18n().t("common.back"), id="back-btn", classes="btn"),
                         id="bookshelf-toolbar",
                         classes="btn-row"
                     ),
@@ -843,18 +843,18 @@ class BookshelfScreen(Screen[None]):
             
             # 根据权限设置操作按钮
             if getattr(self.app, "has_permission", lambda k: True)("bookshelf.read") and not getattr(book, 'file_not_found', False):
-                row_data['read_action'] = f"[{get_global_i18n().t('bookshelf.read')}]"
-                row_data['browser_read_action'] = f"[{get_global_i18n().t('bookshelf.browser_read')}]"
+                row_data['read_action'] = f"[{get_global_i18n().t('common.read')}]"
+                row_data['browser_read_action'] = f"[{get_global_i18n().t('common.browser')}]"
             
             if getattr(self.app, "has_permission", lambda k: True)("bookshelf.view_file") and not getattr(book, 'file_not_found', False):
-                row_data['view_action'] = f"[{get_global_i18n().t('bookshelf.view_file')}]"
+                row_data['view_action'] = f"[{get_global_i18n().t('common.view_file')}]"
             
             if not getattr(book, 'file_not_found', False):
-                row_data['rename_action'] = f"[{get_global_i18n().t('bookshelf.rename')}]"
-                row_data['preview_action'] = f"[{get_global_i18n().t('crawler.preview')}]"
+                row_data['rename_action'] = f"[{get_global_i18n().t('common.rename')}]"
+                row_data['preview_action'] = f"[{get_global_i18n().t('common.preview')}]"
             
             if getattr(self.app, "has_permission", lambda k: True)("bookshelf.delete_book"):
-                row_data['delete_action'] = f"[{get_global_i18n().t('bookshelf.delete')}]"
+                row_data['delete_action'] = f"[{get_global_i18n().t('common.delete')}]"
             
             virtual_data.append(row_data)
         
@@ -1375,13 +1375,13 @@ class BookshelfScreen(Screen[None]):
                     view_file_button = ""
                     rename_button = ""
                     preview_button = ""
-                    delete_button = f"[{get_global_i18n().t('bookshelf.delete')}]"
+                    delete_button = f"[{get_global_i18n().t('common.delete')}]"
                 else:
-                    read_button = f"[{get_global_i18n().t('bookshelf.read')}]"
-                    view_file_button = f"[{get_global_i18n().t('bookshelf.view_file')}]"
-                    rename_button = f"[{get_global_i18n().t('bookshelf.rename')}]"
-                    preview_button = f"[{get_global_i18n().t('crawler.preview')}]"
-                    delete_button = f"[{get_global_i18n().t('bookshelf.delete')}]"
+                    read_button = f"[{get_global_i18n().t('common.read')}]"
+                    view_file_button = f"[{get_global_i18n().t('common.view_file')}]"
+                    rename_button = f"[{get_global_i18n().t('common.rename')}]"
+                    preview_button = f"[{get_global_i18n().t('common.preview')}]"
+                    delete_button = f"[{get_global_i18n().t('common.delete')}]"
                 
                 # 如果文件不存在，在标题前添加标记
                 display_title = book.title
@@ -1488,12 +1488,12 @@ class BookshelfScreen(Screen[None]):
                 column_names = {
                     "id": "ID",
                     "title": get_global_i18n().t('common.book_name'),
-                    "author": get_global_i18n().t('bookshelf.author'),
-                    "format": get_global_i18n().t('bookshelf.format'),
-                    "size": get_global_i18n().t('bookshelf.size'),
+                    "author": get_global_i18n().t('common.author'),
+                    "format": get_global_i18n().t('common.format'),
+                    "size": get_global_i18n().t('common.size'),
                     "last_read": get_global_i18n().t('bookshelf.last_read'),
-                    "progress": get_global_i18n().t('bookshelf.progress'),
-                    "tags": get_global_i18n().t('bookshelf.tags')
+                    "progress": get_global_i18n().t('common.progress'),
+                    "tags": get_global_i18n().t('common.tag')
                 }
                 column_name = column_names.get(column_key, column_key)
                 self.notify(f"Sort by {column_name} {sort_direction}", severity="information")
@@ -1850,10 +1850,10 @@ class BookshelfScreen(Screen[None]):
                 self.app.push_screen(reader_screen)
             else:
                 self.logger.error(f"未找到书籍: {book_path}")
-                self.notify(f"{get_global_i18n().t("bookshelf.find_book_failed")}: {book_path}", severity="error")
+                self.notify(f"{get_global_i18n().t("common.book_not_found")}: {book_path}", severity="error")
         except Exception as e:
             self.logger.error(f"打开书籍失败: {e}")
-            self.notify(f"{get_global_i18n().t("bookshelf.open_book_failed")}: {e}", severity="error")
+            self.notify(f"{get_global_i18n().t("common.open_book_failed")}: {e}", severity="error")
     
     def _view_file(self, book_path: str) -> None:
         """查看书籍文件"""
@@ -1864,7 +1864,7 @@ class BookshelfScreen(Screen[None]):
             
             # 检查文件是否存在
             if not os.path.exists(book_path):
-                self.notify(f"{get_global_i18n().t("bookshelf.file_not_exists")}: {book_path}", severity="error")
+                self.notify(f"{get_global_i18n().t("common.file_not_exist")}: {book_path}", severity="error")
                 return
             
             # 根据操作系统打开文件管理器
@@ -1897,13 +1897,13 @@ class BookshelfScreen(Screen[None]):
             
             # 检查文件是否存在
             if not os.path.exists(book_path):
-                self.notify(f"{get_global_i18n().t("bookshelf.file_not_exists")}: {book_path}", severity="error")
+                self.notify(f"{get_global_i18n().t("common.file_not_exist")}: {book_path}", severity="error")
                 return
             
             # 获取书籍
             book = self.bookshelf.get_book(book_path)
             if not book:
-                self.notify(get_global_i18n().t("bookshelf.find_book_failed"), severity="error")
+                self.notify(get_global_i18n().t("common.book_not_found"), severity="error")
                 return
             
             # 保存书籍路径，避免回调函数中的作用域问题
@@ -2006,7 +2006,7 @@ class BookshelfScreen(Screen[None]):
             # 获取书籍信息
             book = self.bookshelf.get_book(book_path)
             if not book:
-                self.notify(get_global_i18n().t("bookshelf.find_book_failed"), severity="error")
+                self.notify(get_global_i18n().t("common.book_not_found"), severity="error")
                 return
             
             # 显示重命名对话框
@@ -2087,7 +2087,7 @@ class BookshelfScreen(Screen[None]):
             if book:
                 confirm_dialog = ConfirmDialog(
                     self.theme_manager,
-                    get_global_i18n().t("bookshelf.confirm_delete"),
+                    get_global_i18n().t("common.confirm_delete"),
                     get_global_i18n().t("bookshelf.confirm_delete_message", book=book.title)
                 )
                 self.app.push_screen(confirm_dialog, handle_delete_result)  # type: ignore
@@ -2267,13 +2267,13 @@ class BookshelfScreen(Screen[None]):
                         view_file_button = ""
                         rename_button = ""
                         preview_button = ""
-                        delete_button = f"[{get_global_i18n().t('bookshelf.delete')}]"
+                        delete_button = f"[{get_global_i18n().t('common.delete')}]"
                     else:
-                        read_button = f"[{get_global_i18n().t('bookshelf.read')}]"
-                        view_file_button = f"[{get_global_i18n().t('bookshelf.view_file')}]"
-                        rename_button = f"[{get_global_i18n().t('bookshelf.rename')}]"
-                        preview_button = f"[{get_global_i18n().t('crawler.preview')}]"
-                        delete_button = f"[{get_global_i18n().t('bookshelf.delete')}]"
+                        read_button = f"[{get_global_i18n().t('common.read')}]"
+                        view_file_button = f"[{get_global_i18n().t('common.view_file')}]"
+                        rename_button = f"[{get_global_i18n().t('common.rename')}]"
+                        preview_button = f"[{get_global_i18n().t('common.preview')}]"
+                        delete_button = f"[{get_global_i18n().t('common.delete')}]"
 
                     # 如果文件不存在，在标题前添加标记
                     display_title = book.title
@@ -2310,10 +2310,10 @@ class BookshelfScreen(Screen[None]):
                 # 将字段名映射到翻译文本
                 sort_key_translations = {
                     "title": get_global_i18n().t("common.book_name"),
-                    "author": get_global_i18n().t("bookshelf.author"),
+                    "author": get_global_i18n().t("common.author"),
                     "add_date": get_global_i18n().t("bookshelf.add_date"),
                     "last_read_date": get_global_i18n().t("bookshelf.last_read"),
-                    "progress": get_global_i18n().t("bookshelf.progress"),
+                    "progress": get_global_i18n().t("common.progress"),
                     "file_size": get_global_i18n().t("bookshelf.file_size")
                 }
 
@@ -2383,7 +2383,7 @@ class BookshelfScreen(Screen[None]):
                     from_search=self._search_keyword != "" or self._search_format != "all" or self._search_author != "all"
                 )
                 self.notify(
-                    get_global_i18n().t("batch_ops.operation_completed"),
+                    get_global_i18n().t("common.batch_ops_done"),
                     severity="information"
                 )
         
@@ -2408,7 +2408,7 @@ class BookshelfScreen(Screen[None]):
             bookshelf=self.bookshelf,
             statistics_manager=self.statistics_manager,
             selection_mode="file",
-            title=get_global_i18n().t("bookshelf.add_book"),
+            title=get_global_i18n().t("common.add_book"),
             multiple=True,  # 启用多选模式
             initial_path=self.bookshelf.data_dir  # 默认打开设置中的书库文件夹
         )
@@ -2430,7 +2430,7 @@ class BookshelfScreen(Screen[None]):
             bookshelf=self.bookshelf,
             statistics_manager=self.statistics_manager,
             selection_mode="directory",
-            title=get_global_i18n().t("bookshelf.scan_directory"),
+            title=get_global_i18n().t("common.scan_dir"),
             initial_path=self.bookshelf.data_dir  # 默认打开设置中的书库文件夹
         )
         
@@ -2859,13 +2859,13 @@ class BookshelfScreen(Screen[None]):
         """预览书籍内容（显示前1000字）"""
         try:
             if not os.path.exists(book_path):
-                self.notify(get_global_i18n().t('crawler.file_not_exists'), severity="warning")
+                self.notify(get_global_i18n().t('common.file_not_exist'), severity="warning")
                 return
             
             # 获取书籍信息
             book = self.bookshelf.get_book(book_path)
             if not book:
-                self.notify(get_global_i18n().t("bookshelf.find_book_failed"), severity="error")
+                self.notify(get_global_i18n().t("common.book_not_found"), severity="error")
                 return
             
             # 读取文件前2000字，自动检测编码（支持 GBK/GB2312/Big5 等，避免乱码）

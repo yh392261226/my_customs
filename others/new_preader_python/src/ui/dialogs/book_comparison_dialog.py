@@ -107,7 +107,7 @@ class BookComparisonDialog(ModalScreen[None]):
                 
                 # 操作按钮
                 with Horizontal():
-                    Button(get_global_i18n().t("book_comparison.refresh"), id="refresh-btn", variant="primary")
+                    Button(get_global_i18n().t("common.refresh"), id="refresh-btn", variant="primary")
                     Button(get_global_i18n().t("common.close"), id="close-btn")
         
         yield Footer()
@@ -146,10 +146,10 @@ class BookComparisonDialog(ModalScreen[None]):
             try:
                 # 书籍1信息
                 self.query_one("#book1-title").update(
-                    f"{get_global_i18n().t('bookshelf.title')}: {self.book1.title}"
+                    f"{get_global_i18n().t('common.bookshelf')}: {self.book1.title}"
                 )
                 self.query_one("#book1-author").update(
-                    f"{get_global_i18n().t('bookshelf.author')}: {self.book1.author}"
+                    f"{get_global_i18n().t('common.author')}: {self.book1.author}"
                 )
                 
                 # 格式化文件大小
@@ -166,21 +166,21 @@ class BookComparisonDialog(ModalScreen[None]):
                     size1_str = "未知"
                 
                 self.query_one("#book1-size").update(
-                    f"{get_global_i18n().t('bookshelf.size')}: {size1_str}"
+                    f"{get_global_i18n().t('common.size')}: {size1_str}"
                 )
                 self.query_one("#book1-format").update(
-                    f"{get_global_i18n().t('bookshelf.format')}: {self.book1.format.upper() if self.book1.format else ''}"
+                    f"{get_global_i18n().t('common.format')}: {self.book1.format.upper() if self.book1.format else ''}"
                 )
                 self.query_one("#book1-path").update(
-                    f"{get_global_i18n().t('bookshelf.path')}: {self.book1.path}"
+                    f"{get_global_i18n().t('common.path')}: {self.book1.path}"
                 )
                 
                 # 书籍2信息
                 self.query_one("#book2-title").update(
-                    f"{get_global_i18n().t('bookshelf.title')}: {self.book2.title}"
+                    f"{get_global_i18n().t('common.bookshelf')}: {self.book2.title}"
                 )
                 self.query_one("#book2-author").update(
-                    f"{get_global_i18n().t('bookshelf.author')}: {self.book2.author}"
+                    f"{get_global_i18n().t('common.author')}: {self.book2.author}"
                 )
                 
                 # 格式化文件大小
@@ -197,13 +197,13 @@ class BookComparisonDialog(ModalScreen[None]):
                     size2_str = "未知"
                 
                 self.query_one("#book2-size").update(
-                    f"{get_global_i18n().t('bookshelf.size')}: {size2_str}"
+                    f"{get_global_i18n().t('common.size')}: {size2_str}"
                 )
                 self.query_one("#book2-format").update(
-                    f"{get_global_i18n().t('bookshelf.format')}: {self.book2.format.upper() if self.book2.format else ''}"
+                    f"{get_global_i18n().t('common.format')}: {self.book2.format.upper() if self.book2.format else ''}"
                 )
                 self.query_one("#book2-path").update(
-                    f"{get_global_i18n().t('bookshelf.path')}: {self.book2.path}"
+                    f"{get_global_i18n().t('common.path')}: {self.book2.path}"
                 )
                 
             except Exception as e:

@@ -72,7 +72,7 @@ class PermissionsDialog(ModalScreen[Optional[Set[str]]]):
         
         # 根据模式设置标题
         if self.read_only:
-            title = i18n.t("users_management.permissions_dialog.view_title", 
+            title = i18n.t("common.view_permission", 
                           user_id=self.user_id, username=self.username)
         else:
             title = i18n.t("users_management.permissions_dialog.title", 
@@ -103,9 +103,9 @@ class PermissionsDialog(ModalScreen[Optional[Set[str]]]):
             # 编辑模式：显示操作按钮
             dialog_content.append(
                 Horizontal(
-                    Button(i18n.t("users_management.select_all"), id="select-all-btn", classes="permissions_dialog_button"),
-                    Button(i18n.t("users_management.deselect_all"), id="deselect-all-btn", classes="permissions_dialog_button"),
-                    Button(i18n.t("users_management.invert_selection"), id="invert-selection-btn", classes="permissions_dialog_button"),
+                    Button(i18n.t("common.select_all"), id="select-all-btn", classes="permissions_dialog_button"),
+                    Button(i18n.t("common.deselect"), id="deselect-all-btn", classes="permissions_dialog_button"),
+                    Button(i18n.t("common.invert_select"), id="invert-selection-btn", classes="permissions_dialog_button"),
                     Button(i18n.t("common.confirm"), id="confirm-btn", variant="primary", classes="permissions_dialog_button"),
                     Button(i18n.t("common.cancel"), id="cancel-btn", classes="permissions_dialog_button"),
                     id="permissions-buttons-top",
@@ -195,7 +195,7 @@ class PermissionsDialog(ModalScreen[Optional[Set[str]]]):
         
         status_label = self.query_one("#permissions-status", Label)
         status_label.update(
-            i18n.t("users_management.permissions_dialog.status", 
+            i18n.t("common.status", 
                   selected=selected_count, total=total_count)
         )
     

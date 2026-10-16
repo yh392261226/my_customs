@@ -58,7 +58,7 @@ class SearchDialog(ModalScreen[Optional[SearchResult]]):
     def compose(self) -> ComposeResult:
         """组合对话框界面"""
         # 动态生成搜索选择框选项
-        search_options = [(get_global_i18n().t("search.all_formats"), "all")]
+        search_options = [(get_global_i18n().t("common.all_formats"), "all")]
         # 根据SUPPORTED_EXTENSIONS生成格式选项
         for ext in self.SUPPORTED_EXTENSIONS:
             # 去掉点号，转换为大写作为显示名称
@@ -67,7 +67,7 @@ class SearchDialog(ModalScreen[Optional[SearchResult]]):
 
         yield Header()
         with Vertical(id="search-dialog"):
-            yield Label(get_global_i18n().t("search.title"), id="search-title", classes="section-title")
+            yield Label(get_global_i18n().t("common.search"), id="search-title", classes="section-title")
             with Vertical(id="search-filters", classes="form-row"):
                 yield Input(placeholder=get_global_i18n().t("search.placeholder"), id="search-input")
                 yield Select(
@@ -107,10 +107,10 @@ class SearchDialog(ModalScreen[Optional[SearchResult]]):
 
         table = self.query_one("#results-table", DataTable)
         table.add_columns(
-            (get_global_i18n().t("search.position"), "position"),
-            (get_global_i18n().t("search.preview"), "preview"),
-            (get_global_i18n().t("bookshelf.view_file"), "view_action"),  # 查看文件按钮列
-            (get_global_i18n().t("bookshelf.delete"), "delete_action")      # 删除按钮列
+            (get_global_i18n().t("common.position"), "position"),
+            (get_global_i18n().t("common.preview"), "preview"),
+            (get_global_i18n().t("common.view_file"), "view_action"),  # 查看文件按钮列
+            (get_global_i18n().t("common.delete"), "delete_action")      # 删除按钮列
         )
         table.zebra_stripes = True
         
@@ -177,8 +177,8 @@ class SearchDialog(ModalScreen[Optional[SearchResult]]):
             self.results.append(result)
             
             # 添加操作按钮
-            view_file_button = f"[{get_global_i18n().t('bookshelf.view_file')}]"
-            delete_button = f"[{get_global_i18n().t('bookshelf.delete')}]"
+            view_file_button = f"[{get_global_i18n().t('common.view_file')}]"
+            delete_button = f"[{get_global_i18n().t('common.delete')}]"
             
             table.add_row(
                 result.position,
@@ -259,7 +259,7 @@ class SearchDialog(ModalScreen[Optional[SearchResult]]):
             
             # 检查文件是否存在
             if not os.path.exists(book_path):
-                self.notify(f"{get_global_i18n().t('bookshelf.file_not_exists')}: {book_path}", severity="error")
+                self.notify(f"{get_global_i18n().t('common.file_not_exist')}: {book_path}", severity="error")
                 return
             
             # 根据操作系统打开文件管理器
@@ -319,7 +319,7 @@ class SearchDialog(ModalScreen[Optional[SearchResult]]):
             # 显示确认对话框
             confirm_dialog = ConfirmDialog(
                 self.theme_manager,
-                get_global_i18n().t("bookshelf.confirm_delete"),
+                get_global_i18n().t("common.confirm_delete"),
                 get_global_i18n().t("bookshelf.confirm_delete_message", book=book.title)
             )
             self.app.push_screen(confirm_dialog, handle_delete_result)

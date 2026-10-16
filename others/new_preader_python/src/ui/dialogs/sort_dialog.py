@@ -40,16 +40,16 @@ class SortDialog(ModalScreen[Dict[str, Any]]):
     def compose(self) -> ComposeResult:
         """组合对话框界面"""
         with Vertical(id="sort-dialog"):
-            yield Label(get_global_i18n().t("sort.title"), id="sort-title", classes="section-title")
+            yield Label(get_global_i18n().t("common.sort"), id="sort-title", classes="section-title")
             
             # 排序字段选择
             yield Label(get_global_i18n().t("sort.sort_by"), id="sort-by-label", classes="section-title")
             with RadioSet(id="sort-key-radios"):
                 yield RadioButton(get_global_i18n().t("common.book_name"), value=True, id="title-radio")
-                yield RadioButton(get_global_i18n().t("bookshelf.author"), id="author-radio")
+                yield RadioButton(get_global_i18n().t("common.author"), id="author-radio")
                 yield RadioButton(get_global_i18n().t("bookshelf.add_date"), id="add-date-radio")
                 yield RadioButton(get_global_i18n().t("bookshelf.last_read"), id="last-read-radio")
-                yield RadioButton(get_global_i18n().t("bookshelf.progress"), id="progress-radio")
+                yield RadioButton(get_global_i18n().t("common.progress"), id="progress-radio")
                 yield RadioButton(get_global_i18n().t("bookshelf.file_size"), id="file-size-radio")
             
             # 排序顺序选择

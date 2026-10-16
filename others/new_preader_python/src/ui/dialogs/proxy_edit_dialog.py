@@ -52,22 +52,22 @@ class ProxyEditDialog(ModalScreen[Optional[Dict[str, Any]]]):
         # 获取i18n文本，如果未初始化则使用默认值
         try:
             i18n = get_global_i18n()
-            title = i18n.t('proxy_settings.title')
-            name_label = i18n.t('proxy_settings.name')
+            title = i18n.t('common.proxy_settings')
+            name_label = i18n.t('common.name')
             name_placeholder = i18n.t('proxy_settings.name_placeholder')
-            enable_label = i18n.t('proxy_settings.enable_proxy')
+            enable_label = i18n.t('common.enable_proxy')
             type_label = i18n.t('proxy_settings.proxy_type')
             host_label = i18n.t('proxy_settings.host')
             host_placeholder = i18n.t('proxy_settings.host_placeholder')
-            port_label = i18n.t('proxy_settings.port')
+            port_label = i18n.t('common.port')
             port_placeholder = i18n.t('proxy_settings.port_placeholder')
-            username_label = i18n.t('proxy_settings.username')
+            username_label = i18n.t('common.username')
             username_placeholder = i18n.t('proxy_settings.username_placeholder')
-            password_label = i18n.t('proxy_settings.password')
+            password_label = i18n.t('common.password')
             password_placeholder = i18n.t('proxy_settings.password_placeholder')
-            test_connection = i18n.t('proxy_settings.test_connection')
-            save_btn = i18n.t('proxy_settings.save')
-            cancel_btn = i18n.t('proxy_settings.cancel')
+            test_connection = i18n.t('common.test_connection')
+            save_btn = i18n.t('common.save')
+            cancel_btn = i18n.t('common.cancel')
         except RuntimeError:
             # 使用默认值
             title = "编辑代理" if self.is_editing else "添加代理"

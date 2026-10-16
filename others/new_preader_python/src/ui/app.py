@@ -212,14 +212,14 @@ class NewReaderApp(App[None]):
 
     BINDINGS = [
         Binding("q", "quit", get_global_i18n().t('app.bindings.quit')),
-        Binding("h", "show_help", get_global_i18n().t('app.bindings.help')),
-        Binding("k", "show_bookshelf", get_global_i18n().t('app.bindings.bookshelf')),
-        Binding("s", "show_settings", get_global_i18n().t('app.bindings.settings')),
-        Binding("c", "show_statistics", get_global_i18n().t('app.bindings.statistics')),
-        Binding("/", "boss_key", get_global_i18n().t('app.bindings.boss_key')),
-        Binding("t", "pick_theme", get_global_i18n().t('app.bindings.theme')),
+        Binding("h", "show_help", get_global_i18n().t('common.help')),
+        Binding("k", "show_bookshelf", get_global_i18n().t('common.bookshelf')),
+        Binding("s", "show_settings", get_global_i18n().t('common.settings')),
+        Binding("c", "show_statistics", get_global_i18n().t('common.statistics')),
+        Binding("/", "boss_key", get_global_i18n().t('common.boss_key')),
+        Binding("t", "pick_theme", get_global_i18n().t('common.theme')),
         Binding("escape", "back", get_global_i18n().t('app.bindings.back')),
-        Binding("ctrl+a", "toggle_focus", get_global_i18n().t('help.focus_mode'), priority=True),
+        Binding("ctrl+a", "toggle_focus", get_global_i18n().t('common.focus_mode'), priority=True),
         Binding("V", "toggle_view", "表格⇄看板"),
     ]
     
@@ -317,7 +317,7 @@ class NewReaderApp(App[None]):
         self.install_screen(BookshelfScreen(self.theme_manager, self.bookshelf, self.statistics_manager, self.book_manager), name="bookshelf")
         # 创建一个默认的Book对象用于初始化阅读器屏幕
         from src.core.book import Book
-        default_book = Book("", get_global_i18n().t("app.default_book"), get_global_i18n().t("app.unknown_author"))
+        default_book = Book("", get_global_i18n().t("app.default_book"), get_global_i18n().t("common.unknown_author"))
         self.install_screen(ReaderScreen(default_book, self.theme_manager, self.statistics_manager, self.bookmark_manager), name="terminal_reader")
         self.install_screen(SettingsScreen(self.theme_manager, self.config_manager), name="settings")
         self.install_screen(HelpScreen(), name="help")
@@ -342,7 +342,7 @@ class NewReaderApp(App[None]):
         from src.ui.screens.users_management_screen import UsersManagementScreen
         self.install_screen(UsersManagementScreen(self.theme_manager, self.db_manager), name="users_management")
         
-        logger.info(get_global_i18n().t("app.screen_installed"))
+        logger.info(get_global_i18n().t("common.all_screens_installed"))
     
     def _load_settings_from_config(self) -> None:
         """从配置文件加载设置值到设置系统"""
@@ -1009,7 +1009,7 @@ class NewReaderApp(App[None]):
             book_name = os.path.splitext(file_name)[0]
             
             # 创建Book对象并加载内容
-            book = Book(book_file, book_name, get_global_i18n().t("app.unknown_author"))
+            book = Book(book_file, book_name, get_global_i18n().t("common.unknown_author"))
             
             # 检查是否为PDF文件，如果是加密PDF需要处理密码
             if book_file.lower().endswith('.pdf'):
@@ -1020,7 +1020,7 @@ class NewReaderApp(App[None]):
                     # 优先使用启动前通过 CLI 获取的密码，避免在 UI 运行期进行命令行输入
                     password = getattr(self, "cli_password", None)
                     if password:
-                        book = Book(book_file, book_name, get_global_i18n().t("app.unknown_author"), password=password)
+                        book = Book(book_file, book_name, get_global_i18n().t("common.unknown_author"), password=password)
             
             # 加载书籍内容
             content = book.get_content()
@@ -1051,7 +1051,7 @@ class NewReaderApp(App[None]):
             self.push_screen(ReaderScreen(book, self.theme_manager, self.statistics_manager, self.bookmark_manager, self.bookshelf))
             
         except Exception as e:
-            self.notify(f"{get_global_i18n().t("app.open_book_failed")}: {e}", severity="error")
+            self.notify(f"{get_global_i18n().t("common.open_book_failed")}: {e}", severity="error")
             # 失败时回退到书架界面
             self.push_screen("bookshelf")
     

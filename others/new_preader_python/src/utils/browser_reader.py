@@ -4731,7 +4731,7 @@ class BrowserReader:
     </div>
 
     <!-- 缩略图切换按钮 -->
-    <div class="minimap-toggle" id="minimapToggle" onclick="toggleMinimap()" title="{{t('browser_reader.minimap')}}">
+    <div class="minimap-toggle" id="minimapToggle" onclick="toggleMinimap()" title="{{t('common.thumbnail')}}">
         📍
     </div>
 
@@ -4739,25 +4739,25 @@ class BrowserReader:
     <div class="keyboard-hint" id="keyboardHint">
         <h4><script>document.write(t('browser_reader.shortcuts_title'));</script></h4>
         <ul>
-            <li><kbd>+</kbd>/<kbd>-</kbd> <script>document.write(t('browser_reader.shortcut_font_size'));</script></li>
+            <li><kbd>+</kbd>/<kbd>-</kbd> <script>document.write(t('common.font_size'));</script></li>
             <li><kbd>↑</kbd>/<kbd>↓</kbd> <script>document.write(t('browser_reader.shortcut_page_up_down'));</script></li>
             <li><kbd>PageUp</kbd>/<kbd>PageDown</kbd> <script>document.write(t('browser_reader.shortcut_page_up_down_keys'));</script></li>
             <li><kbd>Home</kbd>/<kbd>End</kbd> <script>document.write(t('browser_reader.shortcut_home_end'));</script></li>
-            <li><kbd>c</kbd> <script>document.write(t('browser_reader.shortcut_chapter'));</script></li>
-            <li><kbd>s</kbd> <script>document.write(t('browser_reader.shortcut_search'));</script></li>
-            <li><kbd>b</kbd> <script>document.write(t('browser_reader.shortcut_bookmark'));</script></li>
-            <li><kbd>Ctrl+F</kbd> <script>document.write(t('browser_reader.shortcut_search'));</script></li>
-            <li><kbd>F</kbd> <script>document.write(t('browser_reader.shortcut_focus'));</script></li>
-            <li><kbd>a</kbd> <script>document.write(t('browser_reader.shortcut_auto_scroll'));</script></li>
+            <li><kbd>c</kbd> <script>document.write(t('common.chapter_toc'));</script></li>
+            <li><kbd>s</kbd> <script>document.write(t('common.search'));</script></li>
+            <li><kbd>b</kbd> <script>document.write(t('common.bookmark'));</script></li>
+            <li><kbd>Ctrl+F</kbd> <script>document.write(t('common.search'));</script></li>
+            <li><kbd>F</kbd> <script>document.write(t('common.focus_mode'));</script></li>
+            <li><kbd>a</kbd> <script>document.write(t('common.auto_scroll'));</script></li>
             <li><kbd>Space</kbd> <script>document.write(t('browser_reader.shortcut_speech'));</script></li>
             <li><kbd>h</kbd> <script>document.write(t('browser_reader.shortcut_hide'));</script></li>
-            <li><kbd>Ctrl+G</kbd> <script>document.write(t('browser_reader.shortcut_position_jump'));</script></li>
-            <li><kbd>g</kbd> <script>document.write(t('browser_reader.shortcut_font_settings'));</script></li>
+            <li><kbd>Ctrl+G</kbd> <script>document.write(t('common.position_jump'));</script></li>
+            <li><kbd>g</kbd> <script>document.write(t('common.font_settings'));</script></li>
             <li><kbd>n</kbd> <script>document.write(t('browser_reader.shortcut_notes'));</script></li>
             <li><kbd>m</kbd> <script>document.write(t('browser_reader.shortcut_minimap'));</script></li>
             <li><kbd>]</kbd>/<kbd>[</kbd> <script>document.write(t('browser_reader.shortcut_paragraph_spacing'));</script></li>
             <li><kbd>o</kbd> <script>document.write(t('browser_reader.shortcut_view_file'));</script></li>
-            <li><kbd>w</kbd> <script>document.write(t('browser_reader.shortcut_vocab'));</script></li>
+            <li><kbd>w</kbd> <script>document.write(t('common.vocab'));</script></li>
             <li><kbd>/</kbd> 老板键</li>
             <li><kbd>ESC</kbd> <script>document.write(t('browser_reader.shortcut_escape'));</script></li>
         </ul>
@@ -4796,13 +4796,13 @@ class BrowserReader:
     <!-- 位置跳转弹窗 -->
     <div class="settings-panel" id="positionJumpModal" style="display: none;">
         <div class="settings-content">
-            <h3 id="positionJumpTitle"><script>document.write(t('browser_reader.position_jump.title'));</script></h3>
+            <h3 id="positionJumpTitle"><script>document.write(t('common.position_jump'));</script></h3>
             <button class="settings-close" onclick="closePositionJumpModal()">×</button>
             
             <div class="setting-item">
                 <label id="positionJumpInputLabel"><script>document.write(t('browser_reader.position_jump.input_label'));</script></label>
                 <input type="number" id="positionJumpInputModal" class="position-input" min="0" max="100" step="0.01" placeholder="{{t('browser_reader.position_jump.input_placeholder')}}">
-                <button onclick="jumpToPositionFromModal()" id="positionJumpButton" class="jump-btn" title="{{t('browser_reader.position_jump.jump_button_title')}}"><script>document.write(t('browser_reader.position_jump.jump_button'));</script></button>
+                <button onclick="jumpToPositionFromModal()" id="positionJumpButton" class="jump-btn" title="{{t('common.jump_to_pos')}}"><script>document.write(t('common.jump'));</script></button>
             </div>
             
             <div class="setting-item">
@@ -4826,7 +4826,7 @@ class BrowserReader:
             <select id="themeSelect" onchange="changeTheme(this.value)">
                 {theme_options_html}                <option value="custom"{theme_custom_selected}><script>document.write(t('browser_reader.theme_custom'));</script></option>
             </select>
-            <button onclick="showThemeManager()" style="margin-left: 5px; padding: 4px 8px; font-size: 12px;"><script>document.write(t('browser_reader.theme_manager'));</script></button>
+            <button onclick="showThemeManager()" style="margin-left: 5px; padding: 4px 8px; font-size: 12px;"><script>document.write(t('common.theme_manage'));</script></button>
         </label>
 
         <label>
@@ -4841,27 +4841,27 @@ class BrowserReader:
         </label>
 
         <button onclick="if(checkPermission('settings.write')) toggleFontSettings()"><script>document.write(t('browser_reader.font_button'));</script></button>
-        <button onclick="if(checkPermission('bookmark.write')) toggleHighlightMode()"><script>document.write(t('browser_reader.highlight_button'));</script></button>
-        <button onclick="if(checkPermission('bookmark.write')) toggleNotesMode()"><script>document.write(t('browser_reader.notes_button'));</script></button>
-        <button onclick="if(checkPermission('search.read')) toggleSearch()"><script>document.write(t('browser_reader.search_button'));</script></button>
-        <button onclick="toggleAutoScrollPanel()"><script>document.write(t('browser_reader.auto_scroll_button'));</script></button>
+        <button onclick="if(checkPermission('bookmark.write')) toggleHighlightMode()"><script>document.write(t('common.highlight'));</script></button>
+        <button onclick="if(checkPermission('bookmark.write')) toggleNotesMode()"><script>document.write(t('common.memo'));</script></button>
+        <button onclick="if(checkPermission('search.read')) toggleSearch()"><script>document.write(t('common.search'));</script></button>
+        <button onclick="toggleAutoScrollPanel()"><script>document.write(t('common.auto_scroll'));</script></button>
         <button onclick="toggleSpeech()"><script>document.write(t('browser_reader.speech_settings'));</script></button>
-        <button onclick="if(checkPermission('stats.read')) toggleReadingStats()"><script>document.write(t('browser_reader.stats_button'));</script></button>
-        <button onclick="if(checkPermission('settings.write')) togglePaginationSettings()"><script>document.write(t('browser_reader.pagination_settings'));</script></button>
-        <button onclick="toggleFocusMode()"><script>document.write(t('browser_reader.focus_mode'));</script></button>
-        <button onclick="toggleFullscreen()"><script>document.write(t('browser_reader.fullscreen'));</script></button>
+        <button onclick="if(checkPermission('stats.read')) toggleReadingStats()"><script>document.write(t('common.statistics'));</script></button>
+        <button onclick="if(checkPermission('settings.write')) togglePaginationSettings()"><script>document.write(t('common.page_settings'));</script></button>
+        <button onclick="toggleFocusMode()"><script>document.write(t('common.focus_mode'));</script></button>
+        <button onclick="toggleFullscreen()"><script>document.write(t('common.fullscreen'));</script></button>
         <button onclick="toggleFullWidthReading()" id="fullWidthReadingBtn"><script>document.write(t('browser_reader.full_width_reading'));</script></button>
         <button onclick="scrollToTop()"><script>document.write(t('browser_reader.scroll_to_top'));</script></button>
-        <button onclick="scrollToBottom()"><script>document.write(t('browser_reader.bottom'));</script></button>
+        <button onclick="scrollToBottom()"><script>document.write(t('common.bottom'));</script></button>
         
-        <button onclick="togglePositionJump()" id="positionJumpBtn" title="{{t('browser_reader.position_jump.title')}}"><script>document.write(t('browser_reader.position_jump.title'));</script></button>
-        <button onclick="toggleMinimap()" id="minimapToolbarBtn"><script>document.write(t('browser_reader.minimap'));</script></button>
-        <button onclick="toggleTOC()"><script>document.write(t('browser_reader.toc'));</script></button>
+        <button onclick="togglePositionJump()" id="positionJumpBtn" title="{{t('common.position_jump')}}"><script>document.write(t('common.position_jump'));</script></button>
+        <button onclick="toggleMinimap()" id="minimapToolbarBtn"><script>document.write(t('common.thumbnail'));</script></button>
+        <button onclick="toggleTOC()"><script>document.write(t('common.toc'));</script></button>
         <button onclick="if(checkPermission('book.write')) toggleProgressSync()" id="progressSyncBtn"><script>document.write(t('browser_reader.progress_sync'));</script></button>
-        <button onclick="if(checkPermission('book.add')) toggleFileImport()" id="fileImportBtn"><script>document.write(t('browser_reader.import_file'));</script></button>
+        <button onclick="if(checkPermission('book.add')) toggleFileImport()" id="fileImportBtn"><script>document.write(t('common.import_file'));</script></button>
         <button onclick="toggleBookLibrary()" id="bookLibraryBtn"><script>document.write(t('browser_reader.book_library'));</script></button>
-        <button onclick="toggleVocabPanel()" id="vocabBtn"><script>document.write(t('browser_reader.vocab_button'));</script></button>
-        <button onclick="if(checkPermission('book.read')) showFileView()" id="viewFileBtn"><script>document.write(t('browser_reader.view_file_button'));</script></button>
+        <button onclick="toggleVocabPanel()" id="vocabBtn"><script>document.write(t('common.vocab'));</script></button>
+        <button onclick="if(checkPermission('book.read')) showFileView()" id="viewFileBtn"><script>document.write(t('common.view_file'));</script></button>
     </div>
 
     <!-- 工具栏收缩/展开按钮 -->
@@ -4874,7 +4874,7 @@ class BrowserReader:
     <!-- 字体设置面板 -->
     <div class="settings-panel" id="fontSettingsPanel" style="display: none;">
         <div class="settings-content">
-            <h3><script>document.write(t('browser_reader.font_settings_title'));</script></h3>
+            <h3><script>document.write(t('common.font_settings'));</script></h3>
             <button class="settings-close" onclick="toggleFontSettings()">×</button>
 
             <div class="setting-item">
@@ -4944,8 +4944,8 @@ class BrowserReader:
             </div>
 
             <div class="setting-actions">
-                <button onclick="resetFontSettings()"><script>document.write(t('browser_reader.reset_button'));</script></button>
-                <button onclick="toggleFontSettings()"><script>document.write(t('browser_reader.close_button'));</script></button>
+                <button onclick="resetFontSettings()"><script>document.write(t('common.reset'));</script></button>
+                <button onclick="toggleFontSettings()"><script>document.write(t('common.close'));</script></button>
             </div>
         </div>
     </div>
@@ -4959,7 +4959,7 @@ class BrowserReader:
             <div class="notes-tabs">
                 <button class="tab-btn active" onclick="switchNotesTab('highlights')"><script>document.write(t('browser_reader.highlights_tab'));</script></button>
                 <button class="tab-btn" onclick="switchNotesTab('bookmarks')"><script>document.write(t('browser_reader.bookmarks_tab'));</script></button>
-                <button class="tab-btn" onclick="switchNotesTab('notes')"><script>document.write(t('browser_reader.notes_tab'));</script></button>
+                <button class="tab-btn" onclick="switchNotesTab('notes')"><script>document.write(t('common.memo'));</script></button>
             </div>
 
             <div class="notes-content" id="highlightsTab">
@@ -4983,21 +4983,21 @@ class BrowserReader:
     <!-- 搜索框 -->
     <div class="search-container" id="searchContainer">
         <input type="text" id="searchInput" placeholder="{{t('browser_reader.search_placeholder')}}" onkeypress="handleSearchKeypress(event)">
-        <button onclick="searchText()"><script>document.write(t('browser_reader.search_button_text'));</script></button>
+        <button onclick="searchText()"><script>document.write(t('common.search'));</script></button>
         <button onclick="searchNext()"><script>document.write(t('browser_reader.search_next'));</script></button>
         <span class="search-count" id="searchCount"></span>
     </div>
 
     <!-- 目录切换按钮 -->
-    <button class="toc-toggle-btn" onclick="toggleTOC()" title="{{t('browser_reader.toc_toggle_title')}}">☰</button>
+    <button class="toc-toggle-btn" onclick="toggleTOC()" title="{{t('common.toc')}}">☰</button>
 
     <!-- 书签按钮 -->
-    <button class="bookmark-btn" id="bookmarkBtn" onclick="toggleBookmark()" title="{{t('browser_reader.bookmark_title')}}">🔖</button>
+    <button class="bookmark-btn" id="bookmarkBtn" onclick="toggleBookmark()" title="{{t('common.bookmark')}}">🔖</button>
 
     <!-- 章节目录 -->
     <div class="toc-container" id="tocContainer">
         <div class="toc-header">
-            <h3><script>document.write(t('browser_reader.toc_title'));</script></h3>
+            <h3><script>document.write(t('common.chapter_toc'));</script></h3>
             <button class="toc-close" onclick="toggleTOC()">×</button>
         </div>
         <ul class="toc-list" id="tocList"></ul>
@@ -5010,7 +5010,7 @@ class BrowserReader:
         <button onclick="increaseScrollSpeed()">+</button>
         <input type="range" id="scrollSpeedSlider" min="0.5" max="10" step="0.5" value="1" onchange="setScrollSpeed(this.value)">
         <button onclick="toggleAutoScroll()" id="autoScrollToggleBtn"><script>document.write(t('browser_reader.auto_scroll_start'));</script></button>
-        <button onclick="resetAutoScroll()"><script>document.write(t('browser_reader.reset_button'));</script></button>
+        <button onclick="resetAutoScroll()"><script>document.write(t('common.reset'));</script></button>
     </div>
     
     <!-- 朗读控制面板 -->
@@ -5021,7 +5021,7 @@ class BrowserReader:
         </select>
         <label><script>document.write(t('browser_reader.speech_speed'));</script> <input type="range" id="speechRate" min="0.5" max="2" step="0.1" value="1" onchange="changeSpeechRate(this.value)"></label>
         <label><script>document.write(t('browser_reader.speech_pitch'));</script> <input type="range" id="speechPitch" min="0.5" max="2" step="0.1" value="1" onchange="changeSpeechPitch(this.value)"></label>
-        <span class="speech-status" id="speechStatus"><script>document.write(t('browser_reader.speech_not_started'));</script></span>
+        <span class="speech-status" id="speechStatus"><script>document.write(t('common.not_read'));</script></span>
     </div>
     
     <!-- 翻页容器 -->
@@ -5031,21 +5031,21 @@ class BrowserReader:
     
     <!-- 翻页控制按钮 -->
     <div class="pagination-controls" id="paginationControls" style="display: none;">
-        <button onclick="previousPage()" id="prevPageBtn"><script>document.write(t('browser_reader.prev_page'));</script></button>
+        <button onclick="previousPage()" id="prevPageBtn"><script>document.write(t('common.prev_page'));</script></button>
         <div class="page-info">
             <span id="currentPage">1</span> / <span id="totalPages">1</span>
         </div>
         <div class="page-jump">
             <input type="number" id="pageJumpInput" min="1" value="1" onchange="jumpToPage()">
-            <button onclick="jumpToPage()"><script>document.write(t('browser_reader.page_jump'));</script></button>
+            <button onclick="jumpToPage()"><script>document.write(t('common.jump'));</script></button>
         </div>
-        <button onclick="nextPage()" id="nextPageBtn"><script>document.write(t('browser_reader.next_page'));</script></button>
+        <button onclick="nextPage()" id="nextPageBtn"><script>document.write(t('common.next_page'));</script></button>
     </div>
     
     <!-- 翻页设置面板 -->
     <div class="pagination-settings" id="paginationSettings">
         <div class="pagination-settings-content">
-            <h3><script>document.write(t('browser_reader.pagination_settings'));</script></h3>
+            <h3><script>document.write(t('common.page_settings'));</script></h3>
             <button class="pagination-settings-close" onclick="togglePaginationSettings()">×</button>
             
             <div class="setting-item">
@@ -5072,8 +5072,8 @@ class BrowserReader:
             </div>
             
             <div class="setting-actions">
-                <button onclick="resetPaginationSettings()"><script>document.write(t('browser_reader.reset_button'));</script></button>
-                <button onclick="togglePaginationSettings()"><script>document.write(t('browser_reader.close_button'));</script></button>
+                <button onclick="resetPaginationSettings()"><script>document.write(t('common.reset'));</script></button>
+                <button onclick="togglePaginationSettings()"><script>document.write(t('common.close'));</script></button>
             </div>
         </div>
     </div>
@@ -5081,17 +5081,17 @@ class BrowserReader:
     <!-- 进度同步设置面板 -->
     <div class="settings-panel" id="progressSyncPanel" style="display: none;">
         <div class="settings-content">
-            <h3><script>document.write(t('browser_reader.progress_sync_settings'));</script></h3>
+            <h3><script>document.write(t('common.progress_sync_settings'));</script></h3>
             <button class="settings-close" onclick="toggleProgressSync()">×</button>
             
             <div class="setting-item">
                 <label><script>document.write(t('browser_reader.enable_progress_sync'));</script></label>
-                <button class="toggle-btn" id="progressSyncToggle" onclick="toggleProgressSyncEnabled()"><script>document.write(t('browser_reader.enable'));</script></button>
+                <button class="toggle-btn" id="progressSyncToggle" onclick="toggleProgressSyncEnabled()"><script>document.write(t('common.enable'));</script></button>
             </div>
             
             <div class="setting-item">
                 <label><script>document.write(t('browser_reader.sync_status'));</script></label>
-                <span id="syncStatusText"><script>document.write(t('browser_reader.not_connected'));</script></span>
+                <span id="syncStatusText"><script>document.write(t('common.not_connected'));</script></span>
             </div>
             
             <div class="setting-item">
@@ -5122,7 +5122,7 @@ class BrowserReader:
             
             <div class="setting-actions">
                 <button onclick="manualSync()"><script>document.write(t('browser_reader.sync_now'));</script></button>
-                <button onclick="toggleProgressSync()"><script>document.write(t('browser_reader.close_button'));</script></button>
+                <button onclick="toggleProgressSync()"><script>document.write(t('common.close'));</script></button>
             </div>
         </div>
     </div>
@@ -5130,7 +5130,7 @@ class BrowserReader:
     <!-- 文件导入面板 -->
     <div class="settings-panel" id="fileImportPanel" style="display: none;">
         <div class="settings-content">
-            <h3><script>document.write(t('browser_reader.import_file'));</script></h3>
+            <h3><script>document.write(t('common.import_file'));</script></h3>
             <button class="settings-close" onclick="toggleFileImport()">×</button>
             
             <div class="setting-item">
@@ -5138,8 +5138,8 @@ class BrowserReader:
                 <div id="dropZone" class="drop-zone">
                     <div class="drop-zone-content">
                         <div class="drop-icon">📁</div>
-                        <p><script>document.write(t('browser_reader.drop_file_here'));</script></p>
-                        <p class="drop-hint"><script>document.write(t('browser_reader.or_click_select'));</script></p>
+                        <p><script>document.write(t('common.drag_drop_here'));</script></p>
+                        <p class="drop-hint"><script>document.write(t('common.or_click_select'));</script></p>
                         <input type="file" id="fileInput" accept=".txt,.html,.htm,.md,.pdf,.epub,.mobi,.azw,.azw3" onchange="handleFileSelect(event)">
                     </div>
                 </div>
@@ -5154,12 +5154,12 @@ class BrowserReader:
             
             <div class="setting-item">
                 <label><script>document.write(t('browser_reader.file_title'));</script></label>
-                <input type="text" id="fileTitle" placeholder="{{t('browser_reader.auto_extract_title')}}">
+                <input type="text" id="fileTitle" placeholder="{{t('common.auto_from_filename')}}">
             </div>
             
             <div class="setting-actions">
                 <button onclick="importFile()"><script>document.write(t('browser_reader.import_and_open'));</script></button>
-                <button onclick="toggleFileImport()"><script>document.write(t('browser_reader.cancel'));</script></button>
+                <button onclick="toggleFileImport()"><script>document.write(t('common.cancel'));</script></button>
             </div>
         </div>
     </div>
@@ -5167,7 +5167,7 @@ class BrowserReader:
     <!-- 书库面板 -->
     <div class="settings-panel book-library-panel" id="bookLibraryPanel" style="display: none;">
         <div class="settings-content">
-            <h3><script>document.write(t('browser_reader.my_library'));</script></h3>
+            <h3><script>document.write(t('common.my_bookshelf'));</script></h3>
             <button class="settings-close" onclick="toggleBookLibrary()">×</button>
             
             <div class="library-tabs">
@@ -5184,10 +5184,10 @@ class BrowserReader:
                         <button onclick="clearLibrarySearch()" id="clearSearchBtn" style="display: none;">×</button>
                     </div>
                     <button onclick="clearHistory()"><script>document.write(t('browser_reader.clear_history'));</script></button>
-                    <button onclick="refreshHistory()"><script>document.write(t('browser_reader.refresh'));</script></button>
+                    <button onclick="refreshHistory()"><script>document.write(t('common.refresh'));</script></button>
                 </div>
                 <div class="book-list" id="historyBookList">
-                    <p style="color: #666; text-align: center; padding: 20px;"><script>document.write(t('browser_reader.no_reading_history'));</script></p>
+                    <p style="color: #666; text-align: center; padding: 20px;"><script>document.write(t('common.no_read_history'));</script></p>
                 </div>
                 <div class="library-pager">
                     <button onclick="historyPrev()">上一页</button>
@@ -5203,8 +5203,8 @@ class BrowserReader:
                         <input type="text" id="importedSearchInput" placeholder="搜索书籍标题..." onkeyup="searchImportedBooks()">
                         <button onclick="clearImportedSearch()" id="clearImportedSearchBtn" style="display: none;">×</button>
                     </div>
-                    <button onclick="addBookFromLibrary()"><script>document.write(t('browser_reader.add_book'));</script></button>
-                    <button onclick="showAddDirectoryModal()"><script>document.write(t('browser_reader.add_directory'));</script></button>
+                    <button onclick="addBookFromLibrary()"><script>document.write(t('common.add_book'));</script></button>
+                    <button onclick="showAddDirectoryModal()"><script>document.write(t('common.add_dir'));</script></button>
                     <button onclick="exportLibrary()"><script>document.write(t('browser_reader.export_library'));</script></button>
                     <button onclick="showStorageInfo()" title="存储使用情况">📊</button>
                     <button onclick="clearAllImportedBooks()" style="background-color: #ff6b6b;" title="清空所有导入书籍"><script>document.write(t('browser_reader.clear_all_books'));</script></button>
@@ -5249,11 +5249,11 @@ class BrowserReader:
     <!-- 添加目录弹窗 -->
     <div class="settings-panel" id="addDirectoryModal" style="display: none;">
         <div class="settings-content">
-            <h3><script>document.write(t('browser_reader.add_directory_title'));</script></h3>
+            <h3><script>document.write(t('common.add_dir'));</script></h3>
             <button class="settings-close" onclick="closeAddDirectoryModal()">×</button>
             
             <div class="setting-item">
-                <label><script>document.write(t('browser_reader.select_directory_label'));</script></label>
+                <label><script>document.write(t('common.select_dir'));</script></label>
                 <div id="directoryDropZone" class="drop-zone">
                     <div class="drop-zone-content">
                         <div class="drop-icon">📁</div>
@@ -5266,7 +5266,7 @@ class BrowserReader:
             
             <div class="setting-item">
                 <label><script>document.write(t('browser_reader.selected_directory'));</script></label>
-                <input type="text" id="directoryPath" placeholder="{{t('browser_reader.no_directory_selected')}}" readonly style="background: rgba(128, 128, 128, 0.1);">
+                <input type="text" id="directoryPath" placeholder="{{t('common.no_dir_selected')}}" readonly style="background: rgba(128, 128, 128, 0.1);">
             </div>
             
             <div class="setting-item">
@@ -5276,7 +5276,7 @@ class BrowserReader:
             
             <div class="setting-actions">
                 <button onclick="confirmAddDirectory()"><script>document.write(t('browser_reader.confirm_add_directory'));</script></button>
-                <button onclick="closeAddDirectoryModal()"><script>document.write(t('browser_reader.cancel'));</script></button>
+                <button onclick="closeAddDirectoryModal()"><script>document.write(t('common.cancel'));</script></button>
             </div>
         </div>
     </div>
@@ -6671,10 +6671,10 @@ class BrowserReader:
             const actions = document.createElement('div');
             actions.className = 'np-actions';
             const cancel = document.createElement('button');
-            cancel.textContent = (typeof t === 'function' ? t('browser_reader.note_cancel') : '取消');
+            cancel.textContent = (typeof t === 'function' ? t('common.cancel') : '取消');
             const save = document.createElement('button');
             save.className = 'np-primary';
-            save.textContent = (typeof t === 'function' ? t('browser_reader.note_save') : '保存');
+            save.textContent = (typeof t === 'function' ? t('common.save') : '保存');
             actions.appendChild(cancel);
             actions.appendChild(save);
             pop.appendChild(q);
@@ -6722,9 +6722,9 @@ class BrowserReader:
             const actions = document.createElement('div');
             actions.className = 'np-actions';
             const del = document.createElement('button');
-            del.textContent = (typeof t === 'function' ? t('browser_reader.note_delete') : '删除');
+            del.textContent = (typeof t === 'function' ? t('common.delete') : '删除');
             const closeBtn = document.createElement('button');
-            closeBtn.textContent = (typeof t === 'function' ? t('browser_reader.note_close') : '关闭');
+            closeBtn.textContent = (typeof t === 'function' ? t('common.close') : '关闭');
             actions.appendChild(del);
             actions.appendChild(closeBtn);
             pop.appendChild(actions);
@@ -6826,7 +6826,7 @@ class BrowserReader:
             saveBookArr('reader_bookmarks', savedBookmarks);
 
             updateBookmarksList();
-            showNotification(t('browser_reader.bookmark_added'));
+            showNotification(t('common.bookmark_added'));
         }}
 
         function deleteBookmark(id) {{
@@ -6838,7 +6838,7 @@ class BrowserReader:
             const filtered = savedBookmarks.filter(b => b.id !== id);
             saveBookArr('reader_bookmarks', filtered);
             updateBookmarksList();
-            showNotification(t('browser_reader.bookmark_deleted'));
+            showNotification(t('common.bookmark_deleted'));
         }}
 
         // 显示通知
@@ -7010,11 +7010,11 @@ class BrowserReader:
         // 更新跳转弹窗的语言文本
         function updatePositionJumpTranslations() {{
             if (typeof t === 'function') {{
-                document.getElementById('positionJumpTitle').textContent = t('browser_reader.position_jump.title');
+                document.getElementById('positionJumpTitle').textContent = t('common.position_jump');
                 document.getElementById('positionJumpInputLabel').textContent = t('browser_reader.position_jump.input_label');
                 document.getElementById('positionJumpInputModal').placeholder = t('browser_reader.position_jump.input_placeholder');
-                document.getElementById('positionJumpButton').textContent = t('browser_reader.position_jump.jump_button');
-                document.getElementById('positionJumpButton').title = t('browser_reader.position_jump.jump_button_title');
+                document.getElementById('positionJumpButton').textContent = t('common.jump');
+                document.getElementById('positionJumpButton').title = t('common.jump_to_pos');
                 document.getElementById('positionJumpQuickLabel').textContent = t('browser_reader.position_jump.quick_jump_label');
                 document.getElementById('positionJump25').textContent = t('browser_reader.position_jump.jump_25');
                 document.getElementById('positionJump25').title = t('browser_reader.position_jump.jump_25');
@@ -7221,10 +7221,10 @@ class BrowserReader:
             themeNames.forEach(name => {{
                 themesHtml += '<div class="theme-item" data-theme="' + name + '">' +
                                         '<div class="theme-name">' + name + '</div>' +
-                                        '<div class="theme-preview" style="background: ' + customThemes[name].background + '; color: ' + customThemes[name].text + ';">' + (typeof t === 'function' ? t('browser_reader.preview') : '预览') + '</div>' +
+                                        '<div class="theme-preview" style="background: ' + customThemes[name].background + '; color: ' + customThemes[name].text + ';">' + (typeof t === 'function' ? t('common.preview') : '预览') + '</div>' +
                                         '<div class="theme-actions">' +
-                                            '<button onclick="loadCustomThemeByName(\\'' + name + '\\')">' + (typeof t === 'function' ? t('browser_reader.load') : '加载') + '</button>' +
-                                            '<button onclick="deleteCustomTheme(\\'' + name + '\\')">' + (typeof t === 'function' ? t('browser_reader.delete') : '删除') + '</button>' +
+                                            '<button onclick="loadCustomThemeByName(\\'' + name + '\\')">' + (typeof t === 'function' ? t('common.loading_short') : '加载') + '</button>' +
+                                            '<button onclick="deleteCustomTheme(\\'' + name + '\\')">' + (typeof t === 'function' ? t('common.delete') : '删除') + '</button>' +
                                         '</div>' +
                                     '</div>';
             }});
@@ -7236,7 +7236,7 @@ class BrowserReader:
             const panel = document.createElement('div');
             panel.className = 'settings-panel theme-manager-panel';
             panel.innerHTML = '<div class="settings-content">' +
-                    '<h3>' + (typeof t === 'function' ? t('browser_reader.theme_manager') : '主题管理') + '</h3>' +
+                    '<h3>' + (typeof t === 'function' ? t('common.theme_manage') : '主题管理') + '</h3>' +
                     '<button class="settings-close" onclick="closeThemeManager()">×</button>' +
                     
                     '<div class="theme-manager-content">' +
@@ -12636,19 +12636,19 @@ class BrowserReader:
     <div class="file-view-modal" id="fileViewModal" style="display: none;">
         <h3 id="fileViewTitle"><script>document.write(t('browser_reader.view_file_title'));</script></h3>
         <div class="file-info-row"><span><script>document.write(t('browser_reader.view_file_name'));</script></span><span id="fileViewName"></span></div>
-        <div class="file-info-row"><span><script>document.write(t('browser_reader.view_file_path'));</script></span><span id="fileViewPath"></span></div>
-        <div class="file-info-row"><span><script>document.write(t('browser_reader.view_file_size'));</script></span><span id="fileViewSize"></span></div>
-        <div class="file-info-row"><span><script>document.write(t('browser_reader.view_file_format'));</script></span><span id="fileViewFormat"></span></div>
+        <div class="file-info-row"><span><script>document.write(t('common.path'));</script></span><span id="fileViewPath"></span></div>
+        <div class="file-info-row"><span><script>document.write(t('common.size'));</script></span><span id="fileViewSize"></span></div>
+        <div class="file-info-row"><span><script>document.write(t('common.format'));</script></span><span id="fileViewFormat"></span></div>
         <div class="file-actions">
             <button onclick="downloadCurrentFile()"><script>document.write(t('browser_reader.view_file_download'));</script></button>
-            <button onclick="closeFileView()"><script>document.write(t('browser_reader.close_button'));</script></button>
+            <button onclick="closeFileView()"><script>document.write(t('common.close'));</script></button>
         </div>
     </div>
 
     <!-- 生词本面板 -->
     <div class="vocab-panel" id="vocabPanel">
         <div class="vocab-header">
-            <h3 id="vocabTitle"><script>document.write(t('browser_reader.vocab_title'));</script></h3>
+            <h3 id="vocabTitle"><script>document.write(t('common.vocab'));</script></h3>
             <button class="vocab-close" onclick="toggleVocabPanel()">×</button>
         </div>
         <div class="vocab-list" id="vocabList"></div>

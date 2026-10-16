@@ -36,7 +36,7 @@ class ReviewDialog(ModalScreen[Dict[str, Any]]):
             with Container(id="review-buttons", classes="btn-row"):
                 yield Button(get_global_i18n().t("vocabulary_dialog.known"), id="btn-known", variant="success")
                 yield Button(get_global_i18n().t("vocabulary_dialog.unknown"), id="btn-unknown", variant="error")
-                yield Button(get_global_i18n().t("vocabulary_dialog.skip"), id="btn-skip", variant="primary")
+                yield Button(get_global_i18n().t("common.skip"), id="btn-skip", variant="primary")
                 yield Button(get_global_i18n().t("common.close"), id="btn-finish", variant="primary")
 
     def _render_current(self) -> None:

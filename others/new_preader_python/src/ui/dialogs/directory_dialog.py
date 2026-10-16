@@ -31,8 +31,8 @@ class DirectoryDialog(ModalScreen[Optional[str]]):
     def compose(self) -> ComposeResult:
         """组合对话框界面"""
         with Vertical(id="directory-dialog"):
-            yield Label(get_global_i18n().t("bookshelf.select_directory"), id="directory-title")
-            yield Input(placeholder=get_global_i18n().t("bookshelf.directory_path"), id="directory-input")
+            yield Label(get_global_i18n().t("common.select_dir"), id="directory-title")
+            yield Input(placeholder=get_global_i18n().t("common.dir_path"), id="directory-input")
             with Horizontal(id="directory-buttons"):
                 yield Button(get_global_i18n().t("common.select"), id="select-btn")
                 yield Button(get_global_i18n().t("common.cancel"), id="cancel-btn")
@@ -50,7 +50,7 @@ class DirectoryDialog(ModalScreen[Optional[str]]):
             if directory_path and os.path.isdir(directory_path):
                 self.dismiss(directory_path)
             else:
-                self.notify(get_global_i18n().t("bookshelf.invalid_directory"), severity="error")
+                self.notify(get_global_i18n().t("common.invalid_dir_path"), severity="error")
         elif event.button.id == "cancel-btn":
             self.dismiss(None)
             

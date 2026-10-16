@@ -15,8 +15,8 @@ class SearchResultsScreen(Screen[None]):
     # 使用 Textual BINDINGS（逐步替代 on_key）
     BINDINGS: ClassVar[list[tuple[str, str, str]]] = [
         ("escape", "back", get_global_i18n().t('common.back')),
-        ("n", "next_page", get_global_i18n().t('bookshelf.next_page')),
-        ("p", "prev_page", get_global_i18n().t('bookshelf.prev_page')),
+        ("n", "next_page", get_global_i18n().t('common.next_page')),
+        ("p", "prev_page", get_global_i18n().t('common.prev_page')),
         ("j", "jump_to", get_global_i18n().t('bookshelf.jump_to')),
     ]
     
@@ -57,7 +57,7 @@ class SearchResultsScreen(Screen[None]):
             # 顶部标题栏
             with Horizontal(id="search-header"):
                 yield Button(f"← {get_global_i18n().t('common.back')}", id="back-button", variant="primary")
-                yield Label(f"🔍 {get_global_i18n().t('search_results_screen.title')}: {self.search_query} ({get_global_i18n().t('search_results_screen.total_results', count=len(self.results))})", id="search-title")
+                yield Label(f"🔍 {get_global_i18n().t('common.search_result')}: {self.search_query} ({get_global_i18n().t('search_results_screen.total_results', count=len(self.results))})", id="search-title")
             
             # 使用Grid布局
             with Grid(id="search-results-grid"):
@@ -112,7 +112,7 @@ class SearchResultsScreen(Screen[None]):
 
     def action_next_page(self) -> None:
         if not self._has_permission("search_results.navigation"):
-            self.notify(get_global_i18n().t('search_results_screen.np_turn_page'), severity="error")
+            self.notify(get_global_i18n().t('common.no_perm_page'), severity="error")
             return
         if self._current_page < self._total_pages:
             self._current_page += 1
@@ -120,7 +120,7 @@ class SearchResultsScreen(Screen[None]):
 
     def action_prev_page(self) -> None:
         if not self._has_permission("search_results.navigation"):
-            self.notify(get_global_i18n().t('search_results_screen.np_turn_page'), severity="error")
+            self.notify(get_global_i18n().t('common.no_perm_page'), severity="error")
             return
         if self._current_page > 1:
             self._current_page -= 1

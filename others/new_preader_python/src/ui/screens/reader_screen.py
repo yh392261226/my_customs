@@ -81,19 +81,19 @@ class ReaderScreen(ScreenStyleMixin, Screen[None]):
         ("]", "increase_paragraph_spacing", get_global_i18n().t('reader.increase_paragraph_spacing')),
         ("[", "decrease_paragraph_spacing", get_global_i18n().t('reader.decrease_paragraph_spacing')),
         # 其他功能
-        ("j", "goto_page", get_global_i18n().t('reader.goto_page')),
+        ("j", "goto_page", get_global_i18n().t('common.jump_page')),
         ("b", "toggle_bookmark", get_global_i18n().t('reader.toggle_bookmark')),
         ("B", "open_bookmark_list", get_global_i18n().t('reader.toggle_bookmark')),
-        ("s", "open_settings", get_global_i18n().t('reader.open_settings')),
-        ("o", "view_file", get_global_i18n().t('bookshelf.view_file')),
-        ("O", "browser_read", get_global_i18n().t('bookshelf.browser_read', default="浏览器阅读")),
+        ("s", "open_settings", get_global_i18n().t('common.open_settings')),
+        ("o", "view_file", get_global_i18n().t('common.view_file')),
+        ("O", "browser_read", get_global_i18n().t('common.browser', default="浏览器阅读")),
         ("f", "search_text", get_global_i18n().t('reader.search_text')),
-        ("a", "toggle_auto_page", get_global_i18n().t('reader.toggle_auto_page')),
-        ("r", "toggle_tts", get_global_i18n().t('reader.toggle_tts')),
+        ("a", "toggle_auto_page", get_global_i18n().t('common.auto_page')),
+        ("r", "toggle_tts", get_global_i18n().t('common.read_aloud')),
         ("l", "translate", get_global_i18n().t('reader.translate')),
         ("w", "open_vocabulary", get_global_i18n().t('reader.open_vocabulary')),
-        ("/", "boss_key", get_global_i18n().t('reader.boss_key')),
-        ("h", "show_help", get_global_i18n().t('reader.show_help')),
+        ("/", "boss_key", get_global_i18n().t('common.boss_key')),
+        ("h", "show_help", get_global_i18n().t('common.help')),
         ("ctrl+c", "copy_selected_text", get_global_i18n().t('reader.copy_selected_text')),
     ]
 
@@ -331,20 +331,20 @@ class ReaderScreen(ScreenStyleMixin, Screen[None]):
         from textual.containers import HorizontalScroll
         with HorizontalScroll(id="reader-buttons-container"):
             with Horizontal(id="reader-buttons", classes="btn-row"):
-                yield Button(f"{get_global_i18n().t('reader.prev_chapter')}【←】", classes="btn", id="prev-btn")
+                yield Button(f"{get_global_i18n().t('common.prev_page')}【←】", classes="btn", id="prev-btn")
                 yield Label("", id="pager-status", classes="btn")
-                yield Button(f"{get_global_i18n().t('reader.next_chapter')}【→】", classes="btn", id="next-btn")
-                yield Button(f"{get_global_i18n().t('reader.goto_page')}【j】", classes="btn", id="goto-btn")
-                yield Button(f"{get_global_i18n().t('reader.search')}【f】", classes="btn", id="search-btn")
+                yield Button(f"{get_global_i18n().t('common.next_page')}【→】", classes="btn", id="next-btn")
+                yield Button(f"{get_global_i18n().t('common.jump_page')}【j】", classes="btn", id="goto-btn")
+                yield Button(f"{get_global_i18n().t('common.search')}【f】", classes="btn", id="search-btn")
                 yield Button(f"{get_global_i18n().t('reader.add_remove_bookmark')}【b】", classes="btn", id="bookmark-btn")
-                yield Button(f"{get_global_i18n().t('reader.bookmark_list')}【B】", classes="btn", id="bookmark-list-btn")
-                yield Button(f"{get_global_i18n().t('reader.translation')}【l】", classes="btn", id="translation-btn")
-                yield Button(f"{get_global_i18n().t('reader.vocabulary')}【w】", classes="btn", id="vocabulary-btn")
-                yield Button(f"{get_global_i18n().t('reader.aloud')}【R】", classes="btn", id="aloud-btn")
-                yield Button(f"{get_global_i18n().t('reader.auto_page')}【a】", classes="btn", id="auto-page-btn")
-                yield Button(f"{get_global_i18n().t('reader.settings')}【s】", classes="btn", id="settings-btn")
-                yield Button(f"{get_global_i18n().t('bookshelf.view_file')}【o】", classes="btn", id="view-file-btn")
-                yield Button(f"{get_global_i18n().t('crawler.browser_read_book')}【O】", classes="btn", id="view-browser-btn")
+                yield Button(f"{get_global_i18n().t('common.bookmark_list')}【B】", classes="btn", id="bookmark-list-btn")
+                yield Button(f"{get_global_i18n().t('common.translate')}【l】", classes="btn", id="translation-btn")
+                yield Button(f"{get_global_i18n().t('common.wordbook')}【w】", classes="btn", id="vocabulary-btn")
+                yield Button(f"{get_global_i18n().t('common.read_aloud')}【R】", classes="btn", id="aloud-btn")
+                yield Button(f"{get_global_i18n().t('common.auto_page')}【a】", classes="btn", id="auto-page-btn")
+                yield Button(f"{get_global_i18n().t('common.settings')}【s】", classes="btn", id="settings-btn")
+                yield Button(f"{get_global_i18n().t('common.view_file')}【o】", classes="btn", id="view-file-btn")
+                yield Button(f"{get_global_i18n().t('common.browser')}【O】", classes="btn", id="view-browser-btn")
                 yield Button(f"{get_global_i18n().t('common.back')}【q】", classes="btn", id="reader-back-btn")
         
         # 状态栏
@@ -1577,7 +1577,7 @@ class ReaderScreen(ScreenStyleMixin, Screen[None]):
             book_path = self.book.path
             if not book_path or not os.path.exists(book_path):
                 self.notify(
-                    get_global_i18n().t("reader.browser_read_file_missing", default="文件不存在"),
+                    get_global_i18n().t("common.file_not_exist", default="文件不存在"),
                     severity="error"
                 )
                 return
@@ -1816,9 +1816,9 @@ class ReaderScreen(ScreenStyleMixin, Screen[None]):
                 user_id = current_user.get('id') if current_user else None
                 
                 if bookmark_id and self.bookmark_manager.remove_bookmark(bookmark_id, user_id):
-                    self.notify(f"{get_global_i18n().t('reader.bookmark_deleted')}", severity="information")
+                    self.notify(f"{get_global_i18n().t('common.bookmark_deleted')}", severity="information")
                 else:
-                    self.notify(f"{get_global_i18n().t('reader.bookmark_delete_failed')}", severity="error")
+                    self.notify(f"{get_global_i18n().t('common.delete_bookmark_failed')}", severity="error")
             else:
                 # 添加书签
                 bookmark_text = self._get_current_position_text()
@@ -1846,7 +1846,7 @@ class ReaderScreen(ScreenStyleMixin, Screen[None]):
                             user_id = current_user.get('id') if current_user else None
                             
                             if self.bookmark_manager.add_bookmark(new_bookmark, user_id):
-                                self.notify(f"{get_global_i18n().t('reader.bookmark_added')}", severity="information")
+                                self.notify(f"{get_global_i18n().t('common.bookmark_added')}", severity="information")
                             else:
                                 self.notify(f"{get_global_i18n().t('reader.bookmark_add_failed')}", severity="error")
                         except Exception as e:
@@ -1983,11 +1983,11 @@ class ReaderScreen(ScreenStyleMixin, Screen[None]):
                     if search_results:
                         self.app.push_screen(SearchResultsScreen(search_keyword, search_results, self.theme_manager, self.renderer))
                     else:
-                        self.notify(f"{get_global_i18n().t('reader.no_match')}", severity="warning")
+                        self.notify(f"{get_global_i18n().t('common.no_match')}", severity="warning")
                 except Exception as e:
                     # 隐藏加载动画
                     self._hide_loading_animation()
-                    self.notify(f"{get_global_i18n().t('reader.search_failed')}: {e}", severity="error")
+                    self.notify(f"{get_global_i18n().t('common.search_failed')}: {e}", severity="error")
         
         self.app.push_screen(ContentSearchDialog(self.theme_manager), on_search)
     
@@ -2555,7 +2555,7 @@ class ReaderScreen(ScreenStyleMixin, Screen[None]):
         # 更新标题栏书名（保持原位置）
         try:
             title_label = self.query_one("#header-title", Label)
-            book_title = getattr(self.book, 'title', get_global_i18n().t('reader.unknow_book'))
+            book_title = getattr(self.book, 'title', get_global_i18n().t('common.unknown_book'))
             title_label.update(f"📖 {book_title}")
         except Exception:
             pass
@@ -2689,7 +2689,7 @@ class ReaderScreen(ScreenStyleMixin, Screen[None]):
             
         except Exception as e:
             logger.error(f"翻译选中的文本失败: {e}")
-            self.notify(f"{get_global_i18n().t('selection_mode.trans_failed')}: {e}", severity="error")
+            self.notify(f"{get_global_i18n().t('common.translate_failed')}: {e}", severity="error")
     
     def _open_vocabulary(self) -> None:
         """打开单词本对话框"""
@@ -3540,7 +3540,7 @@ class ReaderScreen(ScreenStyleMixin, Screen[None]):
             
             # 检查文件是否存在
             if not os.path.exists(book_path):
-                self.notify(f"{get_global_i18n().t("bookshelf.file_not_exists")}: {book_path}", severity="error")
+                self.notify(f"{get_global_i18n().t("common.file_not_exist")}: {book_path}", severity="error")
                 return
             
             # 根据操作系统打开文件管理器

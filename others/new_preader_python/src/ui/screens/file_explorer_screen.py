@@ -96,7 +96,7 @@ class FileExplorerScreen(ScreenStyleMixin, Screen[Optional[Union[str, List[str]]
             else:
                 self.title = get_global_i18n().t("file_explorer.select_file")
         else:
-            self.title = get_global_i18n().t("file_explorer.select_directory")
+            self.title = get_global_i18n().t("common.select_dir")
             
         self.__class__.TITLE = self.title
         self.logger = get_logger(__name__)
@@ -148,12 +148,12 @@ class FileExplorerScreen(ScreenStyleMixin, Screen[Optional[Union[str, List[str]]
                     with Vertical(id="navigation-bar-right"):
                         if self.selection_mode == "file":
                             # 如果是文件选择模式，则显示搜索框和按钮 start
-                            yield Label(get_global_i18n().t("file_explorer.diff_mode"), id="file-explorer-diff-mode-label")
+                            yield Label(get_global_i18n().t("common.diff_mode"), id="file-explorer-diff-mode-label")
                             # 添加书籍场景（非直接打开）默认开启比较差异，只列出书库中不存在的书籍
                             yield Switch(value=self.default_diff_mode, id="file-explorer-diff-mode-switch")
                             yield Input(placeholder=get_global_i18n().t("file_explorer.search_placeholder"), id="file-explorer-search-input")
                             # 动态生成搜索选择框选项
-                            search_options = [(get_global_i18n().t("search.all_formats"), "all")]
+                            search_options = [(get_global_i18n().t("common.all_formats"), "all")]
                             # 根据self.file_extensions生成格式选项
                             for ext in self.file_extensions:
                                 # 去掉点号，转换为大写作为显示名称
@@ -163,7 +163,7 @@ class FileExplorerScreen(ScreenStyleMixin, Screen[Optional[Union[str, List[str]]
                             yield Select(id="file-explorer-search-select", options=search_options, prompt=get_global_i18n().t("common.select_ext_prompt"))
                             yield Button(get_global_i18n().t("common.search"), id="file-explorer-search-btn")
                             # 如果是文件选择模式，则显示搜索框和按钮 end
-                            yield Button(get_global_i18n().t("file_explorer.select_all"), id="select-all-btn")
+                            yield Button(get_global_i18n().t("common.select_all"), id="select-all-btn")
                             yield Button(get_global_i18n().t("file_explorer.select_file"), id="select-btn")
                             # 删除选中文件：把选中的书籍文件移动到回收站
                             yield Button(
@@ -172,7 +172,7 @@ class FileExplorerScreen(ScreenStyleMixin, Screen[Optional[Union[str, List[str]]
                                 variant="error",
                             )
                         else:
-                            yield Button(get_global_i18n().t("file_explorer.select_directory"), id="select-btn")
+                            yield Button(get_global_i18n().t("common.select_dir"), id="select-btn")
                         yield Button(get_global_i18n().t("common.cancel"), id="cancel-btn")
                 
                 # 补全建议列表（初始隐藏）
@@ -388,7 +388,7 @@ class FileExplorerScreen(ScreenStyleMixin, Screen[Optional[Union[str, List[str]]
                 # 如果缓存不存在，才调用os.listdir
                 file_count = len([f for f in os.listdir(self.current_path) if os.path.isfile(os.path.join(self.current_path, f))])
                 dir_count = len([d for d in os.listdir(self.current_path) if os.path.isdir(os.path.join(self.current_path, d))])
-            status_info.update(f"{get_global_i18n().t("file_explorer.file")}: {file_count} | {get_global_i18n().t("file_explorer.path")}: {dir_count}")
+            status_info.update(f"{get_global_i18n().t("common.file")}: {file_count} | {get_global_i18n().t("file_explorer.path")}: {dir_count}")
         except (PermissionError, OSError):
             status_info.update(get_global_i18n().t("file_explorer.cannot_visit"))
     
@@ -427,7 +427,7 @@ class FileExplorerScreen(ScreenStyleMixin, Screen[Optional[Union[str, List[str]]
                     file_count = len([f for f in os.listdir(self.current_path) if os.path.isfile(os.path.join(self.current_path, f))])
                     dir_count = len([d for d in os.listdir(self.current_path) if os.path.isdir(os.path.join(self.current_path, d))])
                 mode_text = get_global_i18n().t("file_explorer.multype_mode") if is_multiple_mode else get_global_i18n().t("file_explorer.single_mode")
-                status_info.update(f"{get_global_i18n().t("file_explorer.file")}: {file_count} | {get_global_i18n().t("file_explorer.path")}: {dir_count} ({mode_text})")
+                status_info.update(f"{get_global_i18n().t("common.file")}: {file_count} | {get_global_i18n().t("file_explorer.path")}: {dir_count} ({mode_text})")
             except (PermissionError, OSError):
                 mode_text = get_global_i18n().t("file_explorer.multype_mode") if is_multiple_mode else get_global_i18n().t("file_explorer.single_mode")
                 status_info.update(f"{get_global_i18n().t("file_explorer.cannot_visit")} ({mode_text})")
@@ -709,7 +709,7 @@ class FileExplorerScreen(ScreenStyleMixin, Screen[Optional[Union[str, List[str]]
                 self._load_file_list()
                 self._load_directory_tree()
             else:
-                self.notify(get_global_i18n().t("file_explorer.invalid_directory"), severity="error")
+                self.notify(get_global_i18n().t("common.invalid_dir_path"), severity="error")
         except Exception as e:
             self.notify(f"{get_global_i18n().t("file_explorer.nav_failed")}: {e}", severity="error")
     
@@ -747,14 +747,14 @@ class FileExplorerScreen(ScreenStyleMixin, Screen[Optional[Union[str, List[str]]
             
             if is_multiple_mode:
                 if self.selection_mode == "file":
-                    self.notify(get_global_i18n().t("file_explorer.no_files_selected"), severity="warning")
+                    self.notify(get_global_i18n().t("common.no_file_selected"), severity="warning")
                 else:
-                    self.notify(get_global_i18n().t("file_explorer.no_directory_selected"), severity="warning")
+                    self.notify(get_global_i18n().t("common.no_dir_selected"), severity="warning")
             else:
                 if self.selection_mode == "file":
                     self.notify(get_global_i18n().t("file_explorer.no_file_selected"), severity="warning")
                 else:
-                    self.notify(get_global_i18n().t("file_explorer.no_directory_selected"), severity="warning")
+                    self.notify(get_global_i18n().t("common.no_dir_selected"), severity="warning")
             return
         
         # 根据模式决定行为
@@ -780,7 +780,7 @@ class FileExplorerScreen(ScreenStyleMixin, Screen[Optional[Union[str, List[str]]
                     try:
                         _sel = self.file_items[self.selected_file_index]
                         if _sel.get("type") == "file":
-                            self.notify(get_global_i18n().t("file_explorer.unsupported_format"), severity="warning")
+                            self.notify(get_global_i18n().t("common.unsupported_fmt"), severity="warning")
                             return
                     except (IndexError, KeyError):
                         pass
@@ -864,7 +864,7 @@ class FileExplorerScreen(ScreenStyleMixin, Screen[Optional[Union[str, List[str]]
     def action_back_button(self) -> None:
         """b 键 - 返回上一级目录"""
         if not self._has_permission("file_explorer.back"):
-            self.notify(get_global_i18n().t("file_explorer.no_permission"), severity="warning")
+            self.notify(get_global_i18n().t("common.no_permission"), severity="warning")
             return
         
         # 返回上一级目录
@@ -875,7 +875,7 @@ class FileExplorerScreen(ScreenStyleMixin, Screen[Optional[Union[str, List[str]]
     def action_go_button(self) -> None:
         """g 键 - 导航到输入的路径"""
         if not self._has_permission("file_explorer.go"):
-            self.notify(get_global_i18n().t("file_explorer.no_permission"), severity="warning")
+            self.notify(get_global_i18n().t("common.no_permission"), severity="warning")
             return
         
         # 导航到输入的路径
@@ -887,7 +887,7 @@ class FileExplorerScreen(ScreenStyleMixin, Screen[Optional[Union[str, List[str]]
     def action_home_button(self) -> None:
         """h 键 - 返回主目录"""
         if not self._has_permission("file_explorer.home"):
-            self.notify(get_global_i18n().t("file_explorer.no_permission"), severity="warning")
+            self.notify(get_global_i18n().t("common.no_permission"), severity="warning")
             return
         
         # 返回主目录
@@ -896,7 +896,7 @@ class FileExplorerScreen(ScreenStyleMixin, Screen[Optional[Union[str, List[str]]
     def action_select_button(self) -> None:
         """enter/s 键 - 选择操作"""
         if not self._has_permission("file_explorer.select"):
-            self.notify(get_global_i18n().t("file_explorer.no_permission"), severity="warning")
+            self.notify(get_global_i18n().t("common.no_permission"), severity="warning")
             return
         
         # 选择操作
@@ -957,35 +957,35 @@ class FileExplorerScreen(ScreenStyleMixin, Screen[Optional[Union[str, List[str]]
             # 检查权限并设置按钮状态
             if not db_manager.has_permission(user_id, "file_explorer.back") and role != "super_admin" and role != "superadmin":
                 back_btn.disabled = True
-                back_btn.tooltip = get_global_i18n().t("file_explorer.no_permission")
+                back_btn.tooltip = get_global_i18n().t("common.no_permission")
             else:
                 back_btn.disabled = False
                 back_btn.tooltip = None
                 
             if not db_manager.has_permission(user_id, "file_explorer.go") and role != "super_admin" and role != "superadmin":
                 go_btn.disabled = True
-                go_btn.tooltip = get_global_i18n().t("file_explorer.no_permission")
+                go_btn.tooltip = get_global_i18n().t("common.no_permission")
             else:
                 go_btn.disabled = False
                 go_btn.tooltip = None
                 
             if not db_manager.has_permission(user_id, "file_explorer.home") and role != "super_admin" and role != "superadmin":
                 home_btn.disabled = True
-                home_btn.tooltip = get_global_i18n().t("file_explorer.no_permission")
+                home_btn.tooltip = get_global_i18n().t("common.no_permission")
             else:
                 home_btn.disabled = False
                 home_btn.tooltip = None
                 
             if not db_manager.has_permission(user_id, "file_explorer.select") and role != "super_admin" and role != "superadmin":
                 select_btn.disabled = True
-                select_btn.tooltip = get_global_i18n().t("file_explorer.no_permission")
+                select_btn.tooltip = get_global_i18n().t("common.no_permission")
             else:
                 select_btn.disabled = False
                 select_btn.tooltip = None
                 
             if not db_manager.has_permission(user_id, "file_explorer.cancel") and role != "super_admin" and role != "superadmin":
                 cancel_btn.disabled = True
-                cancel_btn.tooltip = get_global_i18n().t("file_explorer.no_permission")
+                cancel_btn.tooltip = get_global_i18n().t("common.no_permission")
             else:
                 cancel_btn.disabled = False
                 cancel_btn.tooltip = None
@@ -998,7 +998,7 @@ class FileExplorerScreen(ScreenStyleMixin, Screen[Optional[Union[str, List[str]]
         """按钮点击处理"""
         # 检查权限
         if event.button.id and not self._has_button_permission(event.button.id):
-            self.notify(get_global_i18n().t("file_explorer.np_action"), severity="warning")
+            self.notify(get_global_i18n().t("common.no_permission_op"), severity="warning")
             return
             
         if event.button.id == "back-btn":
@@ -1129,7 +1129,7 @@ class FileExplorerScreen(ScreenStyleMixin, Screen[Optional[Union[str, List[str]]
             # 检查文件是否为支持的格式
             ext = FileUtils.get_file_extension(self.selected_file)
             if ext not in self.file_extensions:
-                self.notify(get_global_i18n().t("file_explorer.unsupported_format"), severity="error")
+                self.notify(get_global_i18n().t("common.unsupported_fmt"), severity="error")
                 return
             
             # 创建书籍对象并打开
@@ -1139,7 +1139,7 @@ class FileExplorerScreen(ScreenStyleMixin, Screen[Optional[Union[str, List[str]]
             file_name = os.path.basename(self.selected_file)
             book_name = FileUtils.get_file_name(self.selected_file)
             
-            book = Book(self.selected_file, book_name, get_global_i18n().t("app.unknown_author"))
+            book = Book(self.selected_file, book_name, get_global_i18n().t("common.unknown_author"))
             bookmark_manager = BookmarkManager()
             
             # 打开阅读器并关闭当前文件资源管理器
@@ -1156,7 +1156,7 @@ class FileExplorerScreen(ScreenStyleMixin, Screen[Optional[Union[str, List[str]]
             
         except Exception as e:
             self.logger.error(f"打开文件失败: {e}")
-            self.notify(f"{get_global_i18n().t("file_explorer.open_failed")}: {e}", severity="error")
+            self.notify(f"{get_global_i18n().t("common.open_file_failed")}: {e}", severity="error")
     
     def _has_button_permission(self, button_id: str) -> bool:
         """检查按钮权限"""
@@ -1281,7 +1281,7 @@ class FileExplorerScreen(ScreenStyleMixin, Screen[Optional[Union[str, List[str]]
                     self._update_selection_status()
             else:
                 # 其他文件类型，显示不支持的提示
-                self.notify(get_global_i18n().t("file_explorer.unsupported_format"), severity="warning")
+                self.notify(get_global_i18n().t("common.unsupported_fmt"), severity="warning")
     
     @on(ListView.Highlighted)
     def on_file_list_highlighted(self, message: ListView.Highlighted) -> None:
@@ -1661,13 +1661,13 @@ class FileExplorerScreen(ScreenStyleMixin, Screen[Optional[Union[str, List[str]]
         
         # 如果正在进行搜索（有搜索关键词或选择了特定文件类型）
         if search_keyword or file_type != "all":
-            status_info.update(f"{get_global_i18n().t("file_explorer.search_results")}: {result_count}")
+            status_info.update(f"{get_global_i18n().t("common.search_result")}: {result_count}")
         else:
             # 如果没有搜索条件，显示正常状态
             try:
                 file_count = len([f for f in os.listdir(self.current_path) if os.path.isfile(os.path.join(self.current_path, f))])
                 dir_count = len([d for d in os.listdir(self.current_path) if os.path.isdir(os.path.join(self.current_path, d))])
-                status_info.update(f"{get_global_i18n().t("file_explorer.file")}: {file_count} | {get_global_i18n().t("file_explorer.path")}: {dir_count}")
+                status_info.update(f"{get_global_i18n().t("common.file")}: {file_count} | {get_global_i18n().t("file_explorer.path")}: {dir_count}")
             except (PermissionError, OSError):
                 status_info.update(get_global_i18n().t("file_explorer.cannot_visit"))
     

@@ -34,13 +34,13 @@ class DuplicateBooksDialog(ModalScreen[Dict[str, Any]]):
         ("s", "select_current", get_global_i18n().t('duplicate_books.select_current')),
         ("a", "toggle_select_current_page", get_global_i18n().t('duplicate_books.toggle_select_current_page')),
         ("A", "toggle_select_all_pages", get_global_i18n().t('duplicate_books.toggle_select_all_pages')),
-        ("v", "preview_current", get_global_i18n().t('crawler.preview')),
+        ("v", "preview_current", get_global_i18n().t('common.preview')),
         ("n", "next_group", get_global_i18n().t('duplicate_books.next_group')),
         ("p", "prev_group", get_global_i18n().t('duplicate_books.prev_group')),
-        ("t", "skip_group", get_global_i18n().t('duplicate_books.skip_group')),
+        ("t", "skip_group", get_global_i18n().t('common.skip_group')),
         ("F", "view_file_current", get_global_i18n().t('duplicate_books.view_file_current')),
         ("D", "select_current_group_recommended", get_global_i18n().t('duplicate_books.select_current_group_recommended')),
-        ("y", "copy_current_title", get_global_i18n().t('duplicate_books.copy_current_title')),
+        ("y", "copy_current_title", get_global_i18n().t('common.copy_title')),
     ]
     
     def __init__(self, theme_manager: ThemeManager, duplicate_groups: List[DuplicateGroup],
@@ -107,11 +107,11 @@ class DuplicateBooksDialog(ModalScreen[Dict[str, Any]]):
                 Horizontal(
                     Button(get_global_i18n().t("duplicate_books.compare_selected"), id="compare-btn", variant="primary"),
                     Button(get_global_i18n().t("duplicate_books.select_recommended"), id="select-recommended-btn", variant="primary"),
-                    Button(get_global_i18n().t("duplicate_books.deselect_all"), id="deselect-all-btn"),
-                    Button(get_global_i18n().t("duplicate_books.delete_selected"), id="delete-btn", variant="error"),
+                    Button(get_global_i18n().t("common.deselect"), id="deselect-all-btn"),
+                    Button(get_global_i18n().t("common.delete_selected"), id="delete-btn", variant="error"),
                     Button(get_global_i18n().t("duplicate_books.next_group"), id="next-group-btn"),
                     Button(get_global_i18n().t("duplicate_books.prev_group"), id="prev-group-btn"),
-                    Button(get_global_i18n().t("duplicate_books.skip_group"), id="skip-group-btn", variant="warning"),
+                    Button(get_global_i18n().t("common.skip_group"), id="skip-group-btn", variant="warning"),
                     Button(get_global_i18n().t("common.cancel"), id="cancel-btn")
                 ),
                 
@@ -150,14 +150,14 @@ class DuplicateBooksDialog(ModalScreen[Dict[str, Any]]):
             
             # 添加列
             table.add_column(get_global_i18n().t("batch_ops.index"), key="index")
-            table.add_column(get_global_i18n().t("bookshelf.title"), key="title")
-            table.add_column(get_global_i18n().t("bookshelf.author"), key="author")
-            table.add_column(get_global_i18n().t("bookshelf.size"), key="size")
-            table.add_column(get_global_i18n().t("bookshelf.format"), key="format")
+            table.add_column(get_global_i18n().t("common.bookshelf"), key="title")
+            table.add_column(get_global_i18n().t("common.author"), key="author")
+            table.add_column(get_global_i18n().t("common.size"), key="size")
+            table.add_column(get_global_i18n().t("common.format"), key="format")
             table.add_column(get_global_i18n().t("duplicate_books.recommended"), key="recommended")
-            table.add_column(get_global_i18n().t("bookshelf.view_file"), key="view_action")  # 查看文件按钮列
-            table.add_column(get_global_i18n().t("crawler.preview"), key="preview")  # 预览按钮列
-            table.add_column(get_global_i18n().t("duplicate_books.selected"), key="selected")
+            table.add_column(get_global_i18n().t("common.view_file"), key="view_action")  # 查看文件按钮列
+            table.add_column(get_global_i18n().t("common.preview"), key="preview")  # 预览按钮列
+            table.add_column(get_global_i18n().t("common.checked"), key="selected")
             
             # 启用隔行变色效果
             table.zebra_stripes = True
@@ -268,9 +268,9 @@ class DuplicateBooksDialog(ModalScreen[Dict[str, Any]]):
                 size_str = "未知"
             
             # 添加查看文件按钮
-            view_file_button = f"[{get_global_i18n().t('bookshelf.view_file')}]"
+            view_file_button = f"[{get_global_i18n().t('common.view_file')}]"
             # 添加预览按钮
-            preview_button = f"[{get_global_i18n().t('crawler.preview')}]"
+            preview_button = f"[{get_global_i18n().t('common.preview')}]"
             
             # 准备行数据 - 使用书籍路径作为键
             try:
@@ -1057,7 +1057,7 @@ class DuplicateBooksDialog(ModalScreen[Dict[str, Any]]):
             
             # 检查文件是否存在
             if not os.path.exists(book_path):
-                self.notify(f"{get_global_i18n().t('bookshelf.file_not_exists')}: {book_path}", severity="error")
+                self.notify(f"{get_global_i18n().t('common.file_not_exist')}: {book_path}", severity="error")
                 return
             
             # 根据操作系统打开文件管理器
@@ -1092,7 +1092,7 @@ class DuplicateBooksDialog(ModalScreen[Dict[str, Any]]):
                 return
             
             if not os.path.exists(file_path):
-                self.notify(f"{get_global_i18n().t('crawler.file_not_exists')}: {file_path}", severity="warning")
+                self.notify(f"{get_global_i18n().t('common.file_not_exist')}: {file_path}", severity="warning")
                 return
             
             # 读取文件前2000字，自动检测编码（charset-normalizer 优先，

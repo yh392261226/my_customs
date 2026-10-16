@@ -73,7 +73,7 @@ class SelectBooksDialog(ModalScreen[Optional[str]]):
         yield Container(
             Grid(
                 Vertical(
-                    Label(get_global_i18n().t('select_books.select_books'), id="get-books-title"),
+                    Label(get_global_i18n().t('common.select_book'), id="get-books-title"),
                 ),
                 # 顶部工具栏（与书架屏幕风格一致）
                 Vertical(
@@ -165,10 +165,10 @@ class SelectBooksDialog(ModalScreen[Optional[str]]):
         # 初始化表格
         table = self.query_one("#books-table", DataTable)
         table.clear(columns=True)
-        table.add_column(get_global_i18n().t('select_books.selected'), key="selected")
+        table.add_column(get_global_i18n().t('common.checked'), key="selected")
         table.add_column(get_global_i18n().t('select_books.id'), key="id")
         table.add_column(get_global_i18n().t('select_books.title'), key="title")
-        table.add_column(get_global_i18n().t('select_books.status'), key="status")
+        table.add_column(get_global_i18n().t('common.status'), key="status")
         table.add_column(get_global_i18n().t('select_books.desc'), key="desc")
         table.zebra_stripes = True
         table.show_cursor = True
