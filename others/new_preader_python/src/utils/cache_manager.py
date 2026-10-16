@@ -5,7 +5,7 @@
 
 import time
 import threading
-from typing import Any, Optional, Tuple, Dict, Union
+from typing import Any, Optional, Tuple, Dict, Union, List, Callable
 
 class CacheItem:
     __slots__ = ("value", "expires_at", "size", "access_count", "last_access_time")
@@ -280,3 +280,51 @@ def make_key(*parts: Any) -> Tuple[Any, ...]:
         except Exception:
             normalized.append(str(p))
     return tuple(normalized)
+
+
+# ----------------------------------------------------------------------
+# 集中式内存释放入口
+# ----------------------------------------------------------------------
+# 各模块（书籍正文、渲染缓冲等）注册释放钩子，统一在内存压力下调用。
+_release_hooks: List[Callable[[str], None]] = []
+_release_hooks_lock = threading.Lock()
+
+# 释放等级 -> 缓存收缩比例（相对各自 max_bytes）
+_RELEASE_RATIO = {
+    "soft": 0.75,
+    "normal": 0.5,
+    "aggressive": 0.0,   # 0 表示尽量清空
+}
+
+
+def register_release_hook(hook: Callable[[str], None]) -> None:
+    """注册内存释放钩子，level 传入 'soft'/'normal'/'aggressive'。"""
+    with _release_hooks_lock:
+        if hook not in _release_hooks:
+            _release_hooks.append(hook)
+
+
+def release_memory(level: str = "normal") -> int:
+    """集中释放内存：收缩全部缓存并调用已注册的释放钩子。
+
+    Returns:
+        int: 本次释放涉及的缓存项/对象估算数量（仅用于日志/调试）。
+    """
+    ratio = _RELEASE_RATIO.get(level, 0.5)
+    released = 0
+    for cache in (parse_cache, paginate_cache, parsing_result_cache):
+        try:
+            target = int(cache._max_bytes * ratio)
+            before = len(cache._store)
+            cache.shrink_to_target(target)
+            released += max(0, before - len(cache._store))
+        except Exception:
+            pass
+    with _release_hooks_lock:
+        hooks = list(_release_hooks)
+    for hook in hooks:
+        try:
+            hook(level)
+        except Exception:
+            pass
+    return released

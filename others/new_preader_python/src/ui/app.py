@@ -509,7 +509,7 @@ class NewReaderApp(App[None]):
         # 启动内存监控器：根据配置的缓存大小选择阈值
         try:
             from src.utils.memory_monitor import MemoryMonitor
-            from src.utils.cache_manager import parse_cache, paginate_cache
+            from src.utils.cache_manager import release_memory
             cfg = self.config_manager.get_config()
             adv = cfg.get("advanced", {})
             cache_mb = int(adv.get("cache_size", 100))
@@ -518,18 +518,21 @@ class NewReaderApp(App[None]):
             target = max(32, int(cache_mb)) * 1024 * 1024
 
             def on_pressure():
-                # 收缩缓存，并尝试释放渲染结果
+                # 集中释放：收缩全部缓存（含 parsing_result_cache）并触发已注册钩子
+                # （书籍正文 LRU 回收、渲染缓冲释放等）
                 try:
-                    paginate_cache.shrink_to_target(target // 2)
-                    parse_cache.shrink_to_target(target // 2)
+                    release_memory("normal")
                 except Exception:
                     pass
                 try:
-                    # 释放当前屏幕的渲染结果（若支持）
+                    # 释放当前屏幕的渲染结果（若支持）；保留正文，避免界面空白
                     if hasattr(self, "screen") and self.screen:
                         rdr = getattr(self.screen, "content_renderer", None)
-                        if rdr and hasattr(rdr, "rendered_pages"):
-                            rdr.rendered_pages = []
+                        if rdr is not None:
+                            if hasattr(rdr, "rendered_pages"):
+                                rdr.rendered_pages = []
+                            if hasattr(rdr, "pages"):
+                                rdr.pages = []
                 except Exception:
                     pass
 

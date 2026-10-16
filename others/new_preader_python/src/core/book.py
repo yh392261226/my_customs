@@ -6,11 +6,58 @@ import os
 import json
 import time
 import asyncio
+import threading
 from datetime import datetime
 from typing import Dict, List, Any, Optional, Set, Tuple
 
-from src.utils.cache_manager import parse_cache, make_key
+from src.utils.cache_manager import parse_cache, make_key, register_release_hook
 from src.utils import file_utils as _fu
+
+
+# ----------------------------------------------------------------------
+# 书籍正文内存回收（LRU）
+# ----------------------------------------------------------------------
+# 同时保留正文的书籍数量上限；超出后最久未使用的书籍正文被释放
+# （再次访问时由 parse_cache 或磁盘重新加载，代价很低）。
+_MAX_LOADED_CONTENTS = 8
+_loaded_contents: Dict[str, "Book"] = {}
+_loaded_order: List[str] = []          # LRU 顺序，末尾为最新访问
+_loaded_lock = threading.Lock()
+
+
+def _register_content(book: "Book") -> None:
+    """记录一本书的正文已加载，并按 LRU 淘汰溢出部分。"""
+    p = book.path
+    if not p:
+        return
+    with _loaded_lock:
+        if p in _loaded_order:
+            _loaded_order.remove(p)
+        _loaded_order.append(p)
+        _loaded_contents[p] = book
+        while len(_loaded_order) > _MAX_LOADED_CONTENTS:
+            old = _loaded_order.pop(0)
+            old_book = _loaded_contents.pop(old, None)
+            if old_book is not None:
+                old_book._release_content()
+
+
+def _release_loaded_contents(level: str = "normal") -> int:
+    """释放已加载的书籍正文。level 越激进保留的书籍越少。"""
+    keep_recent = {"aggressive": 1, "normal": 3, "soft": 5}.get(level, 3)
+    released = 0
+    with _loaded_lock:
+        evict = _loaded_order[:-keep_recent] if keep_recent > 0 else list(_loaded_order)
+        for p in evict:
+            b = _loaded_contents.pop(p, None)
+            if b is not None and b._release_content():
+                released += 1
+        _loaded_order[:] = _loaded_order[-keep_recent:] if keep_recent > 0 else []
+    return released
+
+
+# 注册到集中式内存释放入口
+register_release_hook(_release_loaded_contents)
 
 from src.config.default_config import SUPPORTED_FORMATS
 from src.utils.logger import get_logger
@@ -346,6 +393,18 @@ class Book:
             logger.info(f"没有找到上次阅读位置信息: {self.title}")
             return False
     
+    def _release_content(self) -> bool:
+        """释放正文（最大块内存）。丢失后下次访问会重新从解析缓存/磁盘加载。
+
+        Returns:
+            bool: 是否真正释放了内容。
+        """
+        released = self._content_loaded and self._content is not None
+        if released:
+            self._content = None
+            self._content_loaded = False
+        return released
+
     def get_content(self) -> str:
         """
         获取书籍内容，根据文件格式调用相应的解析器
@@ -378,6 +437,7 @@ class Book:
                     self.chapters = result["chapters"]
                 self._content_loaded = True
                 self.word_count = len(self._content or "")
+                _register_content(self)
                 return self._content
         except Exception:
             pass
@@ -387,6 +447,7 @@ class Book:
             self._content = ""
             self._content_loaded = True
             self.word_count = 0
+            _register_content(self)
             return self._content
         
         # 根据文件格式选择处理方式
@@ -416,6 +477,7 @@ class Book:
         if self._content:
             self.word_count = len(self._content)
         
+        _register_content(self)
         return self._content
     
     def _read_text_file(self) -> str:
