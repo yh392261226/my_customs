@@ -19,7 +19,7 @@ from http.server import BaseHTTPRequestHandler, ThreadingHTTPServer
 from urllib.parse import unquote
 
 from . import routes
-from .http_utils import send_json, send_error, read_json_body, parse_query
+from .http_utils import send_json, send_error, read_json_body, parse_query, get_str
 
 COLLECTIONS = ("books", "websites", "crawls")
 
@@ -170,6 +170,15 @@ class ApiHandler(BaseHTTPRequestHandler):
                 if method == "POST":
                     res = routes.route_open_book(body, _OPEN_BOOK_CB)
                     send_json(self, 200, res)
+                else:
+                    send_error(self, 405, "Method Not Allowed")
+                return
+
+            if seg == "distinct" and len(parts) == 2:
+                if method == "GET":
+                    res = routes.route_distinct(get_str(query, "collection"), query)
+                    if res is not None:
+                        send_json(self, 200, res)
                 else:
                     send_error(self, 405, "Method Not Allowed")
                 return

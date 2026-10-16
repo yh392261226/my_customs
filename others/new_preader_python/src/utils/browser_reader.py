@@ -1096,34 +1096,45 @@ SYNC_CSS = r"""
 .br-sync-badge.offline { background: #b45309; }
 .br-sync-detail { font-size: 11px; opacity: 0.85; margin-top: 2px; }
 
-/* 数据同步面板 */
+/* 数据同步面板（放大、内部独立滚动，可独立作为联网阅读器界面） */
 .br-sync-panel {
-  position: fixed; top: 80px; right: 10px; width: 320px; max-height: 70vh; overflow: auto;
+  position: fixed; top: 86px; right: 10px; bottom: 10px; width: 720px; max-width: 95vw; max-height: calc(100vh - 96px);
   z-index: 99998; background: #0f1115; color: #e8eaf0; border: 1px solid #2a2f3a;
-  border-radius: 10px; box-shadow: 0 8px 24px rgba(0,0,0,0.5); font-size: 13px;
+  border-radius: 12px; box-shadow: 0 12px 36px rgba(0,0,0,0.55); font-size: 13px;
+  display: flex; flex-direction: column; overflow: hidden;
 }
-.br-sync-head { display: flex; justify-content: space-between; align-items: center; padding: 10px 12px; border-bottom: 1px solid #2a2f3a; font-weight: 600; }
+.br-sync-head { display: flex; justify-content: space-between; align-items: center; padding: 10px 14px; border-bottom: 1px solid #2a2f3a; font-weight: 600; }
 .br-sync-x { background: none; border: none; color: #aaa; font-size: 18px; cursor: pointer; line-height: 1; }
-.br-sync-status { padding: 6px 12px; font-size: 11px; color: #9aa4b2; border-bottom: 1px solid #2a2f3a; }
-.br-sync-key { display: flex; gap: 6px; padding: 8px 12px; border-bottom: 1px solid #2a2f3a; }
+.br-sync-status { padding: 6px 14px; font-size: 11px; color: #9aa4b2; border-bottom: 1px solid #2a2f3a; }
+.br-sync-key { display: flex; gap: 6px; padding: 8px 14px; border-bottom: 1px solid #2a2f3a; }
 .br-sync-key input { flex: 1; padding: 6px 8px; border-radius: 6px; border: 1px solid #2a2f3a; background: #161a22; color: #e8eaf0; }
 .br-sync-key button { padding: 6px 10px; border-radius: 6px; border: none; background: #374151; color: #fff; cursor: pointer; }
-.br-sync-tabs { display: flex; gap: 4px; padding: 8px 12px 0; }
+.br-sync-tabs { display: flex; gap: 4px; padding: 8px 14px 0; }
 .br-sync-tabs button { flex: 1; padding: 6px; background: #1a1e26; color: #cbd5e1; border: 1px solid #2a2f3a; border-radius: 6px; cursor: pointer; }
 .br-sync-tabs button.active { background: #2563eb; color: #fff; border-color: #2563eb; }
-.br-sync-search { display: flex; gap: 6px; padding: 8px 12px; }
+.br-sync-search { display: flex; gap: 6px; padding: 8px 14px; }
 .br-sync-search input { flex: 1; padding: 6px 8px; border-radius: 6px; border: 1px solid #2a2f3a; background: #161a22; color: #e8eaf0; }
 .br-sync-search button, .br-sync-foot button { padding: 6px 10px; border-radius: 6px; border: none; background: #2563eb; color: #fff; cursor: pointer; }
-.br-sync-list { padding: 4px 12px; min-height: 60px; }
-.br-sync-item { padding: 6px 8px; border-bottom: 1px solid #20242c; cursor: pointer; }
+.br-sync-toolbar { display: flex; flex-wrap: wrap; gap: 8px; padding: 6px 14px 10px; border-bottom: 1px solid #2a2f3a; }
+.br-sync-toolbar .br-f { display: flex; flex-direction: column; gap: 2px; font-size: 10px; color: #9aa4b2; }
+.br-sync-toolbar .br-f select { appearance: none; -webkit-appearance: none; -moz-appearance: none; padding: 6px 26px 6px 8px; border-radius: 6px; border: 1px solid #2a2f3a; background: #161a22 url("data:image/svg+xml;utf8,<svg xmlns='http://www.w3.org/2000/svg' width='12' height='12' viewBox='0 0 24 24' fill='none' stroke='%23e8eaf0' stroke-width='2' stroke-linecap='round' stroke-linejoin='round'><path d='M6 9l6 6 6-6'/></svg>") no-repeat right 8px center; color: #e8eaf0; font-size: 13px; min-width: 96px; cursor: pointer; outline: none; }
+.br-sync-toolbar .br-f select:focus { border-color: #2563eb; }
+.br-sync-list { padding: 4px 14px; overflow-y: auto; flex: 1 1 0; min-height: 0; }
+.br-sync-item { display: flex; gap: 8px; align-items: flex-start; padding: 8px 10px; border-bottom: 1px solid #20242c; cursor: pointer; }
 .br-sync-item:hover { background: #1b2029; }
-.br-sync-item .t { font-weight: 600; }
-.br-sync-item .s { font-size: 11px; color: #9aa4b2; word-break: break-all; }
+.br-sync-item .idx { flex: 0 0 28px; text-align: right; color: #6b7280; font-size: 12px; font-variant-numeric: tabular-nums; padding-top: 1px; user-select: none; }
+.br-sync-item .c { flex: 1; min-width: 0; }
+.br-sync-item .t { font-weight: 600; cursor: pointer; }
+.br-sync-item .t:hover { color: #60a5fa; text-decoration: underline; }
+.br-sync-item .s { font-size: 11px; color: #9aa4b2; word-break: break-all; margin-top: 2px; }
 .br-sync-item .s.link { color: #4facfe; text-decoration: underline; }
-.br-sync-item .src { font-size: 10px; color: #6b7280; }
-.br-sync-pager { display: flex; justify-content: space-between; align-items: center; padding: 8px 12px; border-top: 1px solid #2a2f3a; }
+.br-sync-item .meta { font-size: 10px; color: #6b7280; margin-top: 2px; word-break: break-all; }
+.br-sync-item .badge { display: inline-block; font-size: 10px; padding: 1px 6px; border-radius: 10px; margin-right: 4px; }
+.br-sync-item .badge.ok { background: #14361f; color: #4ade80; }
+.br-sync-item .badge.fail { background: #3a1d1d; color: #f87171; }
+.br-sync-pager { display: flex; justify-content: space-between; align-items: center; padding: 8px 14px; border-top: 1px solid #2a2f3a; }
 .br-sync-pager button { padding: 4px 10px; background: #1a1e26; color: #cbd5e1; border: 1px solid #2a2f3a; border-radius: 6px; cursor: pointer; }
-.br-sync-foot { padding: 8px 12px; border-top: 1px solid #2a2f3a; }
+.br-sync-foot { padding: 8px 14px; border-top: 1px solid #2a2f3a; }
 """
 
 SYNC_HTML = r"""
@@ -1144,6 +1155,7 @@ SYNC_HTML = r"""
     <input id="brSyncSearch" placeholder="搜索…" />
     <button id="brSyncRefresh">刷新</button>
   </div>
+  <div class="br-sync-toolbar" id="brSyncToolbar"></div>
   <div class="br-sync-list" id="brSyncList"></div>
   <div class="br-sync-pager">
     <button id="brSyncPrev">上一页</button>
@@ -1166,7 +1178,9 @@ SYNC_JS = r"""
   function setSecret(v){ try { localStorage.setItem('br_api_secret', v || ''); } catch(e){} }
   function escAttr(s){ return esc(s==null?'':String(s)).replace(/'/g, '&#39;'); }
 
-  var state = { col:'books', page:1, q:'', total:0 };
+  var PAGE_SIZE = 30;
+  var state = { col:'books', page:1, q:'', total:0, filters:{}, sort:'' };
+  var optCache = { author:[], site:[] };
 
   function brApi(method, path, body){
     return new Promise(function(resolve, reject){
@@ -1201,9 +1215,27 @@ SYNC_JS = r"""
     }).catch(function(){ setStatus(false); });
   }
 
+  function buildUrl(){
+    var url = '/api/'+state.col+'?page='+state.page+'&page_size='+PAGE_SIZE+'&q='+encodeURIComponent(state.q||'');
+    var f = state.filters;
+    if(state.col==='books'){
+      if(f.format) url += '&format='+encodeURIComponent(f.format);
+      if(f.author) url += '&author='+encodeURIComponent(f.author);
+    } else if(state.col==='crawls'){
+      if(f.status) url += '&status='+encodeURIComponent(f.status);
+      if(f.book_type) url += '&book_type='+encodeURIComponent(f.book_type);
+      if(f.site_id) url += '&site_id='+encodeURIComponent(f.site_id);
+    }
+    if(state.sort){
+      var sp = state.sort.split(' ');
+      url += '&sort='+encodeURIComponent(sp[0])+'&order='+encodeURIComponent(sp[1]||'desc');
+    }
+    return url;
+  }
+
   function pull(){
     var cacheKey = 'br_cache_'+state.col;
-    var url = '/api/'+state.col+'?page='+state.page+'&page_size=20&q='+encodeURIComponent(state.q||'');
+    var url = buildUrl();
     brApi('GET', url).then(function(r){
       if(r.status===200 && r.data && r.data.items){
         lsSet(cacheKey, {items:r.data.items, total:r.data.total, page:r.data.page, ts:Date.now(), source:'api'});
@@ -1217,39 +1249,60 @@ SYNC_JS = r"""
     });
   }
 
+  function fmtSize(n){ n=Number(n)||0; if(n>=1048576) return (n/1048576).toFixed(1)+' MB'; if(n>=1024) return Math.round(n/1024)+' KB'; return n+' B'; }
+  function trunc(s, n){ s=String(s==null?'':s); return s.length>n? s.slice(0,n)+'…' : s; }
+
   function render(items, total, source){
     var box = el('brSyncList'); if(!box) return;
     state.total = total||0;
     var pinfo = el('brSyncPageInfo');
-    if(pinfo){ pinfo.textContent = '第'+state.page+'页 / 共'+Math.max(1,Math.ceil(total/20))+'页 ('+(source==='cache'?'本地缓存':source==='api'?'后端':'空')+')'; }
-    if(!items || !items.length){ box.innerHTML = '<div class="br-sync-item"><div class="s">暂无数据</div></div>'; return; }
+    if(pinfo){ pinfo.textContent = '第'+state.page+'页 / 共'+Math.max(1,Math.ceil(total/PAGE_SIZE))+'页 · '+total+' 条 ('+(source==='cache'?'本地缓存':source==='api'?'后端':'空')+')'; }
+    if(!items || !items.length){ box.innerHTML = '<div class="br-sync-item"><div class="c"><div class="s">暂无数据</div></div></div>'; return; }
     var html = '';
     for(var i=0;i<items.length;i++){
       var it = items[i];
+      var idx = (state.page-1)*PAGE_SIZE + i + 1;
       if(state.col==='books'){
         var btitle = it.title || it.name || it.path || ('#'+it.id);
-        var bsub = it.author ? ('作者: '+it.author) : (it.path||'');
+        var sub = [it.author, it.format].filter(Boolean).join(' · ');
+        var meta = [it.add_date, it.tags?('标签:'+it.tags):'', it.file_size?fmtSize(it.file_size):''].filter(Boolean).join(' · ');
         html += '<div class="br-sync-item" data-open="book" data-path="'+escAttr(it.path||'')+'">'
-              + '<div class="t">'+esc(btitle)+'</div>'
-              + '<div class="s">'+esc(bsub)+'</div>'
-              + '<div class="src">后端 · 点击阅读</div></div>';
+              + '<span class="idx">'+idx+'</span>'
+              + '<div class="c">'
+              + '<div class="t br-t" data-copy="'+escAttr(btitle)+'" title="点击复制书名">'+esc(btitle)+'</div>'
+              + (sub?'<div class="s">'+esc(sub)+'</div>':'')
+              + (meta?'<div class="meta">'+esc(meta)+'</div>':'')
+              + '</div></div>';
       } else if(state.col==='websites'){
         var wname = it.name || it.title || it.url || ('#'+it.id);
         var wurl = it.url || '';
         html += '<div class="br-sync-item" data-open="link" data-url="'+escAttr(wurl)+'">'
-              + '<div class="t">'+esc(wname)+'</div>'
+              + '<span class="idx">'+idx+'</span>'
+              + '<div class="c">'
+              + '<div class="t br-t" data-copy="'+escAttr(wurl||wname)+'" title="点击复制链接">'+esc(wname)+'</div>'
               + '<div class="s link">'+(wurl?esc(wurl):'(无链接)')+'</div>'
-              + '<div class="src">点击在新窗口打开</div></div>';
+              + '</div></div>';
       } else {
         var bpath = it.file_path || it.path || '';
         var bid = it.novel_id || it.book_id || it.bookId || '';
         var ctime = it.crawl_time || it.created_at || '';
         var site = it.site_name || it.site_url || it.website || it.book_type || '—';
+        var st = it.status || '';
+        var stBadge = st==='success' ? '<span class="badge ok">成功</span>' : (st==='failed' ? '<span class="badge fail">失败</span>' : (st?('<span class="badge">'+esc(st)+'</span>'):''));
         var ctitle = it.novel_title || it.title || ('书籍 '+bid);
+        var sub2 = [('书籍ID: '+bid), ('网站: '+site)].join(' · ');
+        var metaParts = [];
+        if(stBadge) metaParts.push(stBadge);
+        metaParts.push('类型: '+esc(it.book_type||'—'));
+        metaParts.push('章节: '+esc(it.chapter_count!=null?it.chapter_count:'-'));
+        metaParts.push('时间: '+esc(ctime));
         html += '<div class="br-sync-item" data-open="book" data-path="'+escAttr(String(bpath))+'">'
-              + '<div class="t">'+esc(ctitle)+'</div>'
-              + '<div class="s">书籍ID: '+esc(bid)+' · 所属网站: '+esc(site)+' · 爬取时间: '+esc(ctime)+'</div>'
-              + '<div class="src">'+(bpath ? '点击阅读' : '暂无本地文件')+'</div></div>';
+              + '<span class="idx">'+idx+'</span>'
+              + '<div class="c">'
+              + '<div class="t br-t" data-copy="'+escAttr(ctitle)+'" title="点击复制书名">'+esc(ctitle)+'</div>'
+              + '<div class="s">'+esc(sub2)+'</div>'
+              + '<div class="meta">'+metaParts.join(' · ')+'</div>'
+              + '</div></div>';
       }
     }
     box.innerHTML = html;
@@ -1281,6 +1334,68 @@ SYNC_JS = r"""
     }).catch(function(){ toast('接口不可用或密钥错误'); });
   }
 
+  function copyText(text){
+    text = (text==null?'':String(text));
+    if(navigator.clipboard && navigator.clipboard.writeText){
+      navigator.clipboard.writeText(text).then(function(){ toast('已复制：'+trunc(text,18)); }, function(){ fallbackCopy(text); });
+    } else { fallbackCopy(text); }
+  }
+  function fallbackCopy(text){
+    try{
+      var ta=document.createElement('textarea'); ta.value=text; ta.style.position='fixed'; ta.style.opacity='0';
+      document.body.appendChild(ta); ta.focus(); ta.select(); document.execCommand('copy'); document.body.removeChild(ta);
+      toast('已复制：'+trunc(text,18));
+    }catch(e){ toast('复制失败'); }
+  }
+  function sel(id, label, opts, val){
+    var h='<label class="br-f"><span>'+esc(label)+'</span><select id="'+id+'">';
+    for(var i=0;i<opts.length;i++){
+      var o=opts[i];
+      h+='<option value="'+escAttr(o[0])+'"'+(String(o[0])===String(val||'')?' selected':'')+'>'+esc(o[1])+'</option>';
+    }
+    h+='</select></label>';
+    return h;
+  }
+  function renderToolbar(){
+    var tb=el('brSyncToolbar'); if(!tb) return;
+    var col=state.col, html='';
+    if(col==='books'){
+      html+=sel('brFmt','格式',[['','全部'],['txt','txt'],['md','md'],['epub','epub'],['pdf','pdf'],['mobi','mobi'],['azw','azw'],['azw3','azw3']], state.filters.format);
+      var aopts=[['','全部']]; for(var i=0;i<optCache.author.length;i++) aopts.push([optCache.author[i], optCache.author[i]]);
+      html+=sel('brAuthor','作者', aopts, state.filters.author);
+      html+=sel('brSort','排序',[['add_date desc','添加时间 ↓'],['title asc','书名 ↑'],['title desc','书名 ↓'],['author asc','作者 ↑'],['file_size desc','大小 ↓'],['file_size asc','大小 ↑']], state.sort);
+    } else if(col==='crawls'){
+      html+=sel('brStatus','状态',[['','全部'],['success','成功'],['failed','失败']], state.filters.status);
+      html+=sel('brBt','类型',[['','全部'],['短篇','短篇'],['连载','连载']], state.filters.book_type);
+      var sopts=[['','全部']]; for(var j=0;j<optCache.site.length;j++) sopts.push([optCache.site[j].id, optCache.site[j].name]);
+      html+=sel('brSite','网站', sopts, state.filters.site_id);
+      html+=sel('brSort','排序',[['crawl_time desc','爬取时间 ↓'],['crawl_time asc','爬取时间 ↑'],['novel_title asc','书名 ↑'],['novel_title desc','书名 ↓'],['chapter_count desc','章节数 ↓'],['status asc','状态 ↑']], state.sort);
+    } else {
+      html+=sel('brSort','排序',[['id desc','ID ↓'],['name asc','名称 ↑'],['rating desc','评分 ↓']], state.sort);
+    }
+    tb.innerHTML=html;
+  }
+  function loadFilterOptions(col){
+    if(col==='books'){
+      brApi('GET','/api/distinct?collection=books&field=author').then(function(r){
+        if(r.status===200 && r.data && r.data.values){ optCache.author=r.data.values; renderToolbar(); }
+      }).catch(function(){});
+    } else if(col==='crawls'){
+      brApi('GET','/api/websites?page=1&page_size=300').then(function(r){
+        if(r.status===200 && r.data && r.data.items){ optCache.site=r.data.items.map(function(s){ return {id:String(s.id), name:s.name}; }); renderToolbar(); }
+      }).catch(function(){});
+    }
+  }
+  function activateTab(c){
+    state.col=c; state.page=1; state.q=''; state.filters={}; state.sort='';
+    var s2=el('brSyncSearch'); if(s2) s2.value='';
+    var tabs=document.querySelectorAll('.br-sync-tabs button');
+    for(var j=0;j<tabs.length;j++){ tabs[j].classList.toggle('active', tabs[j].getAttribute('data-col')===c); }
+    renderToolbar();
+    loadFilterOptions(c);
+    pull();
+  }
+
   var toastTimer=null;
   function toast(msg){
     var t = el('brSyncToast');
@@ -1289,7 +1404,7 @@ SYNC_JS = r"""
     clearTimeout(toastTimer); toastTimer=setTimeout(function(){ t.style.display='none'; }, 2200);
   }
 
-  function openPanel(){ var p=el('brSyncPanel'); if(p) p.style.display='block'; var k=el('brSyncKey'); if(k) k.value=getSecret(); state.page=1; pull(); }
+  function openPanel(){ var p=el('brSyncPanel'); if(p) p.style.display='flex'; var k=el('brSyncKey'); if(k) k.value=getSecret(); activateTab(state.col); }
   function closePanel(){ var p=el('brSyncPanel'); if(p) p.style.display='none'; }
 
   function bind(){
@@ -1303,14 +1418,27 @@ SYNC_JS = r"""
     var skb=el('brSyncSaveKey'); if(skb) skb.addEventListener('click', function(){ var k=el('brSyncKey'); if(k){ setSecret(k.value||''); toast('密钥已保存到本地'); detect(); } });
     var list=el('brSyncList');
     if(list){ list.addEventListener('click', function(e){
+      var t = (e.target && e.target.closest) ? e.target.closest('.br-t') : null;
+      if(t){ copyText(t.getAttribute('data-copy')||t.textContent); return; }
       var row = (e.target && e.target.closest) ? e.target.closest('.br-sync-item') : null;
       if(!row) return;
       var open = row.getAttribute('data-open');
       if(open==='link'){ var u=row.getAttribute('data-url'); if(u) window.open(u,'_blank'); }
       else if(open==='book'){ var p=row.getAttribute('data-path'); if(p) brOpenBook(p); }
     }); }
+    var tb=el('brSyncToolbar');
+    if(tb){ tb.addEventListener('change', function(e){
+      var id=e.target.id, v=e.target.value;
+      if(id==='brFmt') state.filters.format=v;
+      else if(id==='brAuthor') state.filters.author=v;
+      else if(id==='brStatus') state.filters.status=v;
+      else if(id==='brBt') state.filters.book_type=v;
+      else if(id==='brSite') state.filters.site_id=v;
+      else if(id==='brSort') state.sort=v;
+      state.page=1; pull();
+    }); }
     var tabs=document.querySelectorAll('.br-sync-tabs button');
-    for(var i=0;i<tabs.length;i++){ tabs[i].addEventListener('click', function(){ var c=this.getAttribute('data-col'); state.col=c; state.page=1; for(var j=0;j<tabs.length;j++) tabs[j].classList.remove('active'); this.classList.add('active'); var s2=el('brSyncSearch'); if(s2) s2.value=''; state.q=''; pull(); }); }
+    for(var i=0;i<tabs.length;i++){ tabs[i].addEventListener('click', function(){ activateTab(this.getAttribute('data-col')); }); }
   }
 
   if(document.readyState==='loading'){ document.addEventListener('DOMContentLoaded', function(){ bind(); detect(); }); }
@@ -4176,7 +4304,7 @@ class BrowserReader:
             font-size: 14px;
             height: 30px;
             width: 90px;
-            margin: 12px;
+            margin: 10px;
         }}
         
         .library-actions button:hover {{
@@ -4184,10 +4312,43 @@ class BrowserReader:
             color: #000;
         }}
         
+        .library-actions select {{
+            appearance: none; -webkit-appearance: none; -moz-appearance: none;
+            padding: 6px 26px 6px 10px;
+            border: 1px solid rgba(128, 128, 128, 0.3);
+            border-radius: 4px;
+            background: rgba(128, 128, 128, 0.05) url("data:image/svg+xml;utf8,<svg xmlns='http://www.w3.org/2000/svg' width='12' height='12' viewBox='0 0 24 24' fill='none' stroke='%23666' stroke-width='2' stroke-linecap='round' stroke-linejoin='round'><path d='M6 9l6 6 6-6'/></svg>") no-repeat right 8px center;
+            color: var(--reader-text);
+            font-size: 14px;
+            cursor: pointer;
+            outline: none;
+            height: 30px;
+            margin-top: 10px;
+        }}
+        .library-actions select:focus {{ border-color: rgba(128, 128, 128, 0.6); }}
+        
         .book-list {{
             max-height: 400px;
             overflow-y: auto;
         }}
+        
+        .library-pager {{
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            padding: 12px 16px;
+            border-top: 1px solid rgba(128, 128, 128, 0.1);
+        }}
+        .library-pager button {{
+            padding: 6px 14px;
+            border: none;
+            background: #2563eb;
+            color: #fff;
+            border-radius: 6px;
+            cursor: pointer;
+        }}
+        .library-pager button:hover {{ background: #1d4ed8; }}
+        .library-pager #apiPageInfo {{ font-size: 13px; color: #8b95a5; }}
         
         .book-item {{
             display: flex;
@@ -4196,6 +4357,16 @@ class BrowserReader:
             border-bottom: 1px solid rgba(128, 128, 128, 0.1);
             cursor: pointer;
             transition: background 0.2s;
+        }}
+        
+        .book-item .idx {{
+            flex: 0 0 28px;
+            text-align: right;
+            color: var(--reader-muted, #8b95a5);
+            font-size: 13px;
+            font-variant-numeric: tabular-nums;
+            margin-right: 10px;
+            user-select: none;
         }}
         
         .book-item:hover {{
@@ -5018,6 +5189,11 @@ class BrowserReader:
                 <div class="book-list" id="historyBookList">
                     <p style="color: #666; text-align: center; padding: 20px;"><script>document.write(t('browser_reader.no_reading_history'));</script></p>
                 </div>
+                <div class="library-pager">
+                    <button onclick="historyPrev()">上一页</button>
+                    <span id="historyPageInfo">—</span>
+                    <button onclick="historyNext()">下一页</button>
+                </div>
             </div>
             
             <!-- 导入书籍 -->
@@ -5036,6 +5212,11 @@ class BrowserReader:
                 <div class="book-list" id="importedBookList">
                     <p style="color: #666; text-align: center; padding: 20px;"><script>document.write(t('browser_reader.no_imported_books'));</script></p>
                 </div>
+                <div class="library-pager">
+                    <button onclick="importedPrev()">上一页</button>
+                    <span id="importedPageInfo">—</span>
+                    <button onclick="importedNext()">下一页</button>
+                </div>
             </div>
             <!-- 后端书库 -->
             <div class="library-content" id="apiTab" style="display: none;">
@@ -5044,10 +5225,22 @@ class BrowserReader:
                         <input type="text" id="apiSearchInput" placeholder="搜索书库..." onkeyup="searchApiBooks()">
                         <button onclick="clearApiSearch()" id="clearApiSearchBtn" style="display: none;">×</button>
                     </div>
+                    <select id="apiSortSelect" onchange="apiPage=1;loadApiBooks()" style="max-width: 160px;">
+                        <option value="add_date desc">添加时间 ↓</option>
+                        <option value="title asc">书名 ↑</option>
+                        <option value="title desc">书名 ↓</option>
+                        <option value="author asc">作者 ↑</option>
+                        <option value="file_size desc">大小 ↓</option>
+                    </select>
                     <button onclick="loadApiBooks()">刷新</button>
                 </div>
                 <div class="book-list" id="apiBookList">
                     <p style="color: #666; text-align: center; padding: 20px;">加载中…</p>
+                </div>
+                <div class="library-pager">
+                    <button onclick="apiPrev()">上一页</button>
+                    <span id="apiPageInfo">—</span>
+                    <button onclick="apiNext()">下一页</button>
                 </div>
             </div>
         </div>
@@ -11117,6 +11310,8 @@ class BrowserReader:
         }}
 
         // 后端书库（API）加载与渲染
+        let apiPage = 1;
+        const API_PS = 60;
         function loadApiBooks() {{
             const list = document.getElementById('apiBookList');
             if (!list) return;
@@ -11126,10 +11321,16 @@ class BrowserReader:
             }}
             list.innerHTML = '<p style="color:#666;text-align:center;padding:20px;">加载中…</p>';
             const q = (document.getElementById('apiSearchInput') || {{}}).value || '';
-            const url = '/api/books?page=1&page_size=60&q=' + encodeURIComponent(q);
+            const sortSel = document.getElementById('apiSortSelect');
+            const sort = sortSel ? sortSel.value : 'add_date desc';
+            const sp = sort.split(' ');
+            const url = '/api/books?page=' + apiPage + '&page_size=' + API_PS + '&q=' + encodeURIComponent(q) +
+                '&sort=' + encodeURIComponent(sp[0]) + '&order=' + encodeURIComponent(sp[1] || 'desc');
             window.brSync.api('GET', url).then(function (r) {{
                 if (r.status === 200 && r.data && r.data.items) {{
                     renderApiBooks(r.data.items);
+                    const info = document.getElementById('apiPageInfo');
+                    if (info) info.textContent = '第 ' + apiPage + ' 页 / 共 ' + Math.max(1, Math.ceil((r.data.total || 0) / API_PS)) + ' 页 · ' + (r.data.total || 0) + ' 条';
                 }} else if (r.status === 401) {{
                     list.innerHTML = '<p style="color:#e57373;text-align:center;padding:20px;">密钥错误/未授权，请在数据同步面板设置密钥</p>';
                 }} else {{
@@ -11139,27 +11340,48 @@ class BrowserReader:
                 list.innerHTML = '<p style="color:#666;text-align:center;padding:20px;">接口不可用（使用本地缓存或稍后重试）</p>';
             }});
         }}
+        function apiPrev() {{ if (apiPage > 1) {{ apiPage--; loadApiBooks(); }} }}
+        function apiNext() {{ apiPage++; loadApiBooks(); }}
 
+        let _apiListBound = false;
+        function copyApiTitle(text) {{
+            text = text == null ? '' : String(text);
+            if (navigator.clipboard && navigator.clipboard.writeText) {{ navigator.clipboard.writeText(text).catch(function(){{}}); }}
+            let t = document.getElementById('brSyncToast');
+            if (!t) {{ t = document.createElement('div'); t.id = 'brSyncToast'; t.style.cssText = 'position:fixed;left:50%;top:20px;transform:translateX(-50%);background:#111827;color:#fff;padding:8px 14px;border-radius:8px;z-index:99999;font-size:13px;'; document.body.appendChild(t); }}
+            t.textContent = '已复制：' + (text.length > 18 ? text.slice(0, 18) + '…' : text);
+            t.style.display = 'block';
+            clearTimeout(window.__apiCopyT);
+            window.__apiCopyT = setTimeout(function() {{ t.style.display = 'none'; }}, 2200);
+        }}
         function renderApiBooks(items) {{
             const list = document.getElementById('apiBookList');
             if (!list) return;
+            if (!_apiListBound) {{
+                _apiListBound = true;
+                list.addEventListener('click', function (e) {{
+                    const t = e.target.closest ? e.target.closest('.br-t') : null;
+                    if (t) {{ copyApiTitle(t.getAttribute('data-copy') || t.textContent); return; }}
+                    const row = e.target.closest ? e.target.closest('.book-item') : null;
+                    if (row) {{ const p = row.getAttribute('data-path'); if (p && window.brSync && window.brSync.openBook) window.brSync.openBook(p); }}
+                }});
+            }}
             if (!items || !items.length) {{
                 list.innerHTML = '<p style="color:#666;text-align:center;padding:20px;">书库暂无书籍</p>';
                 return;
             }}
             list.innerHTML = '';
-            items.forEach(function (it) {{
+            items.forEach(function (it, i) {{
                 const title = it.title || it.name || it.path || ('#' + it.id);
                 const sub = it.author ? ('作者: ' + it.author) : (it.path || '');
+                const idx = (apiPage - 1) * API_PS + i + 1;
                 const row = document.createElement('div');
                 row.className = 'book-item';
                 row.style.cursor = 'pointer';
                 row.setAttribute('data-path', it.path || '');
-                row.innerHTML = '<div class="book-title">' + escapeHtml(title) + '</div>' +
+                row.innerHTML = '<span class="idx">' + idx + '</span>' +
+                    '<div class="book-title br-t" data-copy="' + escapeHtml(title) + '" title="点击复制书名">' + escapeHtml(title) + '</div>' +
                     (sub ? '<div class="book-meta">' + escapeHtml(sub) + '</div>' : '');
-                row.addEventListener('click', function () {{
-                    if (window.brSync && window.brSync.openBook) window.brSync.openBook(it.path || '');
-                }});
                 list.appendChild(row);
             }});
         }}
@@ -11168,6 +11390,7 @@ class BrowserReader:
             const btn = document.getElementById('clearApiSearchBtn');
             const inp = document.getElementById('apiSearchInput');
             if (btn && inp) btn.style.display = inp.value ? 'block' : 'none';
+            apiPage = 1;
             loadApiBooks();
         }}
 
@@ -11176,6 +11399,7 @@ class BrowserReader:
             const btn = document.getElementById('clearApiSearchBtn');
             if (inp) inp.value = '';
             if (btn) btn.style.display = 'none';
+            apiPage = 1;
             loadApiBooks();
         }}
         
@@ -11183,132 +11407,40 @@ class BrowserReader:
         function searchLibraryBooks() {{
             const searchInput = document.getElementById('librarySearchInput');
             const clearBtn = document.getElementById('clearSearchBtn');
-            const bookList = document.getElementById('historyBookList');
-            const searchTerm = searchInput.value.toLowerCase().trim();
-            
-            // 显示/隐藏清除按钮
-            clearBtn.style.display = searchTerm ? 'block' : 'none';
-            
-            // 获取所有书籍项
-            const bookItems = bookList.querySelectorAll('.book-item');
-            let visibleCount = 0;
-            
-            bookItems.forEach(item => {{
-                const title = item.querySelector('.book-title');
-                if (title) {{
-                    const titleText = title.textContent.toLowerCase();
-                    if (titleText.includes(searchTerm)) {{
-                        item.style.display = 'block';
-                        visibleCount++;
-                    }} else {{
-                        item.style.display = 'none';
-                    }}
-                }}
-            }});
-            
-            // 显示搜索结果状态
-            if (searchTerm && visibleCount === 0) {{
-                if (!bookList.querySelector('.search-no-results')) {{
-                    const noResults = document.createElement('p');
-                    noResults.className = 'search-no-results';
-                    noResults.style.cssText = 'color: #666; text-align: center; padding: 20px;';
-                    noResults.textContent = t('browser_reader.library_search_no_results');
-                    bookList.appendChild(noResults);
-                }}
-            }} else {{
-                const noResults = bookList.querySelector('.search-no-results');
-                if (noResults) {{
-                    noResults.remove();
-                }}
-            }}
+            const term = (searchInput && searchInput.value || '').trim();
+            if (clearBtn) clearBtn.style.display = term ? 'block' : 'none';
+            historyPage = 1;
+            loadReadingHistory();
         }}
-        
+
         // 清除阅读历史搜索
         function clearLibrarySearch() {{
             const searchInput = document.getElementById('librarySearchInput');
             const clearBtn = document.getElementById('clearSearchBtn');
-            const bookList = document.getElementById('historyBookList');
-            
-            searchInput.value = '';
-            clearBtn.style.display = 'none';
-            
-            // 显示所有书籍项
-            const bookItems = bookList.querySelectorAll('.book-item');
-            bookItems.forEach(item => {{
-                item.style.display = 'block';
-            }});
-            
-            // 移除搜索结果状态
-            const noResults = bookList.querySelector('.search-no-results');
-            if (noResults) {{
-                noResults.remove();
-            }}
+            if (searchInput) searchInput.value = '';
+            if (clearBtn) clearBtn.style.display = 'none';
+            historyPage = 1;
+            loadReadingHistory();
         }}
         
         // 搜索导入书籍
         function searchImportedBooks() {{
             const searchInput = document.getElementById('importedSearchInput');
             const clearBtn = document.getElementById('clearImportedSearchBtn');
-            const bookList = document.getElementById('importedBookList');
-            const searchTerm = searchInput.value.toLowerCase().trim();
-            
-            // 显示/隐藏清除按钮
-            clearBtn.style.display = searchTerm ? 'block' : 'none';
-            
-            // 获取所有书籍项
-            const bookItems = bookList.querySelectorAll('.book-item');
-            let visibleCount = 0;
-            
-            bookItems.forEach(item => {{
-                const title = item.querySelector('.book-title');
-                if (title) {{
-                    const titleText = title.textContent.toLowerCase();
-                    if (titleText.includes(searchTerm)) {{
-                        item.style.display = 'block';
-                        visibleCount++;
-                    }} else {{
-                        item.style.display = 'none';
-                    }}
-                }}
-            }});
-            
-            // 显示搜索结果状态
-            if (searchTerm && visibleCount === 0) {{
-                if (!bookList.querySelector('.search-no-results')) {{
-                    const noResults = document.createElement('p');
-                    noResults.className = 'search-no-results';
-                    noResults.style.cssText = 'color: #666; text-align: center; padding: 20px;';
-                    noResults.textContent = t('browser_reader.library_search_no_results');
-                    bookList.appendChild(noResults);
-                }}
-            }} else {{
-                const noResults = bookList.querySelector('.search-no-results');
-                if (noResults) {{
-                    noResults.remove();
-                }}
-            }}
+            const term = (searchInput && searchInput.value || '').trim();
+            if (clearBtn) clearBtn.style.display = term ? 'block' : 'none';
+            importedPage = 1;
+            loadImportedBooks();
         }}
-        
+
         // 清除导入书籍搜索
         function clearImportedSearch() {{
             const searchInput = document.getElementById('importedSearchInput');
             const clearBtn = document.getElementById('clearImportedSearchBtn');
-            const bookList = document.getElementById('importedBookList');
-            
-            searchInput.value = '';
-            clearBtn.style.display = 'none';
-            
-            // 显示所有书籍项
-            const bookItems = bookList.querySelectorAll('.book-item');
-            bookItems.forEach(item => {{
-                item.style.display = 'block';
-            }});
-            
-            // 移除搜索结果状态
-            const noResults = bookList.querySelector('.search-no-results');
-            if (noResults) {{
-                noResults.remove();
-            }}
+            if (searchInput) searchInput.value = '';
+            if (clearBtn) clearBtn.style.display = 'none';
+            importedPage = 1;
+            loadImportedBooks();
         }}
         
         function addToReadingHistory(title, type, bookId) {{
@@ -11335,24 +11467,52 @@ class BrowserReader:
             localStorage.setItem('readingHistory', JSON.stringify(readingHistory));
         }}
         
+        let historyPage = 1;
+        const HISTORY_PS = 30;
+        function updateHistoryPager(total, totalPages) {{
+            const info = document.getElementById('historyPageInfo');
+            if (info) info.textContent = '第 ' + historyPage + ' 页 / 共 ' + totalPages + ' 页 · ' + total + ' 条';
+        }}
+        function historyPrev() {{ if (historyPage > 1) {{ historyPage--; loadReadingHistory(); }} }}
+        function historyNext() {{ historyPage++; loadReadingHistory(); }}
+
         function loadReadingHistory() {{
             const historyList = document.getElementById('historyBookList');
             if (!historyList) return;
-            
+
             if (readingHistory.length === 0) {{
                 historyList.innerHTML = '<div class="empty-state">暂无阅读历史</div>';
+                updateHistoryPager(0, 1);
                 return;
             }}
-            
+
+            const _hInput = document.getElementById('librarySearchInput');
+            const hterm = ((_hInput && _hInput.value) || '').toLowerCase().trim();
+            const hfiltered = hterm
+                ? readingHistory.filter(it => (it.title || '').toLowerCase().includes(hterm))
+                : readingHistory;
+            const htotal = hfiltered.length;
+            const htotalPages = Math.max(1, Math.ceil(htotal / HISTORY_PS));
+            if (historyPage > htotalPages) historyPage = htotalPages;
+            if (historyPage < 1) historyPage = 1;
+            const hstart = (historyPage - 1) * HISTORY_PS;
+            const hpageItems = hfiltered.slice(hstart, hstart + HISTORY_PS);
+            if (htotal === 0) {{
+                historyList.innerHTML = '<p class="search-no-results" style="color:#666;text-align:center;padding:20px;">无匹配结果</p>';
+                updateHistoryPager(0, 1);
+                return;
+            }}
             let html = '';
-            readingHistory.forEach(item => {{
+            hpageItems.forEach((item, i) => {{
+                const idx = hstart + i + 1;
                 const date = new Date(item.readTime);
                 const dateStr = date.toLocaleDateString() + ' ' + date.toLocaleTimeString();
-                
+
                 html += '<div class="book-item" onclick="openHistoryBook(\\'' + item.bookId + '\\', \\'' + item.type + '\\')">' +
+                    '<span class="idx">' + idx + '</span>' +
                     '<div class="book-cover">' + (item.type === 'imported' ? '导入' : '文件') + '</div>' +
                     '<div class="book-info">' +
-                        '<div class="book-title">' + item.title + '</div>' +
+                        '<div class="book-title">' + (item.title || '') + '</div>' +
                         '<div class="book-meta">' + dateStr + ' · 进度 ' + Math.round(item.progress || 0) + '%</div>' +
                     '</div>' +
                     '<div class="book-actions">' +
@@ -11360,10 +11520,21 @@ class BrowserReader:
                     '</div>' +
                 '</div>';
             }});
-            
+
             historyList.innerHTML = html;
+            historyList.scrollTop = 0;
+            updateHistoryPager(htotal, htotalPages);
         }}
         
+        let importedPage = 1;
+        const IMPORTED_PS = 30;
+        function updateImportedPager(total, totalPages) {{
+            const info = document.getElementById('importedPageInfo');
+            if (info) info.textContent = '第 ' + importedPage + ' 页 / 共 ' + totalPages + ' 页 · ' + total + ' 条';
+        }}
+        function importedPrev() {{ if (importedPage > 1) {{ importedPage--; loadImportedBooks(); }} }}
+        function importedNext() {{ importedPage++; loadImportedBooks(); }}
+
         async function loadImportedBooks() {{
             const bookList = document.getElementById('importedBookList');
             if (!bookList) return;
@@ -11396,8 +11567,9 @@ class BrowserReader:
                         '<div style="font-size: 48px; margin-bottom: 20px;">📚</div>' +
                         '<p style="color: #666; font-size: 16px;">请添加书籍或目录</p>' +
                         '</div>';
-                }}
-                return;
+                        }}
+                        updateImportedPager(0, 1);
+                        return;
             }}
 
             // 如果有正在导入的书籍或队列中有数据，立即显示导入提示，然后后台检查状态
@@ -11422,21 +11594,42 @@ class BrowserReader:
                 }}
 
                 // 所有检查完成后，重新加载显示
+                const _p = document.getElementById('importedPageInfo');
+                if (_p) _p.textContent = '导入中…';
                 loadImportedBooks();
                 return;
             }}
 
-            // 所有书籍都加载完成，直接显示书籍列表
+            // 所有书籍都加载完成：应用搜索过滤 + 分页（每页 IMPORTED_PS 条）
+            const _sInput = document.getElementById('importedSearchInput');
+            const term = ((_sInput && _sInput.value) || '').toLowerCase().trim();
+            const filtered = term
+                ? importedBooks.filter(b => (b.title || '').toLowerCase().includes(term) || (b.fileName || '').toLowerCase().includes(term))
+                : importedBooks;
+            const total = filtered.length;
+            const totalPages = Math.max(1, Math.ceil(total / IMPORTED_PS));
+            if (importedPage > totalPages) importedPage = totalPages;
+            if (importedPage < 1) importedPage = 1;
+            const start = (importedPage - 1) * IMPORTED_PS;
+            const pageItems = filtered.slice(start, start + IMPORTED_PS);
+            if (total === 0) {{
+                bookList.innerHTML = '<p class="search-no-results" style="color:#666;text-align:center;padding:20px;">无匹配结果</p>';
+                bookList.scrollTop = 0;
+                updateImportedPager(0, 1);
+                return;
+            }}
             let html = '';
-            importedBooks.forEach(book => {{
+            pageItems.forEach((book, i) => {{
+                const idx = start + i + 1;
                 const date = new Date(book.importTime);
                 const dateStr = date.toLocaleDateString();
                 const statusIcon = book.isLoaded === false ? '❌' : '✅';
 
                 html += '<div class="book-item" onclick="openImportedBook(\\'' + book.id + '\\')">' +
+                    '<span class="idx">' + idx + '</span>' +
                     '<div class="book-cover">' + statusIcon + '</div>' +
                     '<div class="book-info">' +
-                        '<div class="book-title">' + book.title + '</div>' +
+                        '<div class="book-title">' + (book.title || '') + '</div>' +
                         '<div class="book-meta">' + dateStr + ' · ' + book.fileName + '</div>' +
                     '</div>' +
                     '<div class="book-actions">' +
@@ -11448,6 +11641,8 @@ class BrowserReader:
             }});
 
             bookList.innerHTML = html;
+            bookList.scrollTop = 0;
+            updateImportedPager(total, totalPages);
         }}
         
         function loadBookLibrary() {{

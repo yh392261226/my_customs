@@ -92,10 +92,63 @@ def _enrich_crawls_with_sites(items: List[Dict[str, Any]]) -> List[Dict[str, Any
     return items
 
 
+# 每个集合允许排序的列（白名单，避免 SQL 注入）
+ALLOWED_SORT: Dict[str, List[str]] = {
+    "books": ["title", "author", "add_date", "file_size", "pinyin", "format"],
+    "crawls": ["crawl_time", "last_update_time", "novel_title", "novel_id", "status", "chapter_count", "id"],
+    "websites": ["id", "name", "url", "created_at", "rating"],
+}
+# 每个集合允许的等值筛选字段（白名单）
+ALLOWED_FILTER: Dict[str, List[str]] = {
+    "books": ["format", "author", "tags"],
+    "crawls": ["status", "book_type", "site_id"],
+    "websites": ["parser", "tags", "selectable_enabled"],
+}
+
+
+def _build_filters(collection: str, query: Dict[str, List[str]]) -> tuple:
+    """根据白名单构造等值筛选条件。"""
+    if collection not in ALLOWED_FILTER:
+        return None, []
+    clauses = []
+    params = []
+    for f in ALLOWED_FILTER[collection]:
+        v = get_str(query, f)
+        if v:
+            clauses.append(f"{f} = ?")
+            params.append(v)
+    if not clauses:
+        return None, []
+    return " AND ".join(clauses), params
+
+
+def _build_order_by(collection: str, query: Dict[str, List[str]]) -> Optional[str]:
+    sort = get_str(query, "sort")
+    if sort and sort in ALLOWED_SORT.get(collection, []):
+        order = get_str(query, "order")
+        if order not in ("asc", "desc"):
+            order = "desc"
+        return f"{sort} {order}"
+    return None
+
+
+def route_distinct(collection: str, query: Dict[str, List[str]]) -> Dict[str, Any]:
+    field = get_str(query, "field")
+    allowed = ALLOWED_FILTER.get(collection, []) + ["author", "format", "status", "book_type", "site_id", "parser", "tags"]
+    if field not in allowed:
+        return {"success": False, "error": "不允许的字段: %s" % field}
+    return {"success": True, "field": field, "values": db.distinct(collection, field)}
+
+
 def route_list(collection: str, query: Dict[str, List[str]]) -> Dict[str, Any]:
     q = get_str(query, "q")
     page, page_size, offset, _ = parse_pagination(query)
-    items, total = db.query_paginated(collection, q, page, page_size, offset)
+    extra_where, extra_params = _build_filters(collection, query)
+    order_by = _build_order_by(collection, query)
+    items, total = db.query_paginated(
+        collection, q, page, page_size, offset,
+        extra_where=extra_where, extra_params=extra_params, order_by=order_by,
+    )
     if collection == "crawls":
         items = _enrich_crawls_with_sites(items)
     return {

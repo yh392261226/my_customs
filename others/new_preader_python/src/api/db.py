@@ -88,11 +88,12 @@ def get_columns(table: str) -> List[str]:
 
 def query_paginated(collection: str, q: str, page: int, page_size: int, offset: int,
                     extra_where: Optional[str] = None,
-                    extra_params: Optional[list] = None) -> Tuple[List[Dict[str, Any]], int]:
+                    extra_params: Optional[list] = None,
+                    order_by: Optional[str] = None) -> Tuple[List[Dict[str, Any]], int]:
     spec = COLLECTIONS[collection]
     table = spec["table"]
     search_cols = spec["search"]
-    order_by = spec["order_by"]
+    effective_order_by = order_by or spec["order_by"]
 
     params: List[Any] = []
     where_clauses: List[str] = []
@@ -113,10 +114,28 @@ def query_paginated(collection: str, q: str, page: int, page_size: int, offset: 
     try:
         total = conn.execute(f"SELECT COUNT(*) FROM {table} {where_sql}", params).fetchone()[0]
         rows = conn.execute(
-            f"SELECT * FROM {table} {where_sql} ORDER BY {order_by} LIMIT ? OFFSET ?",
+            f"SELECT * FROM {table} {where_sql} ORDER BY {effective_order_by} LIMIT ? OFFSET ?",
             params + [page_size, offset],
         ).fetchall()
         return rows_to_dicts(rows), total
+    finally:
+        conn.close()
+
+
+def distinct(collection: str, field: str, limit: int = 300) -> List[Any]:
+    """返回某列的去重非空值（字段需为白名单内，已在调用方校验）。"""
+    spec = COLLECTIONS[collection]
+    table = spec["table"]
+    actual_cols = set(get_columns(table))
+    if field not in actual_cols:
+        return []
+    conn = get_conn()
+    try:
+        rows = conn.execute(
+            f"SELECT DISTINCT {field} FROM {table} WHERE {field} IS NOT NULL AND {field} != '' ORDER BY {field} LIMIT ?",
+            (limit,),
+        ).fetchall()
+        return [r[0] for r in rows if r[0] is not None]
     finally:
         conn.close()
 
