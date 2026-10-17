@@ -924,11 +924,12 @@ html.br-locked #brLockScreen { display: flex !important; }
 
 #brLockFab {
   position: fixed; left: 16px; bottom: 16px; z-index: 99999; display: block;
-  background: #4facfe; color: #fff; border: none; border-radius: 22px;
+  background: transparent; color: inherit; border: 1px solid rgba(128,128,128,0.4); border-radius: 22px;
   padding: 9px 15px; font-size: 14px; cursor: pointer;
-  box-shadow: 0 4px 12px rgba(0,0,0,0.35);
+  box-shadow: 0 2px 6px rgba(0,0,0,0.15);
+  transition: background 0.2s ease, color 0.2s ease;
 }
-#brLockFab:hover { background: #3a9fe8; }
+#brLockFab:hover { background: rgba(79,172,254,0.9); color: #fff; }
 """
 
 LOCK_SCREEN_JS = r"""
@@ -1088,12 +1089,17 @@ LOCK_SCREEN_JS = r"""
 SYNC_CSS = r"""
 /* 数据同步状态徽标 */
 .br-sync-badge {
-  position: fixed; top: 48px; right: 10px; z-index: 99998;
+  position: fixed; top: 24px; right: 10px; z-index: 99998;
   padding: 4px 10px; border-radius: 12px; font-size: 12px; cursor: pointer;
-  color: #fff; background: #6b7280; box-shadow: 0 2px 6px rgba(0,0,0,0.3); user-select: none;
+  color: var(--reader-text); background: transparent;
+  border: 1px solid rgba(128,128,128,0.4);
+  box-shadow: 0 2px 6px rgba(0,0,0,0.15); user-select: none;
+  transition: background 0.2s ease, color 0.2s ease;
 }
-.br-sync-badge.online { background: #1f9d55; }
-.br-sync-badge.offline { background: #b45309; }
+.br-sync-badge.online { border-color: #1f9d55; color: #1f9d55; }
+.br-sync-badge.online:hover { background: #1f9d55; color: #fff; }
+.br-sync-badge.offline { border-color: #b45309; color: #b45309; }
+.br-sync-badge.offline:hover { background: #b45309; color: #fff; }
 .br-sync-detail { font-size: 11px; opacity: 0.85; margin-top: 2px; }
 
 /* 数据同步面板（放大、内部独立滚动，可独立作为联网阅读器界面） */
@@ -1619,8 +1625,10 @@ class BrowserReader:
                     "shortcut_vocab": "生词本"
                 }
             
-            # 返回带有browser_reader命名空间的翻译
-            return {'browser_reader': browser_translations}
+            # 返回带有 browser_reader / common 命名空间的翻译
+            # （网页端 JS 的 t() 会引用 common.xxx，必须一并注入）
+            return {'browser_reader': browser_translations,
+                    'common': file_translations.get('common', {})}
         except:
             # 如果无法加载翻译，直接从文件加载
             import json
@@ -1632,12 +1640,14 @@ class BrowserReader:
                     with open(translation_file, 'r', encoding='utf-8') as f:
                         file_translations = json.load(f)
                         browser_translations = file_translations.get('browser_reader', {})
-                        return {'browser_reader': browser_translations}
+                        return {'browser_reader': browser_translations,
+                                'common': file_translations.get('common', {})}
             except:
                 pass
             
             # 如果文件也加载失败，返回基本的键值对
             return {
+                "common": {},
                 "browser_reader": {
                     "title": "浏览器阅读器",
                     "permission_denied": "无权限执行此操作: {operation}",
@@ -2005,6 +2015,19 @@ class BrowserReader:
         html = f"""<!DOCTYPE html>
 <html lang="zh-CN">
 <head>
+    <script>
+    // 语言包支持 - 必须在所有 body 内容之前定义，否则内联 document.write(t('...'))
+    // 在解析期执行时会因 const TDZ / 函数未声明而报错，导致按钮与帮助文字空白。
+    const translations = {str(BrowserReader.get_translations())};
+    function t(key, params = {{}}) {{
+        let value = key.split('.').reduce((obj, k) => obj && obj[k], translations);
+        if (!value) return key;
+        for (const [param, val] of Object.entries(params)) {{
+            value = value.replace(new RegExp(`{{${{param}}}}`, 'g'), val);
+        }}
+        return value;
+    }}
+    </script>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title id="pageTitle" data-original-title="{title} - {browser_reader_title}">{title} - {browser_reader_title}</title>
@@ -2441,7 +2464,9 @@ class BrowserReader:
             top: 0;
             left: 0;
             right: 0;
-            background: {settings['background']};
+            background: rgba(128, 128, 128, 0.22);
+            backdrop-filter: blur(10px);
+            -webkit-backdrop-filter: blur(10px);
             border-bottom: 1px solid rgba(128, 128, 128, 0.3);
             padding: 10px 20px;
             display: flex;
@@ -5287,9 +5312,7 @@ class BrowserReader:
     </div>
     
     <script>
-        // 语言包支持 - 直接嵌入翻译数据
-        const translations = {str(BrowserReader.get_translations())};
-        
+        // 语言包支持 - translations 与 t() 已提前到 <head> 定义（避免解析期 TDZ 导致内联 document.write 失败）
         
         // 替换所有翻译占位符
         function replaceAllPlaceholders() {{
