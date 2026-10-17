@@ -28,6 +28,7 @@ from src.locales.i18n_manager import get_global_i18n
 from src.themes.theme_manager import ThemeManager
 from src.core.database_manager import DatabaseManager
 from src.utils.logger import get_logger
+from src.utils.merge_staging import has_staging
 
 logger = get_logger(__name__)
 
@@ -733,8 +734,17 @@ class CrawlerMergeModeDialog(ModalScreen[Dict[str, Any]]):
         self.full_scan = full_scan
         # 书库合并模式：不限定书籍网站，排查书库中的全部书籍
         self.library_mode = library_mode
+        # 合并暂存 key：按「书库/全合并/站点」维度区分，同一维度多次打开共享进度
+        if library_mode:
+            self._staging_key = "library"
+        elif full_scan:
+            self._staging_key = f"fullscan_{site_id}"
+        else:
+            self._staging_key = f"site_{site_id}"
         # 全站排查任务的取消标记
         self._scan_cancelled = False
+        # 合并暂存存在提示（仅提示一次）
+        self._staging_hinted = False
         # 当前爬取使用的解析器（来自主界面用户选择，None 时由站点默认决定）
         self.parser_override = parser_override
 
@@ -1165,6 +1175,21 @@ class CrawlerMergeModeDialog(ModalScreen[Dict[str, Any]]):
         self._selected_group_ids = set(g.group_id for g in self.groups if g.is_selected)
         self._total_books = sum(g.book_count for g in self.groups)
         self._refresh_display()
+        self._notify_staging_if_exists()
+
+    def _notify_staging_if_exists(self) -> None:
+        """若检测到上次合并暂存，提示用户进入详情后可继续（仅提示一次）"""
+        if self._staging_hinted:
+            return
+        try:
+            if has_staging(self._staging_key):
+                self._staging_hinted = True
+                self.notify(
+                    self.i18n.t('merge_mode.staging_exists'),
+                    timeout=5,
+                )
+        except Exception as e:
+            logger.debug(f"检查合并暂存失败: {e}")
 
     # ─── 全合并模式：全站排查 ───────────────────────────────
 
@@ -1262,6 +1287,7 @@ class CrawlerMergeModeDialog(ModalScreen[Dict[str, Any]]):
                 severity="information",
                 timeout=3,
             )
+            self._notify_staging_if_exists()
         except Exception as e:
             logger.debug(f"应用全量排查结果失败: {e}")
 
@@ -1572,6 +1598,7 @@ class CrawlerMergeModeDialog(ModalScreen[Dict[str, Any]]):
                 novel_site=self.novel_site,
                 parser_override=self.parser_override,
                 library_mode=self.library_mode,
+                staging_key=self._staging_key,
             ),
             handle_detail_result,
         )

@@ -1426,7 +1426,16 @@
     "title_placeholder": "请输入合并后的书名",
     "title_required": "请输入合并后的书名",
     "undo_delete_btn": "撤销删除",
-    "unknown_site": "未知网站"
+    "unknown_site": "未知网站",
+    "staging": "暂存",
+    "early_finish": "提前完成",
+    "staging_saved": "已暂存 {count} 个分组进度（其中 {processed} 组已处理），稍后重开可继续",
+    "staging_failed": "暂存失败，请检查磁盘权限",
+    "staging_restored": "已从暂存恢复 {count} 个分组的处理结果，已跳转到第一个未处理分组",
+    "early_nothing": "暂无可提前完成的分组（请先合并或跳过若干组）",
+    "early_completed": "提前完成：已提交 {merged} 组、跳过 {skipped} 组，舍弃 {discarded} 组未处理",
+    "confirm_early_title": "提前完成合并",
+    "confirm_early_message": "将提交已处理的 {merge_count} 组并执行合并/删除，剩余 {discarded} 组将被舍弃不再处理。是否继续？"
   },
   "merge_mode": {
     "auto_merged_hint": "已自动将 {count} 组相同书籍的不同章节归为一组",
@@ -1464,7 +1473,8 @@
     "skipped_info": "（跳过 {count} 组）",
     "status": "已选 {selected_groups}/{total_groups} 组，共 {selected_books} 本书（已跳过 {skipped_groups} 组）",
     "summary": "共检测到 {group_count} 个书籍分组，涉及 {book_count} 条历史记录",
-    "title": "合并模式"
+    "title": "合并模式",
+    "staging_exists": "检测到上次合并的进度暂存，进入合并详情后可从暂存继续处理"
   },
   "merge_range": {
     "confirm": "开始分组",

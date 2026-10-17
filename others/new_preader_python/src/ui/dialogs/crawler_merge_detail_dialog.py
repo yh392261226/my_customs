@@ -10,7 +10,7 @@
 
 import os
 from copy import deepcopy
-from typing import Dict, Any, List, Optional, ClassVar
+from typing import Dict, Any, List, Optional, ClassVar, Tuple, Set
 
 from send2trash import send2trash
 from textual.screen import ModalScreen
@@ -26,6 +26,12 @@ from src.themes.theme_manager import ThemeManager
 from src.core.database_manager import DatabaseManager
 from src.ui.dialogs.crawler_merge_mode_dialog import BookGroup
 from src.ui.utils.smart_title_utils import SmartTitleUtils
+from src.utils.merge_staging import (
+    save_staging,
+    load_staging,
+    clear_staging,
+    apply_staging_to_groups,
+)
 from src.utils.logger import get_logger
 
 logger = get_logger(__name__)
@@ -337,6 +343,7 @@ class CrawlerMergeDetailDialog(ModalScreen[Dict[str, Any]]):
         novel_site: Optional[Dict[str, Any]] = None,
         parser_override: Optional[str] = None,
         library_mode: bool = False,
+        staging_key: str = "",
         **kwargs,
     ) -> None:
         super().__init__(**kwargs)
@@ -427,7 +434,15 @@ class CrawlerMergeDetailDialog(ModalScreen[Dict[str, Any]]):
                 'merged_title': g.get('base_title', ''),
                 'skipped': False,
                 'auto_sorted': False,   # 是否已对该组执行过自动排序
+                'processed': False,     # 是否已人工提交（合并/跳过），用于「提前完成」与暂存恢复
             }
+
+        # ── 合并暂存 key 与恢复 ──
+        # staging_key 由合并模式弹窗按「书库/站点/全合并」维度生成，
+        # 同一维度的多次打开共享同一份进度暂存。
+        self._staging_key: str = staging_key or ("library" if self.library_mode else "default")
+        self._staging_restored_count: int = 0
+        self._restore_staging()
 
         # ── 补足缺失章节功能相关状态 ──
         self._fill_missing_visible: bool = False
@@ -537,6 +552,8 @@ class CrawlerMergeDetailDialog(ModalScreen[Dict[str, Any]]):
                     Button(self.i18n.t('merge_detail.merge_this'), id="merge-this-btn", variant="primary"),
                     Button(self.i18n.t('merge_detail.skip_this'), id="skip-this-btn"),
                     Button(self.i18n.t('duplicate_books.next_group'), id="next-group-btn"),
+                    Button(self.i18n.t('merge_detail.staging'), id="staging-btn", variant="default"),
+                    Button(self.i18n.t('merge_detail.early_finish'), id="early-finish-btn", variant="warning"),
                     Button(self.i18n.t('common.cancel'), id="cancel-all-btn", variant="error"),
                     id="detail-buttons",
                 ),
@@ -549,6 +566,11 @@ class CrawlerMergeDetailDialog(ModalScreen[Dict[str, Any]]):
 
     def on_mount(self) -> None:
         self._refresh_display()
+        if self._staging_restored_count > 0:
+            self.notify(
+                self.i18n.t('merge_detail.staging_restored', count=self._staging_restored_count),
+                timeout=4,
+            )
 
     # ─── 显示刷新 ───────────────────────────────────────────
 
@@ -1051,6 +1073,8 @@ class CrawlerMergeDetailDialog(ModalScreen[Dict[str, Any]]):
 
         # 保存标题
         state['merged_title'] = new_title
+        # 标记当前组已人工处理（合并/跳过），用于「提前完成」与暂存恢复
+        state['processed'] = True
 
         # 检查是否还有下一组
         if self._current_index + 1 < self._total_groups:
@@ -1065,6 +1089,7 @@ class CrawlerMergeDetailDialog(ModalScreen[Dict[str, Any]]):
         """跳过当前组"""
         # 标记当前组为跳过
         self._group_state[self._current_index]['skipped'] = True
+        self._group_state[self._current_index]['processed'] = True
         if self._current_index + 1 < self._total_groups:
             self._current_index += 1
             self._refresh_display()
@@ -1107,6 +1132,79 @@ class CrawlerMergeDetailDialog(ModalScreen[Dict[str, Any]]):
             "message": self.i18n.t('batch_ops.cancel_merge'),
         })
 
+    @on(Button.Pressed, "#staging-btn")
+    def on_stage_save(self) -> None:
+        """暂存当前所有分组的进度（已人工处理的 + 未处理的），可稍后从暂存继续"""
+        try:
+            # 先把当前光标所在组的标题输入落盘到状态，避免遗漏未导航的编辑
+            title_input = self.query_one("#merge-title-input", Input)
+            self._group_state[self._current_index]['merged_title'] = title_input.value.strip()
+        except Exception:
+            pass
+
+        entries = self._collect_staging_entries()
+        if save_staging(self._staging_key, entries):
+            processed = sum(
+                1 for st in self._group_state.values() if st.get('processed', False)
+            )
+            self.notify(
+                self.i18n.t('merge_detail.staging_saved', count=len(entries), processed=processed),
+                timeout=3,
+            )
+        else:
+            self.notify(self.i18n.t('merge_detail.staging_failed'), severity="error", timeout=3)
+
+    @on(Button.Pressed, "#early-finish-btn")
+    def on_early_finish(self) -> None:
+        """提前完成：仅提交当前已人工处理过的分组，后续未处理的分组全部舍弃不处理"""
+        merged_groups, skipped_groups, pending_deletes, processed_count = self._collect_results(
+            only_processed=True
+        )
+        discarded = self._total_groups - processed_count
+        if not merged_groups and not pending_deletes:
+            self.notify(self.i18n.t('merge_detail.early_nothing'), severity="warning", timeout=3)
+            return
+
+        def _do_dismiss() -> None:
+            self._dismiss_result(
+                merged_groups,
+                skipped_groups,
+                pending_deletes,
+                self.i18n.t(
+                    'merge_detail.early_completed',
+                    merged=len(merged_groups),
+                    skipped=len(skipped_groups),
+                    discarded=discarded,
+                ),
+                early_finished=True,
+            )
+
+        try:
+            from src.ui.dialogs.confirm_dialog import ConfirmDialog
+
+            def handle_confirm(confirmed: Optional[bool]) -> None:
+                if not confirmed:
+                    self.notify(self.i18n.t('crawler.delete_cancelled'), timeout=2)
+                    return
+                _do_dismiss()
+
+            self.app.push_screen(
+                ConfirmDialog(
+                    self.theme_manager,
+                    self.i18n.t('merge_detail.confirm_early_title'),
+                    self.i18n.t(
+                        'merge_detail.confirm_early_message',
+                        merge_count=len(merged_groups),
+                        delete_count=len(pending_deletes),
+                        discarded=discarded,
+                    ),
+                ),
+                handle_confirm,
+            )
+        except Exception as e:
+            logger.error(f"提前完成确认弹窗失败，直接执行: {e}")
+            _do_dismiss()
+
     @on(Input.Submitted, "#merge-title-input")
     def on_title_submitted(self) -> None:
         """回车提交"""
@@ -1116,14 +1214,81 @@ class CrawlerMergeDetailDialog(ModalScreen[Dict[str, Any]]):
 
     def _finish_and_return(self) -> None:
         """收集所有组的合并结果与待删除书籍，弹出最终确认后统一返回执行"""
-        merged_groups = []
-        skipped_groups = []
+        merged_groups, skipped_groups, pending_deletes, _ = self._collect_results(
+            only_processed=False
+        )
+
+        if not merged_groups and not pending_deletes:
+            self.notify(self.i18n.t('merge_detail.no_groups_to_merge'), severity="warning")
+            return
+
+        def _do_dismiss() -> None:
+            self._dismiss_result(
+                merged_groups,
+                skipped_groups,
+                pending_deletes,
+                self.i18n.t(
+                    'merge_detail.completed',
+                    merged=len(merged_groups),
+                    skipped=len(skipped_groups),
+                ),
+            )
+
+        # 最终确认：汇总即将执行的合并 / 删除数量，确认后才真正执行（避免误操作不可恢复）
+        try:
+            from src.ui.dialogs.confirm_dialog import ConfirmDialog
+
+            def handle_finish_confirmation(confirmed: Optional[bool]) -> None:
+                if not confirmed:
+                    self.notify(self.i18n.t('crawler.delete_cancelled'), timeout=2)
+                    return
+                _do_dismiss()
+
+            self.app.push_screen(
+                ConfirmDialog(
+                    self.theme_manager,
+                    self.i18n.t('merge_detail.confirm_finish_title'),
+                    self.i18n.t(
+                        'merge_detail.confirm_finish_message',
+                        merge_count=len(merged_groups),
+                        delete_count=len(pending_deletes),
+                    ),
+                ),
+                handle_finish_confirmation,
+            )
+        except Exception as e:
+            logger.error(f"最终确认弹窗失败，直接执行: {e}")
+            _do_dismiss()
+
+    def _collect_results(
+        self,
+        only_processed: bool = False,
+    ) -> Tuple[List[Dict[str, Any]], List[str], List[Dict[str, Any]], int]:
+        """收集合并结果。
+
+        Args:
+            only_processed: 为 True 时仅收集「已人工处理」(合并/跳过) 的分组，
+                用于「提前完成」。
+
+        Returns:
+            (merged_groups, skipped_groups, pending_deletes, processed_count)
+        """
+        merged_groups: List[Dict[str, Any]] = []
+        skipped_groups: List[str] = []
         pending_deletes: List[Dict[str, Any]] = []
         seen_delete_ids: set = set()
+        processed_count = 0
 
         for i in range(self._total_groups):
             state = self._group_state[i]
             group = self.groups[i]
+
+            if state.get('processed', False):
+                processed_count += 1
+
+            if only_processed and not state.get('processed', False):
+                # 提前完成：未人工处理的分组直接舍弃，不参与合并
+                continue
 
             # 收集该组标记为待删除的书籍（跨组去重）
             pd_ids = state.get('pending_delete_ids', set())
@@ -1157,49 +1322,73 @@ class CrawlerMergeDetailDialog(ModalScreen[Dict[str, Any]]):
                 "selected_books": selected_books,
             })
 
-        if not merged_groups and not pending_deletes:
-            self.notify(self.i18n.t('merge_detail.no_groups_to_merge'), severity="warning")
-            return
+        return merged_groups, skipped_groups, pending_deletes, processed_count
 
-        def _do_dismiss() -> None:
-            self.dismiss({
-                "success": True,
-                "action": "merge_detail",
-                "merged_groups": merged_groups,
-                "skipped_groups": skipped_groups,
-                "pending_deletes": pending_deletes,
-                "message": self.i18n.t(
-                    'merge_detail.completed',
-                    merged=len(merged_groups),
-                    skipped=len(skipped_groups),
-                ),
+    def _dismiss_result(
+        self,
+        merged_groups: List[Dict[str, Any]],
+        skipped_groups: List[str],
+        pending_deletes: List[Dict[str, Any]],
+        message: str,
+        early_finished: bool = False,
+    ) -> None:
+        """统一回传合并结果并清除暂存（合并一旦成功执行，暂存即失效）"""
+        clear_staging(self._staging_key)
+        self.dismiss({
+            "success": True,
+            "action": "merge_detail",
+            "merged_groups": merged_groups,
+            "skipped_groups": skipped_groups,
+            "pending_deletes": pending_deletes,
+            "early_finished": early_finished,
+            "message": message,
+        })
+
+    # ─── 暂存相关 ───────────────────────────────────────────
+
+    def _collect_staging_entries(self) -> List[Dict[str, Any]]:
+        """收集当前所有分组的进度快照（含已处理与未处理），用于暂存到磁盘"""
+        entries: List[Dict[str, Any]] = []
+        for i in range(self._total_groups):
+            state = self._group_state[i]
+            group = self.groups[i]
+            entries.append({
+                "book_ids": [b.get('id') for b in group.get('books', [])],
+                "base_title": group.get('base_title', ''),
+                "display_title": group.get('display_title', group.get('base_title', '')),
+                "state": {
+                    "selected_ids": list(state.get('selected_ids', set())),
+                    "pending_delete_ids": list(state.get('pending_delete_ids', set())),
+                    "merged_title": state.get('merged_title', ''),
+                    "skipped": state.get('skipped', False),
+                    "auto_sorted": state.get('auto_sorted', False),
+                    "processed": state.get('processed', False),
+                },
             })
+        return entries
 
-        # 最终确认：汇总即将执行的合并 / 删除数量，确认后才真正执行（避免误操作不可恢复）
+    def _restore_staging(self) -> None:
+        """若存在匹配的合并暂存，则把已处理分组的结果恢复到当前状态，
+        并把光标定位到第一个未处理分组，方便续作。"""
         try:
-            from src.ui.dialogs.confirm_dialog import ConfirmDialog
+            staging = load_staging(self._staging_key)
+            if not staging:
+                return
+            restored = apply_staging_to_groups(self.groups, self._group_state, staging)
+            if restored == 0:
+                return
+            self._staging_restored_count = restored
 
-            def handle_finish_confirmation(confirmed: Optional[bool]) -> None:
-                if not confirmed:
-                    self.notify(self.i18n.t('crawler.delete_cancelled'), timeout=2)
-                    return
-                _do_dismiss()
-
-            self.app.push_screen(
-                ConfirmDialog(
-                    self.theme_manager,
-                    self.i18n.t('merge_detail.confirm_finish_title'),
-                    self.i18n.t(
-                        'merge_detail.confirm_finish_message',
-                        merge_count=len(merged_groups),
-                        delete_count=len(pending_deletes),
-                    ),
-                ),
-                handle_finish_confirmation,
-            )
+            # 跳转到第一个未处理的分组，便于从上次中断处继续
+            first_unprocessed = None
+            for i in range(self._total_groups):
+                if not self._group_state[i].get('processed', False):
+                    first_unprocessed = i
+                    break
+            if first_unprocessed is not None:
+                self._current_index = first_unprocessed
         except Exception as e:
-            logger.error(f"最终确认弹窗失败，直接执行: {e}")
-            _do_dismiss()
+            logger.error(f"恢复合并暂存失败: {e}")
 
     # ─── 快速定位 ───────────────────────────────────────────
 

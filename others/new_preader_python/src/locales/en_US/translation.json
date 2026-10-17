@@ -1426,7 +1426,16 @@
     "title_placeholder": "Enter merged book title",
     "title_required": "Please enter merged title",
     "undo_delete_btn": "Undo Del",
-    "unknown_site": "Unknown Site"
+    "unknown_site": "Unknown Site",
+    "staging": "Staging",
+    "early_finish": "Finish Early",
+    "staging_saved": "Staged progress of {count} groups ({processed} processed); resume later",
+    "staging_failed": "Staging failed; please check disk permissions",
+    "staging_restored": "Restored {count} processed groups from staging; jumped to first unprocessed group",
+    "early_nothing": "No group can be finished early yet (merge or skip some first)",
+    "early_completed": "Finished early: committed {merged} groups, skipped {skipped}, discarded {discarded}",
+    "confirm_early_title": "Finish Early",
+    "confirm_early_message": "Will commit the processed {merge_count} groups and run merge/delete; remaining {discarded} groups will be discarded. Continue?"
   },
   "merge_mode": {
     "auto_merged_hint": "Auto-merged {count} groups as chapters of the same book",
@@ -1464,7 +1473,8 @@
     "skipped_info": " (skipped {count} groups)",
     "status": "Selected {selected_groups}/{total_groups} groups, {selected_books} books total",
     "summary": "Found {group_count} book groups, involving {book_count} records",
-    "title": "Merge Mode"
+    "title": "Merge Mode",
+    "staging_exists": "Found previous merge staging; continue from it in merge details"
   },
   "merge_range": {
     "confirm": "Start Grouping",
