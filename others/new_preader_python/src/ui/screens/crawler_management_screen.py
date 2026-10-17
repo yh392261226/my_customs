@@ -753,6 +753,7 @@ class CrawlerManagementScreen(Screen[None]):
         ("g", "toggle_smart_search", get_global_i18n().t('crawler.smart_search')),
         ("m", "format_title", get_global_i18n().t('common.format_title')),
         ("b", "browser_read", get_global_i18n().t('common.browser_read')),
+        ("S", "search_chapters", get_global_i18n().t('common.search_chapter')),
     ]
 
     def action_open_browser(self) -> None:
@@ -1416,6 +1417,7 @@ class CrawlerManagementScreen(Screen[None]):
         table.add_column(get_global_i18n().t('common.rename'), key="rename_novel")
         table.add_column(get_global_i18n().t('common.preview'), key="preview")
         table.add_column(get_global_i18n().t('merge_detail.fill_missing'), key="fill_missing")
+        table.add_column(get_global_i18n().t('common.search_chapter'), key="search_chapters")
         
         table.zebra_stripes = True
         
@@ -1706,7 +1708,8 @@ class CrawlerManagementScreen(Screen[None]):
                     "crawl_latest": get_global_i18n().t('crawler.crawl_latest') if item.get("serial_mode") == 1 and item["status"] == get_global_i18n().t('common.success') else "",
                     "rename_novel": get_global_i18n().t('common.rename') if item["status"] == get_global_i18n().t('common.success') else "",
                     "preview": get_global_i18n().t('common.preview') if item["status"] == get_global_i18n().t('common.success') else "",
-                    "fill_missing": get_global_i18n().t('merge_detail.fill_missing') if item["status"] == get_global_i18n().t('common.success') else ""
+                    "fill_missing": get_global_i18n().t('merge_detail.fill_missing') if item["status"] == get_global_i18n().t('common.success') else "",
+                    "search_chapters": get_global_i18n().t('common.search_chapter')
                 }
                 
                 # 调试：打印row_data
@@ -3222,7 +3225,7 @@ class CrawlerManagementScreen(Screen[None]):
                 self._handle_cell_selection(row_key)
                 
             # 处理其他列的按钮点击
-            elif column in ["view_file", "read_book", "browser_read_book", "delete_file", "delete_record", "view_reason", "retry", "rename_novel", "preview", "fill_missing"]:
+            elif column in ["view_file", "read_book", "browser_read_book", "delete_file", "delete_record", "view_reason", "retry", "rename_novel", "preview", "fill_missing", "search_chapters"]:
                 self._handle_button_click(column, row_key)
             
             # 处理连载列点击：切换连载模式
@@ -3625,10 +3628,81 @@ class CrawlerManagementScreen(Screen[None]):
             elif column == "fill_missing":
                 self.notify(f"填充缺失章节: {row_key}")
                 self._fill_missing(history_item)
+            elif column == "search_chapters":
+                self._open_search_chapters(history_item.get('novel_title', '') or '')
                 
         except Exception as e:
             logger.debug(f"处理按钮点击失败: {e}")
-    
+
+    def _open_search_chapters(self, raw_title: str) -> None:
+        """使用网站配置的搜索连接地址，以书名为关键词在浏览器中搜索章节。
+
+        功能与「补足缺失章节」弹窗中的「搜索章节」按钮完全一致：
+        - 关键词经 normalize_book_title 智能规范化（与爬取管理页面智能搜索一致）；
+        - 搜索连接地址中的 {keyword} 占位符会被替换为 URL 编码后的关键词；
+        - 若网站未配置搜索连接地址，提示「未配置搜索连接」。
+        """
+        site = self.novel_site or {}
+        search_url = (site.get("search_url") or "").strip()
+        if not search_url:
+            self.notify(get_global_i18n().t('crawler.search_url_not_configured'), severity="warning", timeout=3)
+            return
+
+        if not raw_title:
+            self.notify(get_global_i18n().t('crawler.search_title_empty'), severity="warning", timeout=2)
+            return
+
+        # 智能搜索处理：规范化书名为搜索关键词（与爬取管理页面智能搜索一致）
+        try:
+            from src.ui.dialogs.crawler_merge_mode_dialog import normalize_book_title
+            keyword = normalize_book_title(raw_title)
+        except Exception as e:
+            logger.debug(f"规范化书名失败，使用原始书名: {e}")
+            keyword = raw_title
+        if not keyword:
+            keyword = raw_title
+
+        from urllib.parse import quote
+        encoded = quote(keyword)
+        # 若地址包含 {keyword} 占位符则替换；否则直接把编码后的关键词追加到末尾
+        if "{keyword}" in search_url:
+            url = search_url.replace("{keyword}", encoded)
+        else:
+            url = search_url + encoded
+
+        try:
+            from src.utils.browser_manager import BrowserManager
+            success = BrowserManager.open_url(url)
+            if success:
+                self.notify(
+                    get_global_i18n().t('crawler.search_url_opened', keyword=keyword),
+                    severity="information", timeout=3,
+                )
+            else:
+                import webbrowser
+                webbrowser.open(url)
+                self.notify(
+                    get_global_i18n().t('crawler.search_url_opened', keyword=keyword),
+                    timeout=3,
+                )
+        except Exception as e:
+            logger.error(f"打开搜索连接失败: {e}")
+            self.notify(
+                get_global_i18n().t('crawler.search_url_open_failed', error=str(e)),
+                severity="error", timeout=3,
+            )
+
+    def action_search_chapters(self) -> None:
+        """S 键 - 以光标所在书籍书名搜索章节（与补足缺失章节弹窗一致）"""
+        table = self.query_one("#crawl-history-table", DataTable)
+        current_row_index = getattr(table, 'cursor_row', None)
+        if current_row_index is not None and 0 <= current_row_index < len(table.rows):
+            start_index = (self.current_page - 1) * self.items_per_page
+            item_index = start_index + current_row_index
+            if 0 <= item_index < len(self.crawler_history):
+                history_item = self.crawler_history[item_index]
+                self._open_search_chapters(history_item.get('novel_title', '') or '')
+
     @on(DataTable.RowSelected, "#crawl-history-table")
     def on_data_table_row_selected(self, event: DataTable.RowSelected) -> None:
         """数据表格行选择事件 - 支持空格键选择"""
