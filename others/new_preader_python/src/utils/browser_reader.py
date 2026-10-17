@@ -132,7 +132,7 @@ EXTRA_READER_HTML = r"""
 </div>
 
 <!-- 浮动锁屏按钮 -->
-<button id="brLockFab" title="按 L 键锁屏">🔒 锁屏</button>
+<button id="brLockFab" title="锁屏 (按 L 键)">🔒 锁屏</button>
 """
 
 EXTRA_READER_JS = r"""
@@ -886,7 +886,10 @@ html.br-locked #brLockScreen { display: flex !important; }
 
 #brSetPwdModal {
   position: fixed; inset: 0; z-index: 100001; display: none;
-  align-items: center; justify-content: center; background: rgba(0,0,0,0.6);
+  align-items: center; justify-content: center;
+  background: rgba(13, 15, 20, 0.55);
+  backdrop-filter: blur(18px);
+  -webkit-backdrop-filter: blur(18px);
 }
 #brSetPwdModal.show { display: flex !important; }
 #brSetPwdModal .br-modal {
@@ -1073,7 +1076,9 @@ LOCK_SCREEN_JS = r"""
     else if(window.__BR_LOCK_ENABLED__ === true && !rec){ brOpenSet(); }
   }
   document.addEventListener('keydown', function(e){
-    if(e.key==='l' || e.key==='L'){
+    // 仅"裸按 L"锁屏；若同时按住 Cmd/Ctrl/Alt 等修饰键则不锁屏，
+    // 让浏览器默认的 Cmd+L(聚焦地址栏) 等快捷键正常工作，避免冲突。
+    if((e.key==='l') && !e.metaKey && !e.ctrlKey && !e.altKey){
       var ae=document.activeElement;
       var tag=ae&&ae.tagName?ae.tagName.toLowerCase():'';
       if(tag==='input'||tag==='textarea'||(ae&&ae.isContentEditable)) return;
