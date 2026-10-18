@@ -1199,7 +1199,18 @@ SYNC_JS = r"""
   function lsGet(k){ try { return JSON.parse(localStorage.getItem(k)||'null'); } catch(e){ return null; } }
   function lsSet(k,v){ try { localStorage.setItem(k, JSON.stringify(v)); } catch(e){} }
   function esc(s){ s = s==null?'':String(s); return s.replace(/[&<>"]/g, function(c){ return {'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;'}[c]; }); }
-  function getSecret(){ try { return localStorage.getItem('br_api_secret') || ''; } catch(e){ return ''; } }
+  function getSecret(){
+    try {
+      var s = localStorage.getItem('br_api_secret');
+      // 首次未手动设置过面板密钥时，自动复用阅读器主密钥（api_secret），
+      // 使配置好密钥后数据同步面板开箱即用；不覆盖用户显式清空/自定义的值。
+      if (s === null && window.READER_SECRET) {
+        try { localStorage.setItem('br_api_secret', window.READER_SECRET); } catch(e){}
+        return window.READER_SECRET;
+      }
+      return s || '';
+    } catch(e){ return ''; }
+  }
   function setSecret(v){ try { localStorage.setItem('br_api_secret', v || ''); } catch(e){} }
   function escAttr(s){ return esc(s==null?'':String(s)).replace(/'/g, '&#39;'); }
 
