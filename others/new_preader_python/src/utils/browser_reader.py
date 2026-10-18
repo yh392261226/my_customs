@@ -4807,7 +4807,8 @@ class BrowserReader:
             <li><kbd>PageUp</kbd>/<kbd>PageDown</kbd> <script>document.write(t('browser_reader.shortcut_page_up_down_keys'));</script></li>
             <li><kbd>Home</kbd>/<kbd>End</kbd> <script>document.write(t('browser_reader.shortcut_home_end'));</script></li>
             <li><kbd>c</kbd> <script>document.write(t('common.chapter_toc'));</script></li>
-            <li><kbd>s</kbd> <script>document.write(t('browser_reader.progress_sync'));</script></li>
+            <li><kbd>s</kbd> <script>document.write(t('common.search'));</script></li>
+            <li><kbd>S</kbd> <script>document.write(t('browser_reader.progress_sync'));</script></li>
             <li><kbd>b</kbd> <script>document.write(t('common.bookmark'));</script></li>
             <li><kbd>Ctrl+F</kbd> <script>document.write(t('common.search'));</script></li>
             <li><kbd>F</kbd> <script>document.write(t('common.focus_mode'));</script></li>
@@ -9291,8 +9292,17 @@ class BrowserReader:
                     e.preventDefault();
                     break;
                 case 's':
+                    // 小写 s：打开搜索框（与工具栏"搜索"按钮一致）
+                    if (typeof checkPermission === 'function' ? checkPermission('search.read') : true) {{
+                        if (typeof toggleSearch === 'function') toggleSearch();
+                    }}
+                    e.preventDefault();
+                    break;
                 case 'S':
-                    toggleSearch();
+                    // 大写 S：同步进度（与点击工具栏"进度同步"按钮的即时同步动作一致）
+                    if (typeof checkPermission === 'function' ? checkPermission('book.write') : true) {{
+                        if (typeof manualSync === 'function') manualSync();
+                    }}
                     e.preventDefault();
                     break;
                 case 'b':
@@ -9387,14 +9397,6 @@ class BrowserReader:
                 case 'w':
                 case 'W':
                     toggleVocabPanel();
-                    e.preventDefault();
-                    break;
-                case 's':
-                case 'S':
-                    // 大写 S：同步进度（与点击工具栏"进度同步"按钮的即时同步动作一致）
-                    if (typeof checkPermission === 'function' ? checkPermission('book.write') : true) {{
-                        if (typeof manualSync === 'function') manualSync();
-                    }}
                     e.preventDefault();
                     break;
                 case 'Escape':
