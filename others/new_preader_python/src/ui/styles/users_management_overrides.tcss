@@ -87,11 +87,15 @@ Footer {
 
 /* 顶部新增用户行与权限设置行中的输入宽度优化 */
 #new-username,
-#new-password,
 #edit-username,
-#edit-password,
 #perm-user-id,
 #perm-keys {
+    width: 40;
+}
+
+/* 密码框改为吸收剩余空间（1fr），给切换按钮（约 5 宽）留位，并避免窄屏整行溢出 */
+#new-password,
+#edit-password {
     width: 40;
 }
 
@@ -191,4 +195,11 @@ DataTable {
     text-style: bold;
     align: center middle;
     content-align: center middle;
+}
+
+/* 密码框切换按钮：固定宽度；纵向 margin 与密码输入框一致（上 0） */
+.password-toggle {
+    width: 5;
+    min-width: 5;
+    margin: 0 0 0 1;
 }

@@ -6,6 +6,8 @@
 from typing import Dict, Any, Optional, List, ClassVar
 from textual.screen import ModalScreen
 from textual.containers import Container, Vertical, Horizontal, ScrollableContainer
+
+from src.ui.widgets.password_input import password_toggle_button
 from textual.widgets import Static, Button, Label, Input, Select, Switch
 from textual.app import ComposeResult
 from textual.reactive import reactive
@@ -159,6 +161,8 @@ class ProxyEditDialog(ModalScreen[Optional[Dict[str, Any]]]):
                                 value=self.proxy_data.get("username", ""),
                                 classes="input-std"
                             )
+
+                    with Vertical(id="auth-container2"):
                         with Horizontal(id="password-container", classes="form-row center-h"):
                             yield Label(password_label, id="password-label", classes="label-right")
                             yield Input(
@@ -168,6 +172,7 @@ class ProxyEditDialog(ModalScreen[Optional[Dict[str, Any]]]):
                                 value=self.proxy_data.get("password", ""),
                                 classes="input-std"
                             )
+                            yield password_toggle_button("password-input")
             
             # 状态信息显示区域
             yield Label("", id="proxy-status-info")

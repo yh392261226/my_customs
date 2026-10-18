@@ -9,6 +9,8 @@ from textual.screen import ModalScreen
 from textual.widgets import Label, Input, Button, Digits
 from textual.containers import Vertical, Horizontal
 from textual.timer import Timer
+
+from src.ui.widgets.password_input import password_toggle_button
 from src.locales.i18n_manager import get_global_i18n
 from src.ui.styles.universal_style_isolation import apply_universal_style_isolation
 from src.utils.logger import get_logger
@@ -68,6 +70,7 @@ class LockScreen(ModalScreen[bool]):
             # 密码输入区域（横排）
             with Horizontal(id="password-container"):
                 yield Input(password=True, id="lock-password-input", placeholder=placeholder)
+                yield password_toggle_button("lock-password-input")
                 yield Button(confirm_text, id="lock-submit-btn", variant="primary")
                 yield Button(i18n.t("common.cancel") if i18n else "取消", id="lock-cancel-btn", variant="error")
 

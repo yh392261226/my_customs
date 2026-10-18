@@ -206,3 +206,15 @@
     height: 3;
     margin-right: 2;
 }
+
+/* 密码框切换按钮：固定宽度；纵向 margin 与密码输入框一致（上 1） */
+.password-toggle {
+    width: 5;
+    min-width: 5;
+    margin: 1 0 0 1;
+}
+/* 密码框整行（Input + 切换按钮）占满设置容器宽度，使内部 20% 相对整行计算 */
+#settings-container .password-field-row {
+    width: 100%;
+    height: auto;
+}

@@ -72,3 +72,10 @@ Button #lock-submit-btn {
     color: $text;
     height: 3;
 }
+
+/* 密码框切换按钮：固定宽度；纵向 margin 与密码输入框一致（上 1）以保证同行 */
+.password-toggle {
+    width: 5;
+    min-width: 5;
+    margin: 1 0 0 1;
+}

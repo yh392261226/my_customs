@@ -4,6 +4,8 @@
 from typing import Optional, Dict, Any, List, ClassVar, Set
 from textual.screen import Screen
 from textual.containers import Container, Vertical, Horizontal
+
+from src.ui.widgets.password_input import password_toggle_button
 from textual.widgets import Label, Input, Button, Header, Footer, DataTable
 from textual.app import ComposeResult
 from textual import on
@@ -56,12 +58,14 @@ class UsersManagementScreen(Screen[None]):
                 Horizontal(
                     Input(placeholder=t.t('users_management.new_username'), id="new-username"),
                     Input(placeholder=t.t('users_management.new_password'), password=True, id="new-password"),
+                    password_toggle_button("new-password"),
                     Button(t.t('users_management.add_new_user'), id="add-user"),
                     id="um-new-user",
                 ),
                 Horizontal(
                     Input(placeholder=t.t('common.username'), id="edit-username"),
                     Input(placeholder=t.t('common.password'), password=True, id="edit-password"),
+                    password_toggle_button("edit-password"),
                     Button(t.t("common.edit"), id="edit-user"),
                     Button(t.t("common.cancel"), id="cancel-edit-user"),
                     id="um-edit-user",

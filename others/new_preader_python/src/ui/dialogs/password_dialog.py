@@ -7,6 +7,8 @@ from typing import Optional
 
 from textual.app import ComposeResult
 from textual.containers import Vertical, Horizontal
+
+from src.ui.widgets.password_input import password_toggle_button
 from textual.screen import ModalScreen
 from textual.widgets import Button, Input, Label
 from src.locales.i18n import I18n
@@ -34,8 +36,10 @@ class PasswordDialog(ModalScreen[Optional[str]]):
             # 标题与文件名
             yield Label(get_global_i18n().t("password_dialog.title"), id="password-title", classes="section-title")
             yield Label(os.path.basename(self.file_path), id="password-filename")
-            # 密码输入（允许空密码）
-            yield Input(placeholder=get_global_i18n().t("password_dialog.placeholder"), password=True, id="password-input")
+            # 密码输入（允许空密码）+ 切换按钮，二者同处一行
+            with Horizontal(id="password-field-row"):
+                yield Input(placeholder=get_global_i18n().t("password_dialog.placeholder"), password=True, id="password-input")
+                yield password_toggle_button("password-input")
             # 按钮行
             with Horizontal(id="password-buttons", classes="btn-row"):
                 yield Button(f"← {get_global_i18n().t('common.cancel')}", id="cancel-btn", variant="primary")

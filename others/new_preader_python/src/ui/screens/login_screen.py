@@ -10,6 +10,8 @@ from textual.widgets import Label, Input, Button, Digits
 from textual.containers import Vertical, Horizontal
 from textual.timer import Timer
 
+from src.ui.widgets.password_input import password_toggle_button
+
 from src.themes.theme_manager import ThemeManager
 from src.core.database_manager import DatabaseManager
 from src.locales.i18n_manager import get_global_i18n
@@ -110,6 +112,7 @@ class LoginScreen(Screen[Optional[Dict[str, Any]]]):
             with Horizontal(id="password-container"):
                 yield Input(placeholder=username_ph, id="username-input")
                 yield Input(placeholder=password_ph, password=True, id="password-input")
+                yield password_toggle_button("password-input")
                 yield Button(ok_text, id="login-btn", variant="primary")
                 yield Button(guest_text, id="guest-btn")
 

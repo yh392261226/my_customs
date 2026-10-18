@@ -62,9 +62,26 @@
     padding: 0;
 }
 
+#auth-container2 {
+    width: 100%;
+    height: auto;
+    layout: vertical;
+    margin: 0;
+    border: round $primary;
+    background: $panel-lighten-1;
+    padding: 0;
+    align: left middle;
+}
+
 /* 使用 .label-right */
 #name-label, #type-label, #host-label, 
-#port-label, #username-label, #password-label, #enable-label {
+#port-label, #username-label, #enable-label {
+    height: 3;
+    width: 30%;
+    margin: 2 0;
+}
+
+#password-label {
     height: 3;
     width: 30%;
     margin: 2 0;
@@ -106,3 +123,10 @@ Label {
 .status-error { color: $error; }
 .status-info { color: $primary; }
 /* 使用 .scroll */
+
+/* 密码框切换按钮：固定宽度；纵向 margin 与密码输入框一致（上 1）以保证同行 */
+.password-toggle {
+    width: 5;
+    min-width: 5;
+    margin: 1 0 0 1;
+}

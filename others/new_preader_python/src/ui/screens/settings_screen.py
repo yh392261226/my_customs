@@ -8,6 +8,8 @@ import os
 from typing import Any, Dict, Optional, ClassVar
 from textual.screen import Screen
 from textual.containers import Container, Vertical, Horizontal, ScrollableContainer
+
+from src.ui.widgets.password_input import password_field
 from textual.widgets import Static, Button, Label, Select, Switch, Input, TabbedContent, TabPane, Header, Footer, Pretty
 from src.ui.components.slider import Slider
 from src.ui.styles.universal_style_isolation import apply_universal_style_isolation, remove_universal_style_isolation
@@ -474,20 +476,18 @@ class SettingsScreen(Screen[Any]):
                 yield Label(get_global_i18n().t("settings.baidu_app_id"), classes="setting-label")
                 baidu_app_id = self.setting_registry.get_setting("translation.translation_services.baidu.app_id")
                 if baidu_app_id:
-                    yield Input(
-                        value=baidu_app_id.value,
+                    yield password_field(
+                        "baidu-app-id-input",
                         placeholder=baidu_app_id.default_value,
-                        id="baidu-app-id-input",
-                        password=True
+                        value=baidu_app_id.value,
                     )
                 yield Label(get_global_i18n().t("settings.baidu_app_key"), classes="setting-label")
                 baidu_app_key = self.setting_registry.get_setting("translation.translation_services.baidu.app_key")
                 if baidu_app_key:
-                    yield Input(
-                        value=baidu_app_key.value,
+                    yield password_field(
+                        "baidu-app-key-input",
                         placeholder=baidu_app_key.default_value,
-                        id="baidu-app-key-input",
-                        password=True
+                        value=baidu_app_key.value,
                     )
             
             # 有道翻译配置
@@ -501,20 +501,18 @@ class SettingsScreen(Screen[Any]):
                 yield Label(get_global_i18n().t("settings.youdao_app_key"), classes="setting-label")
                 youdao_app_key = self.setting_registry.get_setting("translation.translation_services.youdao.app_key")
                 if youdao_app_key:
-                    yield Input(
-                        value=youdao_app_key.value,
+                    yield password_field(
+                        "youdao-app-key-input",
                         placeholder=youdao_app_key.default_value,
-                        id="youdao-app-key-input",
-                        password=True
+                        value=youdao_app_key.value,
                     )
                 yield Label(get_global_i18n().t("settings.youdao_app_secret"), classes="setting-label")
                 youdao_app_secret = self.setting_registry.get_setting("translation.translation_services.youdao.app_secret")
                 if youdao_app_secret:
-                    yield Input(
-                        value=youdao_app_secret.value,
+                    yield password_field(
+                        "youdao-app-secret-input",
                         placeholder=youdao_app_secret.default_value,
-                        id="youdao-app-secret-input",
-                        password=True
+                        value=youdao_app_secret.value,
                     )
             
             # Google翻译配置
@@ -528,11 +526,10 @@ class SettingsScreen(Screen[Any]):
                 yield Label(get_global_i18n().t("settings.google_api_key"), classes="setting-label")
                 google_api_key = self.setting_registry.get_setting("translation.translation_services.google.api_key")
                 if google_api_key:
-                    yield Input(
-                        value=google_api_key.value,
+                    yield password_field(
+                        "google-api-key-input",
                         placeholder=google_api_key.default_value,
-                        id="google-api-key-input",
-                        password=True
+                        value=google_api_key.value,
                     )
             
             # 微软翻译配置
@@ -546,11 +543,10 @@ class SettingsScreen(Screen[Any]):
                 yield Label(get_global_i18n().t("settings.microsoft_subscription_key"), classes="setting-label")
                 microsoft_key = self.setting_registry.get_setting("translation.translation_services.microsoft.subscription_key")
                 if microsoft_key:
-                    yield Input(
-                        value=microsoft_key.value,
+                    yield password_field(
+                        "microsoft-key-input",
                         placeholder=microsoft_key.default_value,
-                        id="microsoft-key-input",
-                        password=True
+                        value=microsoft_key.value,
                     )
                 yield Label(get_global_i18n().t("settings.microsoft_region"), classes="setting-label")
                 microsoft_region = self.setting_registry.get_setting("translation.translation_services.microsoft.region")
@@ -732,11 +728,10 @@ class SettingsScreen(Screen[Any]):
             yield Label("后端接口密钥（浏览器阅读器须使用相同密钥才能访问；留空为开放模式）", classes="setting-label")
             api_secret_setting = self.setting_registry.get_setting("browser_server.api_secret")
             if api_secret_setting:
-                yield Input(
-                    value=api_secret_setting.value or "",
+                yield password_field(
+                    "browser-server-api-secret-input",
                     placeholder="设置一个复杂的密钥字符串",
-                    password=True,
-                    id="browser-server-api-secret-input"
+                    value=api_secret_setting.value or "",
                 )
             
             # 端口检测按钮和状态
@@ -804,10 +799,9 @@ class SettingsScreen(Screen[Any]):
 
             # 设置密码（输入框，明文存储）
             yield Label(get_global_i18n().t("settings.password"), classes="setting-label")
-            yield Input(
+            yield password_field(
+                "advanced-password-input",
                 placeholder=get_global_i18n().t("settings.password_placeholder"),
-                password=True,
-                id="advanced-password-input"
             )
 
             # 启用数据库自动清理
