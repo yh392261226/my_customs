@@ -161,8 +161,8 @@ class ProxyEditDialog(ModalScreen[Optional[Dict[str, Any]]]):
                                 value=self.proxy_data.get("username", ""),
                                 classes="input-std"
                             )
-                        with Horizontal(id="password-container", classes="form-row center-h"):
-                            yield Label(password_label, id="password-label", classes="label-right")
+                        with Horizontal(id="password-container", classes="form-row"):
+                            yield Label(password_label, id="password-label", classes="")
                             yield Input(
                                 placeholder=password_placeholder,
                                 id="password-input",
