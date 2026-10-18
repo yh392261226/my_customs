@@ -439,6 +439,7 @@
     "shortcut_scroll_up_down": "Scroll Up/Down",
     "shortcut_speech": "Read Selected Text",
     "shortcut_view_file": "View file",
+    "shortcut_toolbar": "Toolbar",
     "shortcuts_title": "Shortcuts",
     "speech_completed": "Reading completed",
     "speech_error": "Speech error: {error}",

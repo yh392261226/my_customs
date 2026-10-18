@@ -91,8 +91,13 @@ class Book:
             # 不抛出异常，允许创建书籍对象但标记为文件不存在
         
         # 检查文件格式是否支持（允许空路径用于默认书籍）
+        # 注意：不再因格式不受支持而直接抛异常——否则浏览器等来源写入的
+        # 非标准 path（如缺少扩展名、或 path 实为书名而非文件路径）会在书架
+        # 批量加载（get_all_books_with_reading_info）时使整批加载失败、
+        # 导致书库界面整体空白。此处改为标记为文件缺失并继续构造对象。
         if path and self.format not in SUPPORTED_FORMATS:
-            raise ValueError(f"不支持的文件格式: {self.format}")
+            self.file_not_found = True
+            logger.warning(f"书籍文件格式不受支持，仍创建对象以便展示: {path} ({self.format})")
         
         # 基本信息
         # 当未显式指定标题时回退到文件名；文件名可能带时间戳后缀（如 _20260712_1809），

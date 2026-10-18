@@ -199,17 +199,26 @@ def _create_book(body: Dict[str, Any], handler) -> Optional[Dict[str, Any]]:
         return None
     existing = db.get_one("books", path)
     if existing:
-        # 选择性入库：已存在则不重复写入
-        return {"success": True, "existed": True, "item": existing}
+        # 选择性入库：已存在则不重复写入，明确提示「本书已存在」
+        return {"success": True, "existed": True, "message": "本书已存在", "item": existing}
     raw_meta = body.get("metadata")
     if isinstance(raw_meta, str):
         meta_str = raw_meta
     else:
         meta_str = json.dumps(raw_meta or {}, ensure_ascii=False)
+    # 书名与拼音：优先使用前端传入，未传则由标题转换拼音（用于首字母/拼音排序）
+    title = body.get("title") or os.path.basename(path)
+    pinyin = body.get("pinyin", "") or ""
+    if not pinyin and title:
+        try:
+            from src.core.database_manager import convert_to_pinyin
+            pinyin = convert_to_pinyin(title)
+        except Exception:
+            pinyin = ""
     row = {
         "path": path,
-        "title": body.get("title") or os.path.basename(path),
-        "pinyin": body.get("pinyin", "") or "",
+        "title": title,
+        "pinyin": pinyin,
         "author": body.get("author", "未知"),
         "format": body.get("format") or (os.path.splitext(path)[1].lstrip(".").lower() or "txt"),
         "add_date": body.get("add_date") or _now(),

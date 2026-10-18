@@ -857,40 +857,46 @@ class DatabaseManager:
                 results = []
 
                 for row in rows:
-                    # 将行转换为Book对象
-                    book = self._row_to_book(row)
+                    try:
+                        # 将行转换为Book对象
+                        book = self._row_to_book(row)
 
-                    # 构建阅读信息
-                    reading_info = {}
+                        # 构建阅读信息
+                        reading_info = {}
 
-                    # 优先从book_metadata获取
-                    if row['reading_metadata']:
-                        try:
-                            metadata = json.loads(row['reading_metadata'])
+                        # 优先从book_metadata获取
+                        if row['reading_metadata']:
+                            try:
+                                metadata = json.loads(row['reading_metadata'])
+                                reading_info = {
+                                    'last_read_date': metadata.get('last_read_date'),
+                                    'reading_progress': metadata.get('reading_progress', 0),
+                                    'total_pages': metadata.get('total_pages', 0),
+                                    'word_count': metadata.get('word_count', 0),
+                                    'current_page': metadata.get('current_page', 0),
+                                    'current_position': metadata.get('current_position', 0),
+                                    'anchor_text': metadata.get('anchor_text', ''),
+                                    'anchor_hash': metadata.get('anchor_hash', '')
+                                }
+                            except (json.JSONDecodeError, KeyError):
+                                # 解析失败，使用reading_history的数据
+                                pass
+
+                        # 如果book_metadata没有数据或解析失败，使用reading_history的数据
+                        if not reading_info and row['last_read_date']:
                             reading_info = {
-                                'last_read_date': metadata.get('last_read_date'),
-                                'reading_progress': metadata.get('reading_progress', 0),
-                                'total_pages': metadata.get('total_pages', 0),
-                                'word_count': metadata.get('word_count', 0),
-                                'current_page': metadata.get('current_page', 0),
-                                'current_position': metadata.get('current_position', 0),
-                                'anchor_text': metadata.get('anchor_text', ''),
-                                'anchor_hash': metadata.get('anchor_hash', '')
+                                'last_read_date': row['last_read_date'],
+                                'reading_progress': row['reading_progress'] if row['reading_progress'] else 0,
+                                'total_pages': row['total_pages'] if row['total_pages'] else 0,
+                                'word_count': row['word_count'] if row['word_count'] else 0
                             }
-                        except (json.JSONDecodeError, KeyError):
-                            # 解析失败，使用reading_history的数据
-                            pass
 
-                    # 如果book_metadata没有数据或解析失败，使用reading_history的数据
-                    if not reading_info and row['last_read_date']:
-                        reading_info = {
-                            'last_read_date': row['last_read_date'],
-                            'reading_progress': row['reading_progress'] if row['reading_progress'] else 0,
-                            'total_pages': row['total_pages'] if row['total_pages'] else 0,
-                            'word_count': row['word_count'] if row['word_count'] else 0
-                        }
-
-                    results.append((book, reading_info))
+                        results.append((book, reading_info))
+                    except Exception as e:  # noqa: BLE001
+                        # 单本书籍记录异常（如 path 无合法扩展名导致 Book 构造失败）
+                        # 不应使整批书架加载失败而整体空白，跳过该记录并告警。
+                        logger.warning(f"跳过无法加载的书籍记录(path={row.get('path')}): {e}")
+                        continue
 
                 return results
 

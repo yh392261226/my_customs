@@ -1163,7 +1163,7 @@ SYNC_CSS = r"""
 """
 
 SYNC_HTML = r"""
-<div id="brSyncBadge" class="br-sync-badge offline" title="点击查看数据同步">接口: 离线(本地)</div>
+<div id="brSyncBadge" class="br-sync-badge offline" title="点击显示/隐藏数据同步面板">接口: 离线(本地)</div>
 <div id="brSyncPanel" class="br-sync-panel" style="display:none">
   <div class="br-sync-head"><span>数据同步</span><button id="brSyncClose" class="br-sync-x">×</button></div>
   <div class="br-sync-status" id="brSyncDetail">检测中…</div>
@@ -1346,7 +1346,8 @@ SYNC_JS = r"""
 
   function pushBook(){
     if(!API){ alert('未配置后端接口，已仅保存在本地'); return; }
-    var path = window.__BR_BOOK_ID__ || '';
+    // 优先使用真实硬盘路径（加入书库的 path 必须是实际文件地址，而非书名/书籍ID）
+    var path = window.__BR_BOOK_FILE_PATH__ || window.__BR_BOOK_ID__ || '';
     if(!path){ alert('无法获取本书标识'); return; }
     var title = (document.title||'').replace(/\s*[-–|].*$/,'').trim() || path;
     var payload = { path:path, title:title, tags:'浏览器导入' };
@@ -1444,7 +1445,7 @@ SYNC_JS = r"""
   function closePanel(){ var p=el('brSyncPanel'); if(p) p.style.display='none'; }
 
   function bind(){
-    var b=el('brSyncBadge'); if(b) b.addEventListener('click', function(){ var p=el('brSyncPanel'); if(p && p.style.display==='block'){ closePanel(); } else { openPanel(); } });
+    var b=el('brSyncBadge'); if(b) b.addEventListener('click', function(){ var p=el('brSyncPanel'); if(p && p.style.display!=='none'){ closePanel(); } else { openPanel(); } });
     var x=el('brSyncClose'); if(x) x.addEventListener('click', closePanel);
     var rf=el('brSyncRefresh'); if(rf) rf.addEventListener('click', function(){ pull(); });
     var s=el('brSyncSearch'); if(s) s.addEventListener('keydown', function(e){ if(e.key==='Enter'){ state.q=s.value; state.page=1; pull(); } });
@@ -1652,7 +1653,9 @@ class BrowserReader:
                     "vocab_add_failed": "添加失败",
                     "shortcut_paragraph_spacing": "段落间距",
                     "shortcut_view_file": "查看文件",
-                    "shortcut_vocab": "生词本"
+                    "shortcut_vocab": "生词本",
+                    "shortcut_toolbar": "工具栏",
+                    "boss_key": "老板键"
                 }
             
             # 返回带有 browser_reader / common 命名空间的翻译
@@ -1731,7 +1734,10 @@ class BrowserReader:
                         "jump_25_success": "已跳转到 25% 位置",
                         "jump_50_success": "已跳转到 50% 位置",
                         "jump_75_success": "跳转到 75% 位置"
-                    }
+                    },
+                    "speech_settings": "朗读设置",
+                    "shortcut_toolbar": "工具栏",
+                    "boss_key": "老板键"
                 }
             }
 
@@ -4801,21 +4807,23 @@ class BrowserReader:
             <li><kbd>PageUp</kbd>/<kbd>PageDown</kbd> <script>document.write(t('browser_reader.shortcut_page_up_down_keys'));</script></li>
             <li><kbd>Home</kbd>/<kbd>End</kbd> <script>document.write(t('browser_reader.shortcut_home_end'));</script></li>
             <li><kbd>c</kbd> <script>document.write(t('common.chapter_toc'));</script></li>
-            <li><kbd>s</kbd> <script>document.write(t('common.search'));</script></li>
+            <li><kbd>s</kbd> <script>document.write(t('browser_reader.progress_sync'));</script></li>
             <li><kbd>b</kbd> <script>document.write(t('common.bookmark'));</script></li>
             <li><kbd>Ctrl+F</kbd> <script>document.write(t('common.search'));</script></li>
             <li><kbd>F</kbd> <script>document.write(t('common.focus_mode'));</script></li>
             <li><kbd>a</kbd> <script>document.write(t('common.auto_scroll'));</script></li>
             <li><kbd>Space</kbd> <script>document.write(t('browser_reader.shortcut_speech'));</script></li>
+            <li><kbd>r</kbd> <script>document.write(t('browser_reader.speech_settings'));</script></li>
             <li><kbd>h</kbd> <script>document.write(t('browser_reader.shortcut_hide'));</script></li>
             <li><kbd>Ctrl+G</kbd> <script>document.write(t('common.position_jump'));</script></li>
-            <li><kbd>g</kbd> <script>document.write(t('common.font_settings'));</script></li>
+            <li><kbd>t</kbd> <script>document.write(t('common.font_settings'));</script></li>
+            <li><kbd>T</kbd> <script>document.write(t('browser_reader.shortcut_toolbar'));</script></li>
             <li><kbd>n</kbd> <script>document.write(t('browser_reader.shortcut_notes'));</script></li>
             <li><kbd>m</kbd> <script>document.write(t('browser_reader.shortcut_minimap'));</script></li>
             <li><kbd>]</kbd>/<kbd>[</kbd> <script>document.write(t('browser_reader.shortcut_paragraph_spacing'));</script></li>
             <li><kbd>o</kbd> <script>document.write(t('browser_reader.shortcut_view_file'));</script></li>
             <li><kbd>w</kbd> <script>document.write(t('common.vocab'));</script></li>
-            <li><kbd>/</kbd> 老板键</li>
+            <li><kbd>/</kbd> <script>document.write(t('browser_reader.boss_key'));</script></li>
             <li><kbd>ESC</kbd> <script>document.write(t('browser_reader.shortcut_escape'));</script></li>
         </ul>
     </div>
@@ -9320,14 +9328,29 @@ class BrowserReader:
                     break;
                 case 'g':
                 case 'G':
+                    // 仅保留 Ctrl+G / Cmd+G 激活位置跳转；普通 g 不再绑定字体设置（已迁移到 t）
                     if (e.ctrlKey || e.metaKey) {{
-                        // Ctrl+G 或 Cmd+G 激活位置跳转
                         togglePositionJump();
                         e.preventDefault();
-                    }} else {{
-                        toggleFontSettings();
-                        e.preventDefault();
                     }}
+                    break;
+                case 't':
+                    // 小写 t：字体设置（原 g 快捷键迁移至此）
+                    if (typeof checkPermission === 'function' ? checkPermission('settings.write') : true) {{
+                        if (typeof toggleFontSettings === 'function') toggleFontSettings();
+                    }}
+                    e.preventDefault();
+                    break;
+                case 'T':
+                    // 大写 T：打开/关闭顶部菜单栏（工具栏）
+                    if (typeof toggleToolbar === 'function') toggleToolbar();
+                    e.preventDefault();
+                    break;
+                case 'r':
+                case 'R':
+                    // 大写 R：朗读设置（与点击"朗读设置"按钮一致）
+                    if (typeof toggleSpeech === 'function') toggleSpeech();
+                    e.preventDefault();
                     break;
                 case 'n':
                 case 'N':
@@ -9364,6 +9387,14 @@ class BrowserReader:
                 case 'w':
                 case 'W':
                     toggleVocabPanel();
+                    e.preventDefault();
+                    break;
+                case 's':
+                case 'S':
+                    // 大写 S：同步进度（与点击工具栏"进度同步"按钮的即时同步动作一致）
+                    if (typeof checkPermission === 'function' ? checkPermission('book.write') : true) {{
+                        if (typeof manualSync === 'function') manualSync();
+                    }}
                     e.preventDefault();
                     break;
                 case 'Escape':
@@ -12822,11 +12853,14 @@ class BrowserReader:
             _br_book_id_json = json.dumps(_br_book_id)
             _lock_literal = "true" if lock_enabled else "false"
             _api_base_json = json.dumps(api_base_url or "")
+            # 真实的硬盘文件路径（用于「加入书库」「查看文件」「单词本同步」等需要绝对路径的场景）
+            _file_path_json = json.dumps(file_path or "")
             lock_early_script = (
                 '<script>\n'
                 '(function(){\n'
                 '  try {\n'
                 '    window.__BR_BOOK_ID__ = ' + _br_book_id_json + ';\n'
+                '    window.__BR_BOOK_FILE_PATH__ = ' + _file_path_json + ';\n'
                 '    window.__BR_LOCK_ENABLED__ = ' + _lock_literal + ';\n'
                 '    window.__BR_API_BASE__ = ' + _api_base_json + ';\n'
                 '    var key = "br_lock_v1::" + window.__BR_BOOK_ID__;\n'
