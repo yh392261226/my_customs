@@ -23,6 +23,29 @@ def _map_translate_lang(code: str) -> str:
     return code or 'en'
 
 
+def _verify_request(headers: Any, query: Any, secret: str) -> bool:
+    """
+    校验请求密钥。与 api/server.py 保持一致：
+      - secret 为空时放行（开放模式）
+      - 否则要求来源提供的密钥与 secret 完全一致
+    密钥可接受来源（优先级从高到低）：
+      1. 请求头 X-API-Key
+      2. Authorization: Bearer <key>
+      3. 查询参数 ?key=<key>（用于 sendBeacon 等无法设置自定义请求头的场景）
+    """
+    if not secret:
+        return True
+    provided = (headers.get('X-API-Key') or '').strip()
+    if not provided:
+        auth = headers.get('Authorization', '')
+        if auth.startswith('Bearer '):
+            provided = auth[len('Bearer '):].strip()
+    if not provided:
+        vals = query.get('key')
+        provided = (vals[0] if vals else '') or ''
+    return provided == secret
+
+
 def translate_text_via_manager(text: str, target_lang: str = 'zh', source_lang: str = 'auto') -> Dict[str, Any]:
     """翻译文本：优先复用系统已配置的翻译 API；未配置时回退到免费无密钥翻译（MyMemory）。"""
     # 1. 优先使用系统中已配置的翻译服务（与 translation_dialog.py 共用 TranslationManager）
@@ -138,6 +161,9 @@ class BrowserReaderServerManager:
         self._book_progress_data: Dict[str, Dict] = {}
         self._book_annotations: Dict[str, Dict[str, Any]] = {}
         self._annotation_callbacks: Dict[str, Dict[str, Any]] = {}
+        # 本地阅读器服务使用的密钥：由 start_server 从 browser_server.api_secret 注入；
+        # 为空表示开放模式（不校验），与 api/server.py 保持一致
+        self._secret: str = ""
         
         logger.info("浏览器阅读器服务器管理器已初始化")
     
@@ -165,6 +191,8 @@ class BrowserReaderServerManager:
             config = config_manager.get_config()
             browser_config = config.get("browser_server", {})
             host = browser_config.get("host", "localhost")
+            # 本地阅读器进度/标注服务使用的密钥（与 API 服务共用 browser_server.api_secret）
+            self._secret = str(browser_config.get("api_secret", "") or "")
             # 启动后端数据接口（独立于进度服务，先确保可用）
             self._start_api_if_enabled(host)
 
@@ -270,16 +298,37 @@ class BrowserReaderServerManager:
                 pass  # 禁用日志输出
             
             def do_GET(self):
-                if self.path == '/load_progress':
+                parsed = urlparse(self.path)
+                path = parsed.path
+                query = parse_qs(parsed.query)
+                secret = BrowserReaderServerManager.get_instance()._secret
+
+                # 健康检查：仅返回状态，且需被无密钥的本地/远程健康探测访问，故保持开放
+                if path == '/health_check':
+                    self.send_response(200)
+                    self.send_header('Content-type', 'application/json')
+                    self.send_header('Access-Control-Allow-Origin', '*')
+                    self.end_headers()
+                    self.wfile.write(json.dumps({"status": "ok"}).encode())
+                    return
+
+                # 其余读取接口（进度/标注/单词本）均需密钥匹配；开放模式下 secret 为空则放行
+                if not _verify_request(self.headers, query, secret):
+                    self.send_response(401)
+                    self.send_header('Content-type', 'application/json')
+                    self.send_header('Access-Control-Allow-Origin', '*')
+                    self.end_headers()
+                    self.wfile.write(json.dumps({"error": "密钥无效或未提供"}).encode())
+                    return
+
+                if path == '/load_progress':
                     # 从查询参数获取书籍ID
-                    parsed = urlparse(self.path)
-                    query = parse_qs(parsed.query)
                     book_id = query.get('book_id', [''])[0]
-                    
+
                     # 使用管理器加载进度
                     manager = BrowserReaderServerManager.get_instance()
                     data = manager.load_progress(book_id)
-                    
+
                     if data:
                         self.send_response(200)
                         self.send_header('Content-type', 'application/json')
@@ -289,17 +338,8 @@ class BrowserReaderServerManager:
                     else:
                         self.send_response(404)
                         self.end_headers()
-                elif self.path == '/health_check':
-                    # 健康检查
-                    self.send_response(200)
-                    self.send_header('Content-type', 'application/json')
-                    self.send_header('Access-Control-Allow-Origin', '*')
-                    self.end_headers()
-                    self.wfile.write(json.dumps({"status": "ok"}).encode())
-                elif self.path == '/load_annotations':
+                elif path == '/load_annotations':
                     # 加载书籍标注（高亮/笔记/书签）
-                    parsed = urlparse(self.path)
-                    query = parse_qs(parsed.query)
                     book_id = query.get('book_id', [''])[0]
                     manager = BrowserReaderServerManager.get_instance()
                     data = manager.load_annotations(book_id)
@@ -313,10 +353,8 @@ class BrowserReaderServerManager:
                         "notes": data.get("notes", []),
                         "bookmarks": data.get("bookmarks", [])
                         }, ensure_ascii=False).encode('utf-8'))
-                elif self.path.split('?')[0] == '/load_vocab':
+                elif path == '/load_vocab':
                     # 加载书籍单词本（与终端阅读器共用 VocabularyManager，按 book_id 过滤）
-                    parsed = urlparse(self.path)
-                    query = parse_qs(parsed.query)
                     book_id = query.get('book_id', [''])[0]
                     try:
                         from src.core.vocabulary_manager import get_vocabulary_manager
@@ -341,19 +379,34 @@ class BrowserReaderServerManager:
                     self.end_headers()
             
             def do_POST(self):
-                if self.path == '/save_progress':
-                    # 从请求头获取书籍ID
-                    book_id_header = self.headers.get('X-Book-ID', '')
-                    # URL解码书籍ID
-                    from urllib.parse import unquote
-                    book_id = unquote(book_id_header)
-                    
+                # 所有写/读接口均需密钥匹配（开放模式下 secret 为空则放行）
+                _parsed = urlparse(self.path)
+                _req_path = _parsed.path
+                _query = parse_qs(_parsed.query)
+                _secret = BrowserReaderServerManager.get_instance()._secret
+                if not _verify_request(self.headers, _query, _secret):
+                    self.send_response(401)
+                    self.send_header('Content-type', 'application/json')
+                    self.send_header('Access-Control-Allow-Origin', '*')
+                    self.end_headers()
+                    self.wfile.write(json.dumps({"error": "密钥无效或未提供"}).encode())
+                    return
+                if _req_path == '/save_progress':
                     # 读取请求数据
                     content_length = int(self.headers['Content-Length'])
                     post_data = self.rfile.read(content_length)
                     
                     try:
                         data = json.loads(post_data.decode('utf-8'))
+                        
+                        # 优先从 X-Book-ID 请求头获取书籍ID；
+                        # sendBeacon 无法设置自定义请求头，因此退化到从 body 的 book_id 字段读取
+                        from urllib.parse import unquote
+                        book_id_header = self.headers.get('X-Book-ID', '')
+                        if book_id_header:
+                            book_id = unquote(book_id_header)
+                        else:
+                            book_id = data.get('book_id', '')
                         
                         # 使用管理器保存进度
                         manager = BrowserReaderServerManager.get_instance()
@@ -379,9 +432,15 @@ class BrowserReaderServerManager:
                             self.end_headers()
                             self.wfile.write(json.dumps({"status": "success"}).encode())
                         else:
-                            self.send_response(500)
+                            # 未找到对应书籍的回调（book_id 不匹配），进度实际未落库
+                            self.send_response(404)
+                            self.send_header('Content-type', 'application/json')
                             self.send_header('Access-Control-Allow-Origin', '*')
                             self.end_headers()
+                            self.wfile.write(json.dumps({
+                                "status": "error",
+                                "message": "未找到该书进度回调，进度未保存"
+                            }).encode())
                     except Exception as e:
                         import traceback
                         error_msg = f"保存进度出错: {e}"
@@ -393,7 +452,7 @@ class BrowserReaderServerManager:
                         self.send_header('Access-Control-Allow-Origin', '*')
                         self.end_headers()
                         self.wfile.write(json.dumps({"error": str(e), "traceback": traceback.format_exc()}).encode())
-                elif self.path == '/scan_directory':
+                elif _req_path == '/scan_directory':
                     # 扫描目录并导入书籍
                     import os
                     from src.config.default_config import SUPPORTED_FORMATS
@@ -470,7 +529,7 @@ class BrowserReaderServerManager:
                             "error": str(e),
                             "traceback": traceback.format_exc()
                         }).encode())
-                elif self.path == '/translate':
+                elif _req_path == '/translate':
                     # 翻译文本（复用系统翻译服务）
                     content_length = int(self.headers['Content-Length'])
                     post_data = self.rfile.read(content_length)
@@ -498,7 +557,7 @@ class BrowserReaderServerManager:
                             "success": False,
                             "error": str(e)
                         }, ensure_ascii=False).encode('utf-8'))
-                elif self.path == '/save_annotations':
+                elif _req_path == '/save_annotations':
                     # 保存书籍标注（高亮/笔记/书签）
                     content_length = int(self.headers['Content-Length'])
                     post_data = self.rfile.read(content_length)
@@ -523,7 +582,7 @@ class BrowserReaderServerManager:
                             "success": False,
                             "error": str(e)
                         }, ensure_ascii=False).encode('utf-8'))
-                elif self.path == '/save_vocab':
+                elif _req_path == '/save_vocab':
                     # 保存单词到单词本（与终端阅读器共用 VocabularyManager）
                     content_length = int(self.headers['Content-Length'])
                     post_data = self.rfile.read(content_length)
@@ -567,11 +626,11 @@ class BrowserReaderServerManager:
                     self.end_headers()
             
             def do_OPTIONS(self):
-                # CORS预检请求
+                # CORS预检请求：允许携带 X-Book-ID / X-API-Key 自定义头（否则浏览器会拦截实际请求）
                 self.send_response(200)
                 self.send_header('Access-Control-Allow-Origin', '*')
                 self.send_header('Access-Control-Allow-Methods', 'GET, POST, OPTIONS')
-                self.send_header('Access-Control-Allow-Headers', 'Content-Type, X-Book-ID')
+                self.send_header('Access-Control-Allow-Headers', 'Content-Type, X-Book-ID, X-API-Key')
                 self.end_headers()
         
         try:
@@ -740,14 +799,19 @@ class BrowserReaderServerManager:
                 'timestamp': time.time()
             }
             
-            # 如果有注册的回调，也调用它
+            # 如果有注册的回调，也调用它（真正写入数据库）
+            callback_invoked = False
             if book_id in self._callbacks and 'save' in self._callbacks[book_id]:
                 callback = self._callbacks[book_id]['save']
                 if callback:
                     callback(progress, scroll_top, scroll_height, current_page, total_pages, word_count)
+                    callback_invoked = True
+            else:
+                logger.warning(f"书籍 {book_id} 没有注册进度保存回调，进度仅存内存、未落库")
             
             logger.debug(f"已保存书籍 {book_id} 的进度: {progress:.4f}")
-            return True
+            # 只有真正调用了落库回调才算成功，否则返回 False 让服务端返回 404
+            return callback_invoked
         except Exception as e:
             logger.error(f"保存进度失败: {e}")
             return False

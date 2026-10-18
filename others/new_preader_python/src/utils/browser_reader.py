@@ -150,13 +150,17 @@ EXTRA_READER_JS = r"""
   function apiPost(path, data) {
     var base = getApiBase();
     if (!base) return Promise.resolve(null);
-    return fetch(base + path, { method:'POST', headers:{'Content-Type':'application/json'}, body: JSON.stringify(data) })
+    var headers = {'Content-Type':'application/json'};
+    if (READER_SECRET) headers['X-API-Key'] = READER_SECRET;
+    return fetch(base + path, { method:'POST', headers:headers, body: JSON.stringify(data) })
       .then(function(r){ return r.json(); }).catch(function(){ return null; });
   }
   function apiGet(path) {
     var base = getApiBase();
     if (!base) return Promise.resolve(null);
-    return fetch(base + path, { method:'GET', headers:{'Content-Type':'application/json'} })
+    var headers = {'Content-Type':'application/json'};
+    if (READER_SECRET) headers['X-API-Key'] = READER_SECRET;
+    return fetch(base + path, { method:'GET', headers:headers })
       .then(function(r){ return r.json(); }).catch(function(){ return null; });
   }
   // 暴露到 window，供不同作用域的模块（如生词本）调用
@@ -992,6 +996,7 @@ LOCK_SCREEN_JS = r"""
     return document.title || 'book';
   }
   var brTimer=null;
+  var brSavedScroll=0;  // 锁屏前窗口滚动位置，解锁后恢复
   function brPad(n){ return (n<10?'0':'')+n; }
   function brClock(){
     var d=new Date();
@@ -1020,12 +1025,15 @@ LOCK_SCREEN_JS = r"""
     if(!rec){ brHide(); return; }
     brDecrypt(rec.data, pwd).then(function(content){
       var ce=document.getElementById('content'); if(ce) ce.innerHTML=content;
+      // 恢复锁屏前的滚动位置（重插 innerHTML 会重置到顶部）
+      if (brSavedScroll) { requestAnimationFrame(function(){ window.scrollTo(0, brSavedScroll); }); }
       brHide(); brClear(id); if(pe) pe.value=''; brResetEye('brLockEye', 'brLockPwd'); brMsg('');
     }).catch(function(){ brMsg('密码错误，请重试'); });
   }
   function brLock(pwd){
     if(!brHasCrypto()){ alert('当前浏览器不支持加密锁屏（需通过 https 或本地文件打开）'); return Promise.reject('no-crypto'); }
     var ce=document.getElementById('content'); var content=ce?ce.innerHTML:'';
+    brSavedScroll = window.scrollY;  // 锁屏前记录窗口滚动位置
     return brEncrypt(content, pwd).then(function(b64){
       brSave(brBookId(), b64); if(ce) ce.innerHTML=''; brShow();
     });
@@ -1074,7 +1082,7 @@ LOCK_SCREEN_JS = r"""
     var eyeSet=document.getElementById('brSetPwdEye'); if(eyeSet) eyeSet.addEventListener('click', function(){ brToggleEye('brSetPwdEye','brSetPwd1'); });
     var eyeLock=document.getElementById('brLockEye'); if(eyeLock) eyeLock.addEventListener('click', function(){ brToggleEye('brLockEye','brLockPwd'); });
     var id=brBookId(); var rec=brGet(id);
-    if(rec && rec.locked){ brShow(); }
+    if(rec && rec.locked){ brSavedScroll = window.scrollY; brShow(); }
     else if(window.__BR_LOCK_ENABLED__ === true && !rec){ brOpenSet(); }
   }
   document.addEventListener('keydown', function(e){
@@ -1906,7 +1914,8 @@ class BrowserReader:
                         browser_server_port: int = 54321,
                         file_path: Optional[str] = None,
                         lock_enabled: bool = False,
-                        api_base_url: Optional[str] = None) -> str:
+                        api_base_url: Optional[str] = None,
+                        api_secret: Optional[str] = None) -> str:
         """
         创建浏览器阅读器HTML
         
@@ -5432,9 +5441,13 @@ class BrowserReader:
         let SAVE_PROGRESS_URL = {f'"{save_progress_url}"' if save_progress_url else 'null'};
         let LOAD_PROGRESS_URL = {f'"{load_progress_url}"' if load_progress_url else 'null'};
         
+        // 后端接口密钥：所有数据传输接口需携带此密钥（开放模式为空则不使用）
+        let READER_SECRET = {f'"{api_secret}"' if api_secret else '""'};
+        
         // 暴露到window对象，以便可以动态更新
         window.SAVE_PROGRESS_URL = SAVE_PROGRESS_URL;
         window.LOAD_PROGRESS_URL = LOAD_PROGRESS_URL;
+        window.READER_SECRET = READER_SECRET;
         
         // 调试：输出URL设置情况
         console.log('=== 浏览器阅读器初始化 ===');
@@ -7510,7 +7523,10 @@ class BrowserReader:
                 loadLocalPaginationProgress();
             }}, 3000); // 3秒超时
 
-            fetch(`${{LOAD_PROGRESS_URL}}?book_id=${{BOOK_ID}}`)
+            fetch(`${{LOAD_PROGRESS_URL}}?book_id=${{BOOK_ID}}`, {{
+                method: 'GET',
+                headers: {{ 'X-API-Key': READER_SECRET || '' }}
+            }})
                 .then(response => {{
                     clearTimeout(serverTimeout);
                     console.log('服务器响应状态:', response.status);
@@ -7676,7 +7692,8 @@ class BrowserReader:
                 method: 'POST',
                 headers: {{
                     'Content-Type': 'application/json',
-                    'X-Book-ID': encodedBookId
+                    'X-Book-ID': encodedBookId,
+                    'X-API-Key': READER_SECRET
                 }},
                 body: JSON.stringify(data)
             }}).then(response => {{
@@ -8487,7 +8504,8 @@ class BrowserReader:
                 method: 'POST',
                 headers: {{
                     'Content-Type': 'application/json',
-                    'X-Book-ID': encodedBookId
+                    'X-Book-ID': encodedBookId,
+                    'X-API-Key': READER_SECRET
                 }},
                 body: JSON.stringify(data)
             }}).then(response => {{
@@ -8535,7 +8553,10 @@ class BrowserReader:
                 loadLocalProgress();
             }}, 3000); // 3秒超时
 
-            fetch(`${{LOAD_PROGRESS_URL}}?book_id=${{BOOK_ID}}`)
+            fetch(`${{LOAD_PROGRESS_URL}}?book_id=${{BOOK_ID}}`, {{
+                method: 'GET',
+                headers: {{ 'X-API-Key': READER_SECRET || '' }}
+            }})
                 .then(response => {{
                     clearTimeout(serverTimeout);
                     console.log('服务器响应状态:', response.status);
@@ -10777,7 +10798,8 @@ class BrowserReader:
                     method: 'POST',
                     headers: {{
                         'Content-Type': 'application/json',
-                        'X-Book-ID': encodedBookId
+                        'X-Book-ID': encodedBookId,
+                        'X-API-Key': READER_SECRET
                     }},
                     body: JSON.stringify(data)
                 }}).then(response => {{
@@ -10787,7 +10809,11 @@ class BrowserReader:
                         updateProgressSyncUI();
                         showNotification('同步成功');
                     }} else {{
-                        showNotification('同步失败');
+                        response.json().then(function(d) {{
+                            showNotification('同步失败: ' + ((d && d.error) || ('状态码 ' + response.status)));
+                        }}).catch(function() {{
+                            showNotification('同步失败 (状态码 ' + response.status + ')');
+                        }});
                     }}
                 }}).catch(err => {{
                     showNotification('同步失败: ' + err.message);
@@ -12571,6 +12597,7 @@ class BrowserReader:
             }}
 
             const data = {{
+                book_id: BOOK_ID,
                 progress: progressDecimal.toFixed(15),
                 scrollTop: scrollTop,
                 scrollHeight: scrollHeight,
@@ -12593,7 +12620,17 @@ class BrowserReader:
             if (SAVE_PROGRESS_URL && progressSyncEnabled) {{
                 console.log('beforeunload - 发送数据(小数):', data);
                 console.log('beforeunload - 发送JSON:', JSON.stringify(data));
-                navigator.sendBeacon(SAVE_PROGRESS_URL, JSON.stringify(data));
+                // 注意：sendBeacon 无法设置自定义请求头(如 X-Book-ID / X-API-Key)，
+                // 因此必须把 book_id 与密钥都通过 URL 查询参数传递（服务端同时支持
+                // 请求头与 ?key= 查询两种校验方式）。
+                try {{
+                    const sep = SAVE_PROGRESS_URL.indexOf('?') >= 0 ? '&' : '?';
+                    const beaconUrl = SAVE_PROGRESS_URL + sep + 'key=' + encodeURIComponent(READER_SECRET || '');
+                    const blob = new Blob([JSON.stringify(data)], {{ type: 'application/json' }});
+                    navigator.sendBeacon(beaconUrl, blob);
+                }} catch (e) {{
+                    navigator.sendBeacon(SAVE_PROGRESS_URL, JSON.stringify(data));
+                }}
             }} else {{
                 if (!SAVE_PROGRESS_URL) {{
                     console.log('beforeunload - SAVE_PROGRESS_URL 为空，仅保存到本地');
@@ -13207,12 +13244,20 @@ class BrowserReader:
                 _api_base_url = get_browser_reader_server_manager().get_api_url() or ""
             except Exception:
                 _api_base_url = ""
+            # 后端接口密钥：直接读取配置，确保无论本地服务是否已启动都能正确注入到阅读页
+            _api_secret = ""
+            try:
+                from src.config.config_manager import ConfigManager
+                _api_secret = ConfigManager.get_instance().get_config().get("browser_server", {}).get("api_secret", "") or ""
+            except Exception:
+                _api_secret = ""
 
             # 创建HTML
             html = BrowserReader.create_reader_html(
                 content, title, theme, custom_settings, save_url, load_url,
                 book_id, initial_progress, browser_server_host, browser_server_port,
-                file_path, lock_enabled=_lock_enabled, api_base_url=_api_base_url
+                file_path, lock_enabled=_lock_enabled, api_base_url=_api_base_url,
+                api_secret=_api_secret
             )
             
             # 创建临时HTML文件
@@ -13272,7 +13317,12 @@ class BrowserReader:
         config_manager = ConfigManager.get_instance()
         config = config_manager.get_config()
         browser_server_config = config.get("browser_server", {})
-        
+
+        # 本地阅读器服务使用的密钥（与 API 服务共用 browser_server.api_secret）
+        # 延迟导入以避免循环依赖；_verify_request 与 BrowserReaderServerManager 同源
+        from src.utils.browser_reader_server_manager import _verify_request as _verify_func
+        _reader_secret = str(browser_server_config.get("api_secret", "") or "")
+
         # 获取配置
         host = browser_server_config.get("host", "localhost")
         port = browser_server_config.get("port", 54321)
@@ -13328,7 +13378,32 @@ class BrowserReader:
                 pass  # 禁用日志输出
             
             def do_GET(self):
-                if self.path == '/load_progress':
+                from urllib.parse import urlparse, parse_qs
+                req_path = self.path.split('?')[0]
+                parsed_q = parse_qs(urlparse(self.path).query)
+
+                # 健康检查与静态翻译文件保持开放（只读、无用户数据）
+                if req_path == '/health_check':
+                    self.send_response(200)
+                    self.send_header('Content-type', 'application/json')
+                    self.send_header('Access-Control-Allow-Origin', '*')
+                    self.end_headers()
+                    self.wfile.write(json.dumps({"status": "ok"}).encode())
+                    return
+                if req_path.startswith('/src/locales/'):
+                    self.serve_static_file(self.path[1:])  # 移除开头的 /
+                    return
+
+                # 其余读取接口（进度/标注）均需密钥匹配；开放模式下 secret 为空则放行
+                if not _verify_func(self.headers, parsed_q, _reader_secret):
+                    self.send_response(401)
+                    self.send_header('Content-type', 'application/json')
+                    self.send_header('Access-Control-Allow-Origin', '*')
+                    self.end_headers()
+                    self.wfile.write(json.dumps({"error": "密钥无效或未提供"}).encode())
+                    return
+
+                if req_path == '/load_progress':
                     # 加载进度
                     if on_progress_load:
                         data = on_progress_load()
@@ -13342,22 +13417,9 @@ class BrowserReader:
                         else:
                             self.send_response(404)
                             self.end_headers()
-                elif self.path == '/health_check':
-                    # 健康检查
-                    self.send_response(200)
-                    self.send_header('Content-type', 'application/json')
-                    self.send_header('Access-Control-Allow-Origin', '*')
-                    self.end_headers()
-                    self.wfile.write(json.dumps({"status": "ok"}).encode())
-                elif self.path.startswith('/src/locales/'):
-                    # 提供静态文件访问（翻译文件）
-                    self.serve_static_file(self.path[1:])  # 移除开头的 /
-                elif self.path == '/load_annotations':
+                elif req_path == '/load_annotations':
                     # 加载书籍标注（备用服务器，依赖回调）
-                    from urllib.parse import urlparse, parse_qs
-                    parsed = urlparse(self.path)
-                    query = parse_qs(parsed.query)
-                    book_id = query.get('book_id', [''])[0]
+                    book_id = parsed_q.get('book_id', [''])[0]
                     try:
                         data = on_annotations_load(book_id) if on_annotations_load else None
                     except Exception as _e:
@@ -13411,7 +13473,20 @@ class BrowserReader:
                     self.end_headers()
             
             def do_POST(self):
-                if self.path == '/save_progress':
+                from urllib.parse import urlparse, parse_qs
+                req_path = self.path.split('?')[0]
+                parsed_q = parse_qs(urlparse(self.path).query)
+
+                # 所有写接口均需密钥匹配；开放模式下 secret 为空则放行
+                if not _verify_func(self.headers, parsed_q, _reader_secret):
+                    self.send_response(401)
+                    self.send_header('Content-type', 'application/json')
+                    self.send_header('Access-Control-Allow-Origin', '*')
+                    self.end_headers()
+                    self.wfile.write(json.dumps({"error": "密钥无效或未提供"}).encode())
+                    return
+
+                if req_path == '/save_progress':
                     # 保存进度
                     content_length = int(self.headers['Content-Length'])
                     post_data = self.rfile.read(content_length)
@@ -13455,7 +13530,7 @@ class BrowserReader:
                         logger.error(f"保存进度出错: {e}")
                         self.send_response(500)
                         self.end_headers()
-                elif self.path == '/translate':
+                elif req_path == '/translate':
                     # 翻译文本（复用系统翻译服务）
                     content_length = int(self.headers['Content-Length'])
                     post_data = self.rfile.read(content_length)
@@ -13477,7 +13552,7 @@ class BrowserReader:
                         self.send_header('Access-Control-Allow-Origin', '*')
                         self.end_headers()
                         self.wfile.write(json.dumps({"success": False, "error": str(e)}, ensure_ascii=False).encode('utf-8'))
-                elif self.path == '/save_annotations':
+                elif req_path == '/save_annotations':
                     # 保存书籍标注（备用服务器，依赖回调）
                     content_length = int(self.headers['Content-Length'])
                     post_data = self.rfile.read(content_length)
@@ -13506,11 +13581,11 @@ class BrowserReader:
                     self.end_headers()
             
             def do_OPTIONS(self):
-                # CORS预检请求
+                # CORS预检请求：允许携带 X-Book-ID / X-API-Key 自定义头
                 self.send_response(200)
                 self.send_header('Access-Control-Allow-Origin', '*')
                 self.send_header('Access-Control-Allow-Methods', 'GET, POST, OPTIONS')
-                self.send_header('Access-Control-Allow-Headers', 'Content-Type')
+                self.send_header('Access-Control-Allow-Headers', 'Content-Type, X-Book-ID, X-API-Key')
                 self.end_headers()
         
         # 启动服务器

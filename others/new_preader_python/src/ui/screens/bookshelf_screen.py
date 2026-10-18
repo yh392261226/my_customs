@@ -1934,6 +1934,8 @@ class BookshelfScreen(Screen[None]):
                     self.logger.info(f"准备保存到数据库: book_path={book_path_for_callback}, current_page={current_page}, total_pages={total_pages}")
 
                     # 保存阅读信息
+                    # 注意：必须传入当前用户ID，否则多用户模式下会被存到 user_id=0，
+                    # 而书架按 self.current_user_id 读取，导致“同步成功但刷新后进度不变”
                     success = bookmark_manager.save_reading_info(
                         book_path_for_callback,
                         current_page=current_page,
@@ -1941,11 +1943,30 @@ class BookshelfScreen(Screen[None]):
                         reading_progress=progress,
                         scroll_top=scroll_top,
                         scroll_height=scroll_height,
-                        word_count=word_count if word_count is not None else None
+                        word_count=word_count if word_count is not None else None,
+                        user_id=self.bookshelf.current_user_id
                     )
 
                     if success:
                         self.logger.info(f"保存浏览器阅读进度成功: {progress:.4f} ({progress*100:.2f}%), 位置: {scroll_top}px")
+                        # 同步更新书架内存缓存，否则要重启才能在书库页面看到最新进度
+                        try:
+                            from datetime import datetime
+                            cache = self.bookshelf._reading_info_cache.setdefault(book_path_for_callback, {})
+                            cache['reading_progress'] = progress
+                            cache['last_read_date'] = datetime.now().isoformat()
+                            cache['scroll_top'] = scroll_top
+                            cache['scroll_height'] = scroll_height
+                            cache['current_page'] = current_page
+                            cache['total_pages'] = total_pages
+                            cache['word_count'] = word_count if word_count is not None else cache.get('word_count', 0)
+                            # 书库页面若仍处于挂载状态（例如在后台），立即刷新当前页显示
+                            if self.is_attached:
+                                self.app.call_from_thread(
+                                    lambda: self._load_current_page(page_change_only=True)
+                                )
+                        except Exception as e:
+                            self.logger.warning(f"更新书架进度缓存失败（不影响已保存的数据库记录）: {e}")
                     else:
                         self.logger.error(f"保存浏览器阅读进度失败: save_reading_info 返回 False")
                 except Exception as e:
@@ -1958,7 +1979,8 @@ class BookshelfScreen(Screen[None]):
                     from src.core.bookmark import BookmarkManager
                     bookmark_manager = BookmarkManager()
 
-                    reading_info = bookmark_manager.get_reading_info(book_path_for_callback)
+                    reading_info = bookmark_manager.get_reading_info(
+                        book_path_for_callback, user_id=self.bookshelf.current_user_id)
                     self.logger.debug(f"从数据库获取到阅读信息: {reading_info}")
 
                     if reading_info:
