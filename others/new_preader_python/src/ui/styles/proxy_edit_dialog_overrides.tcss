@@ -62,26 +62,9 @@
     padding: 0;
 }
 
-#auth-container2 {
-    width: 100%;
-    height: auto;
-    layout: vertical;
-    margin: 0;
-    border: round $primary;
-    background: $panel-lighten-1;
-    padding: 0;
-    align: left middle;
-}
-
 /* 使用 .label-right */
 #name-label, #type-label, #host-label, 
-#port-label, #username-label, #enable-label {
-    height: 3;
-    width: 30%;
-    margin: 2 0;
-}
-
-#password-label {
+#port-label, #username-label, #password-label, #enable-label {
     height: 3;
     width: 30%;
     margin: 2 0;
