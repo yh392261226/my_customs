@@ -193,6 +193,14 @@ def split_chapters(content: str) -> list:
     chapters = []
     if not content:
         return chapters
+    # 预处理：把粘连到上一行末尾的章节标记拆到新行，便于后续按行识别。
+    # 仅当标记前有空白或右引号/右括号等「边界」时才拆，避免误拆正文里的「第3章」提及。
+    content = re.sub(
+        r'([\s”’」』）)】\]>])(第[零一二三四五六七八九十百千万两\d]+\s*[章节回篇部页])',
+        r'\1\n\2', content)
+    content = re.sub(
+        r'([\s”’」』）)】\]>])(章节\s*\d+)',
+        r'\1\n\2', content)
     lines = content.split('\n')
     current = {"title": "未命名章节", "content": ""}
     for line in lines:
