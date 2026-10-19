@@ -23,6 +23,7 @@ from src.locales.i18n_manager import get_global_i18n
 from src.utils.logger import get_logger
 from src.utils.visual_merge_helper import VisualMergeHelper
 from src.ui.utils.smart_title_utils import SmartTitleUtils
+from src.utils.book_typeset import typeset_body, split_chapters
 
 logger = get_logger(__name__)
 
@@ -1986,7 +1987,7 @@ class FillMissingDialog(ModalScreen[Dict[str, Any]]):
         try: shutil.copy2(target_file, backup_path)
         except Exception as e: logger.warning(f"备份失败: {e}")
 
-        separator = "\n\n" + "=" * 50 + "\n\n"
+        separator = "\n\n"
 
         try:
             # 构建 novel_id -> 文件记录 映射（分组里存的是 novel_id，需按身份定位而非位置索引）
@@ -2057,9 +2058,19 @@ class FillMissingDialog(ModalScreen[Dict[str, Any]]):
                 direction_parts.append(self.i18n.t('fill_missing.dir_back').format(count=back_count))
             direction_text = "; ".join(direction_parts)
 
-            # 写入文件
+            # 写入文件：把目标书与补足内容作为整体统一重排（无论新旧格式），再落盘
+            combined_text = "".join(result_parts)
+            try:
+                chapters = split_chapters(combined_text)
+                if any(c.get("title") not in ("全文", "未命名章节") for c in chapters):
+                    final_text = typeset_body(new_name, chapters=chapters)
+                else:
+                    final_text = typeset_body(new_name, single_content=combined_text)
+            except Exception:
+                # 重排异常时退回原拼接内容，保证补缺不中断
+                final_text = combined_text
             with open(target_file, 'w', encoding='utf-8') as f:
-                f.writelines(result_parts)
+                f.write(final_text)
 
             # 更新数据库标题
             self._update_target_book_title(new_name)

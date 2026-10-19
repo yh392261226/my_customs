@@ -2,6 +2,8 @@
 EPUB文件解析器
 """
 
+from __future__ import annotations
+
 import os
 
 import re

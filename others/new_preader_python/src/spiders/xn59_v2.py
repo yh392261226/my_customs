@@ -249,18 +249,15 @@ class Xn59Parser(BaseParser):
             file_path = candidate
             self._last_save_collided = False
         
-        # 写入文件
+        # 写入文件（统一排版）
+        from src.utils.book_typeset import typeset_body
+
+        content = novel_content.get('content', '')
+        body = typeset_body(title, single_content=content) if content else (title.strip() + "\n")
         with open(file_path, 'w', encoding='utf-8') as f:
-            # 写入标题
-            f.write(f"## {title}\n\n")
-            
-            # 写入内容（单章节格式）
-            content = novel_content.get('content', '')
-            if content:
-                f.write(content)
-            
-            # 写入元信息
-            f.write("\n\n")
+            f.write(body)
+            # 写入元信息（位于正文之后，保持与阅读器元信息提取兼容）
+            f.write("\n")
             f.write(f"作者: {novel_content.get('author', self.name)}\n")
             f.write(f"来源: {novel_content.get('source_url', '')}\n")
             f.write(f"状态: {novel_content.get('status', '未知')}\n")
@@ -308,14 +305,12 @@ class Xn59Parser(BaseParser):
             file_path = candidate
             self._last_save_collided = False
         
-        # 写入文件
+        # 写入文件（统一排版）
+        from src.utils.book_typeset import typeset_body
+
+        content = novel_content.get('content', '')
+        body = typeset_body(title, single_content=content) if content else (title.strip() + "\n")
         with open(file_path, 'w', encoding='utf-8') as f:
-            # 写入标题
-            f.write(f"## {title}\n\n")
-            
-            # 写入内容
-            content = novel_content.get('content', '')
-            f.write(content)
-            f.write("\n")
+            f.write(body)
         
         return file_path

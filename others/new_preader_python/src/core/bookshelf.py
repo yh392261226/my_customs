@@ -15,6 +15,7 @@ from src.core.database_manager import DatabaseManager
 from src.config.default_config import SUPPORTED_FORMATS
 from src.utils.logger import LoggerSetup
 
+from src.utils.book_typeset import typeset_body, strip_leading_title, split_chapters
 from src.utils.logger import get_logger
 
 logger = get_logger(__name__)
@@ -1303,19 +1304,27 @@ class Bookshelf:
             new_filename = f"{new_title}_{timestamp}.txt"
             new_filepath = os.path.join(first_book_dir, new_filename)
             
-            # 合并书籍内容
+            # 合并书籍内容：每本书先统一重排（无论新旧格式），再用空行分隔拼接
             merged_content = []
             for i, book in enumerate(books_to_merge):
                 try:
                     # 读取书籍内容
                     content = self._read_book_content(book)
-                    if content:
-                        # 添加书籍标题作为分隔符
-                        merged_content.append(f"\n{'='*50}\n")
-                        merged_content.append(f"第{i+1}部分: {book.title}\n")
-                        merged_content.append(f"{'='*50}\n\n")
-                        merged_content.append(content)
-                        merged_content.append("\n")
+                    if content and content.strip():
+                        # 去掉开头可能的书名行，避免与重排后写入的书名重复
+                        clean = strip_leading_title(content, book.title)
+                        # 切分章节后统一重排，旧书也一并归一化为固定排版
+                        try:
+                            chapters = split_chapters(clean)
+                            if any(c.get("title") not in ("全文", "未命名章节") for c in chapters):
+                                typeset = typeset_body(book.title, chapters=chapters)
+                            else:
+                                typeset = typeset_body(book.title, single_content=clean)
+                        except Exception:
+                            # 重排异常时退回原内容，保证合并不中断
+                            typeset = content.rstrip() + "\n"
+                        merged_content.append(typeset)
+                        merged_content.append("\n\n")  # 书籍之间空行分隔（不再使用分隔符）
                     else:
                         logger.warning(f"无法读取书籍内容: {book.title}")
                 except Exception as e:

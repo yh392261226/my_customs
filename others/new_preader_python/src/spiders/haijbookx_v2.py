@@ -685,20 +685,13 @@ class HaijBookxParser(BaseParser):
             file_path = candidate
             self._last_save_collided = False
         
-        # 写入文件，使用UTF-8编码
+        # 写入文件，使用UTF-8编码（统一排版）
+        from src.utils.book_typeset import typeset_body
+
+        chapters = novel_content.get('chapters', [])
+        body = typeset_body(title, chapters=chapters) if chapters else (title.strip() + "\n")
         with open(file_path, 'w', encoding='utf-8') as f:
-            # 写入标题
-            f.write(f"# {title}\n\n")
-            
-            # 写入章节内容
-            chapters = novel_content.get('chapters', [])
-            for chapter in chapters:
-                chapter_title = chapter.get('title', '未知章节')
-                chapter_content = chapter.get('content', '')
-                
-                f.write(f"## {chapter_title}\n\n")
-                f.write(chapter_content)
-                f.write("\n\n")
+            f.write(body)
         
         logger.info(f"小说已保存到: {file_path}")
         return file_path

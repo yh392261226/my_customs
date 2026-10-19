@@ -6,6 +6,7 @@
 from abc import ABC, abstractmethod
 from typing import Dict, Any, Optional, List, Tuple
 import asyncio
+import re
 
 from src.utils.logger import get_logger
 from .progress_callback import ParsingContext, ProgressCallback
@@ -92,14 +93,22 @@ class BaseParser(ABC):
 
         for line in lines:
             # 检查是否是章节标题
-            if (line.strip().startswith("第") and ("章" in line or "节" in line)) or \
-               (line.strip().startswith("Chapter") or line.strip().startswith("CHAPTER")):
+            stripped = line.strip()
+            is_chapter = (
+                (stripped.startswith("第") and ("章" in stripped or "节" in stripped or "回" in stripped))
+                or stripped.startswith("章节")  # 排版归一化后的「章节 N」
+                or stripped.lower().startswith("chapter")
+                # 纯数字型章节标题：12 / (12) / [12] / 12. 等（可带描述，如 (12) 神秘章节）
+                or re.match(r'^[（\(]?\s*\d+\s*[）\)\.]?', stripped) is not None
+                or re.match(r'^\d+\s*[\.、\)）]', stripped) is not None
+            )
+            if is_chapter:
                 # 如果已经有章节内容，保存当前章节
                 if chapter_started and current_chapter["content"]:
                     chapters.append(current_chapter.copy())
 
                 # 创建新章节
-                current_chapter = {"title": line.strip(), "content": ""}
+                current_chapter = {"title": stripped, "content": ""}
                 chapter_started = True
             elif chapter_started:
                 # 添加内容到当前章节

@@ -35,6 +35,7 @@ from src.utils.file_helpers import read_file_preview
 from src.ui.dialogs.note_dialog import NoteDialog
 from src.ui.dialogs.select_books_dialog import SelectBooksDialog
 from src.utils.browser_tab_monitor import BrowserTabMonitor, BrowserType
+from src.utils.book_typeset import typeset_body, strip_leading_title, split_chapters
 from src.config.config_manager import ConfigManager
 import threading
 import time
@@ -2962,13 +2963,21 @@ class CrawlerManagementScreen(Screen[None]):
                 else:
                     logger.warning(f"合并跳过空白源文件（不计入）: {file_path}")
 
-            # 写出合并文件（多文件之间用分隔符隔开）
+            # 写出合并文件：先对各来源统一重排（无论新旧格式），再用空行分隔拼接，不再使用分隔符
             # 按合并逻辑：无论源文件是否为空都生成新合并文件（源全为空时即生成空文件）
+            try:
+                cleaned_parts = [strip_leading_title(p, new_title) for p in merged_parts]
+                combined = "\n\n".join(cleaned_parts)
+                chapters = split_chapters(combined)
+                if any(c.get("title") not in ("全文", "未命名章节") for c in chapters):
+                    merged_text = typeset_body(new_title, chapters=chapters)
+                else:
+                    merged_text = typeset_body(new_title, single_content=combined)
+            except Exception:
+                # 重排异常时退回原拼接逻辑，保证合并不中断
+                merged_text = "\n\n".join(merged_parts)
             with open(merged_file_path, 'w', encoding='utf-8') as merged_file:
-                for i, part in enumerate(merged_parts):
-                    if i > 0:
-                        merged_file.write("\n\n" + "="*50 + "\n\n")
-                    merged_file.write(part)
+                merged_file.write(merged_text)
             
             # 保存合并记录到数据库
             site_id = self.novel_site.get('id')

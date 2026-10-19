@@ -1445,41 +1445,17 @@ class BaseParser:
             self._last_save_collided = False
         
 
-        # 写入文件
+        # 写入文件（写入前统一按内容自动切分章节，保证落盘即已分章）
+        from src.utils.book_typeset import build_body
+
+        body = build_body(title, novel_content)
+        if not novel_content.get('chapters') and not novel_content.get('total_content') \
+                and not novel_content.get('content'):
+            logger.warning(f"小说内容为空，仅保存标题: {title}")
+
         with open(file_path, 'w', encoding='utf-8') as f:
-            # 写入标题
-            f.write(f"# {title}\n\n")
-            
-            # 检查小说类型并写入相应内容
-            # 1. 多章节小说（包含chapters字段）
-            chapters = novel_content.get('chapters', [])
-            if chapters:
-                for chapter in chapters:
-                    chapter_title = chapter.get('title', '未知章节')
-                    chapter_content = chapter.get('content', '')
-                    
-                    f.write(f"## {chapter_title}\n\n")
-                    f.write(chapter_content)
-                    f.write("\n\n")
-            
-            # 2. 短篇小说（包含total_content字段）
-            elif 'total_content' in novel_content and novel_content['total_content']:
-                total_content = novel_content['total_content']
-                f.write(f"## {title}\n\n")
-                f.write(total_content)
-                f.write("\n\n")
-            
-            # 3. 单页内容（直接使用content字段）
-            elif 'content' in novel_content and novel_content['content']:
-                content = novel_content['content']
-                f.write(f"## {title}\n\n")
-                f.write(content)
-                f.write("\n\n")
-            
-            # 4. 如果都没有内容，记录警告
-            else:
-                logger.warning(f"小说内容为空，仅保存标题: {title}")
-        
+            f.write(body)
+
         logger.info(f"小说已保存到: {file_path}")
         return file_path
     
