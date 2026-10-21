@@ -237,6 +237,95 @@ def _like_key_for_search(title: str) -> str:
     return r.strip()
 
 
+def _strip_punct(text: str) -> str:
+    """
+    去除所有非「中英文/数字」字符（含标点、特殊符号、空白），仅保留字符本身。
+
+    用于分段匹配：把候选书名与种子片段都压缩为「纯文字串」后再做子串包含判断，
+    从而免疫书名内部各种分隔符/标点符号的差异（— 与 -、空格、间隔号、斜杠等）。
+    """
+    if not text:
+        return ""
+    return re.sub(
+        r'[^\u4e00-\u9fff\u3400-\u4dbf\U00020000-\U0002a6dfa-zA-Z\d]',
+        '', text,
+    )
+
+
+def _split_title_segments(title: str) -> List[str]:
+    """
+    把书名按「特殊字符/标点符号/空白」切成多个片段，供合并模式做「分段渐进匹配」。
+
+    处理流程：
+    1. 剥离章节信息（去括号数字、第X章等）与作者/译者后缀、包裹符号
+    2. 按常见分隔符（— - ~ ～ / \\ _ · 、，。？！；： 及空白等）分割成多片段
+    3. 每个片段再去除残余标点，过滤掉过短或纯数字的片段（章节号）
+
+    示例：
+        【极品家丁外传—母女登船】（1）作者：沉默之余
+            → ['极品家丁外传', '母女登船']
+        【日遍诸天】（第二卷 32-36） 作者：白夜
+            → ['日遍诸天']   （卷/章节信息已在第 1 步被剥离，故只余书名本身）
+
+    注意：此方法仅用于「合并模式」的候选检索与精确过滤，不应用于普通搜索，
+    否则书名被切碎后搜索会变得很困难。
+    """
+    if not title:
+        return []
+    t = title.strip()
+    # 先去除"作者/译者"及之后的内容：否则其后的文字会挡住章节规则的「行尾锚定」，
+    # 导致 "11-19完 译者：x" 这类末尾章节号无法被剥离（先剥作者即可被规则命中）。
+    for sep in ('译者', '作者', '作', '译'):
+        i = t.find(sep)
+        if i > 0:
+            t = t[:i]
+            break
+    t = remove_chapter_info(t)
+    # 去除包裹符号
+    for ch in ('【', '】', '《', '》', '「', '」', '[', ']', '（', '）', '(', ')'):
+        t = t.replace(ch, '')
+    t = t.strip()
+    # 按「特殊字符/标点/空白」分割为多个片段
+    raw_parts = re.split(r'[\s\-－~～—/\\_·、，。？！；：:,.…]+', t)
+    segs: List[str] = []
+    for p in raw_parts:
+        p = _strip_punct(p).strip()
+        # 过滤：过短片段、纯数字（章节号）不参与匹配
+        if len(p) >= 2 and not p.isdigit():
+            segs.append(p)
+    return segs
+
+
+def _segment_books_match(candidate_title: str, seed_segments: List[str]) -> bool:
+    """
+    判断候选书名是否真正属于「种子片段集合」所对应的那本书（合并模式专用、精准）。
+
+    规则：候选书名（剥离章节信息/作者、去除标点后）必须【依次包含全部种子片段】。
+    由于各片段已在种子标题按标点切分出来，要求全部命中可保证：
+      - 爬取到的书名含不同标点符号/分隔符时仍能命中（子串匹配免疫标点差异）
+      - 同一本书不同章节的书名即便有细微变化，只要都含这些片段即归为一组
+      - 不会把仅"包含首片段"的无关书并入（必须后续片段也都命中）
+
+    示例：种子片段 ['极品家丁外传','母女登船'] 可命中
+        【极品家丁外传—母女登船】（2）            ✓
+        【极品家丁外传-母女登船】（母女登船篇）    ✓
+      但无法命中
+        【极品家丁外传】（其他篇）                 ✗（缺 母女登船）
+    """
+    if not seed_segments or not candidate_title:
+        return False
+    t = candidate_title.strip()
+    # 先剥作者/译者后缀（同 _split_title_segments，确保章节规则的行尾锚定生效）
+    for sep in ('译者', '作者', '作', '译'):
+        i = t.find(sep)
+        if i > 0:
+            t = t[:i]
+            break
+    t = remove_chapter_info(t)
+    cand = _strip_punct(t)
+    return all(seg in cand for seg in seed_segments)
+
+
 def remove_chapter_info(title: str) -> str:
     """
     移除章节信息，用于判断两本书是否为同一本书的不同章节。
@@ -248,8 +337,15 @@ def remove_chapter_info(title: str) -> str:
 
     result = title.strip()
 
-    for pattern in CHAPTER_PATTERNS:
-        result = pattern.sub('', result).strip()
+    # 反复应用直到稳定：某些组合（如「第二卷 32-36」）需先剥离卷标，
+    # 内部的数字范围（32-36）才暴露出来被后续规则命中；单次扫描会残留数字。
+    prev = None
+    for _ in range(6):
+        for pattern in CHAPTER_PATTERNS:
+            result = pattern.sub('', result).strip()
+        if result == prev:
+            break
+        prev = result
 
     # 清理多余空白和标点
     result = re.sub(r'\s+', ' ', result).strip()
@@ -382,20 +478,29 @@ def group_books_for_merge(
             continue
         seen_search_keys.add(search_key)
 
-        # 用「子串安全」的检索键做 LIKE 取候选（保留内部分隔符，否则核心名在
-        # 原始含分隔符的书名上匹配不到）；joined core 仅用于下方精确过滤与合并标识。
-        like_key = _like_key_for_search(title)
-        if like_key:
-            similar_books = db_manager.search_crawl_history_by_title(site_id, like_key)
+        # 合并模式专用：按「段」渐进匹配（不用于普通搜索）。
+        # 把种子书名按特殊字符/标点切成多个片段，用最长片段做 LIKE 候选检索，
+        # 再用「全部片段命中」做精确过滤，免疫书名内标点差异与同书异名微调。
+        seed_segments = _split_title_segments(title)
+        if seed_segments:
+            primary = max(seed_segments, key=len)
+            similar_books = db_manager.search_crawl_history_by_title(site_id, primary) \
+                if db_manager else []
+            similar_books = [
+                b for b in similar_books
+                if _segment_books_match(b.get('novel_title', ''), seed_segments)
+            ]
         else:
-            similar_books = []
-
-        # ── 精确过滤：LIKE 会把任何"包含该片段"的书都拉出来，
-        #    这里只保留核心书名真正一致的书，避免无关书被并入同一组。
-        similar_books = [
-            b for b in similar_books
-            if _book_core_matches(b.get('novel_title', ''), search_key)
-        ]
+            # 退化：回退到原「子串安全」检索键 + 核心书名一致判定
+            like_key = _like_key_for_search(title)
+            if like_key and db_manager:
+                similar_books = db_manager.search_crawl_history_by_title(site_id, like_key)
+            else:
+                similar_books = []
+            similar_books = [
+                b for b in similar_books
+                if _book_core_matches(b.get('novel_title', ''), search_key)
+            ]
         # 确保种子记录本身一定在组内（其原始标题规范化后必等于 search_key）
         if not any(_book_identity(b) == _book_identity(item) for b in similar_books):
             similar_books.append(item)
@@ -1007,34 +1112,53 @@ class CrawlerMergeModeDialog(ModalScreen[Dict[str, Any]]):
                 except Exception as e:
                     logger.debug(f"分组进度回调失败: {e}")
 
+            # ── 合并模式专用：按「段」渐进匹配，而非整书名匹配 ──
+            # 把种子书名按特殊字符/标点切成多个片段（如 极品家丁外传 / 母女登船），
+            # 先用最具辨识度的片段（最长片段）做 DB/索引候选检索，
+            # 再从候选集里用「全部片段都命中」做精确过滤，逐步收窄，
+            # 从而免疫书名内标点符号差异、以及同书不同章节的书名微调。
+            # 注意：此逻辑只用于合并模式，不用于普通搜索（否则搜索会变困难）。
+            sample_title = records_by_core.get(core, [{}])[0].get('novel_title', '')
+            seed_segments = _split_title_segments(sample_title)
+
             if ignore_date:
-                # 全站/书库排查：all_history 已含全部记录，用 2-gram 倒排索引
-                # 做候选筛选后再精确校验，避免「核心书名 × 全部记录」的全量子串扫描
-                # 以及逐条 LIKE 查询
-                books = self._match_books_by_core(core, title_index)
+                # 全站/书库排查：用 2-gram 倒排索引做候选筛选
+                primary = max(seed_segments, key=len) if seed_segments else core
+                books = self._match_books_by_core(primary, title_index)
             elif self.db_manager is not None:
-                # 用「子串安全」的检索键取候选（保留内部分隔符），
-                # 否则 joined core 在原始含分隔符的书名上 LIKE 匹配不到；
-                # joined core 仅用于下方精确过滤与合并标识。
-                sample_title = records_by_core.get(core, [{}])[0].get('novel_title', '')
-                like_key = _like_key_for_search(sample_title)
-                if like_key:
+                if seed_segments:
+                    # 用最长片段做 LIKE 取候选（片段本身无内部标点，子串可命中）
+                    primary = max(seed_segments, key=len)
                     books = self.db_manager.search_crawl_history_by_title(
-                        self.site_id, like_key
+                        self.site_id, primary
                     )
                 else:
-                    books = []
+                    # 退化：无法切分片段时回退到原「子串安全」检索键
+                    like_key = _like_key_for_search(sample_title)
+                    books = self.db_manager.search_crawl_history_by_title(
+                        self.site_id, like_key
+                    ) if like_key else []
             else:
                 books = []
             if not books:
-                # 兜底：子串搜不到时，用「规范化后完全等于该核心书名」的记录。
+                # 兜底：候选搜不到时，用「规范化后完全等于该核心书名」的记录。
                 # 这里直接复用 Step1 建好的映射，避免对全部记录重新做一次规范化
                 # （原先每个未命中的核心书名都要全表 normalize，是主要耗时点）
                 books = list(records_by_core.get(core, []))
 
-            # ── 精确过滤：LIKE / 倒排索引只负责"候选筛选"，
-            #    真正入组前再校验核心书名是否一致，避免无关书被并入同一组。
-            books = [b for b in books if _book_core_matches(b.get('novel_title', ''), core)]
+            # ── 精确过滤：候选检索只负责"初筛"，真正入组前再校验 ──
+            if seed_segments:
+                # 分段模式：要求候选书名依次包含全部种子片段（免疫标点差异、精准）
+                books = [
+                    b for b in books
+                    if _segment_books_match(b.get('novel_title', ''), seed_segments)
+                ]
+            else:
+                # 退化：回退到核心书名一致判定
+                books = [
+                    b for b in books
+                    if _book_core_matches(b.get('novel_title', ''), core)
+                ]
             # 确保本核心的源记录始终在组内
             for seed in records_by_core.get(core, []):
                 if not any(_book_identity(b) == _book_identity(seed) for b in books):
