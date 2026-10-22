@@ -4815,6 +4815,7 @@ class BrowserReader:
             <li><kbd>a</kbd> <script>document.write(t('common.auto_scroll'));</script></li>
             <li><kbd>Space</kbd> <script>document.write(t('browser_reader.shortcut_speech'));</script></li>
             <li><kbd>r</kbd> <script>document.write(t('browser_reader.speech_settings'));</script></li>
+            <li><kbd>e</kbd> <script>document.write(t('browser_reader.shortcut_edit'));</script></li>
             <li><kbd>h</kbd> <script>document.write(t('browser_reader.shortcut_hide'));</script></li>
             <li><kbd>Ctrl+G</kbd> <script>document.write(t('common.position_jump'));</script></li>
             <li><kbd>t</kbd> <script>document.write(t('common.font_settings'));</script></li>
@@ -9357,9 +9358,14 @@ class BrowserReader:
                     e.preventDefault();
                     break;
                 case 'r':
-                case 'R':
-                    // 大写 R：朗读设置（与点击"朗读设置"按钮一致）
+                    // 小写 r：朗读切换（Ctrl/Cmd+R 不拦截，保留浏览器刷新）
+                    if (e.ctrlKey || e.metaKey) break;
                     if (typeof toggleSpeech === 'function') toggleSpeech();
+                    e.preventDefault();
+                    break;
+                case 'e':
+                    // 小写 e：打开/复用编辑器浮层（与点击「编辑」按钮一致）
+                    if (window.__brOpenEditor) window.__brOpenEditor();
                     e.preventDefault();
                     break;
                 case 'n':
@@ -13318,6 +13324,16 @@ class BrowserReader:
             html_filename = f"{title}_reader.html"
             html_path = os.path.join(temp_dir, html_filename)
 
+            # 注入「在浏览器中编辑」浮动按钮：启动本地编辑器服务并加入入口
+            # （点击后跳转到浏览器编辑器，保存后可一键返回阅读页）
+            try:
+                from src.utils.browser_editor import BrowserEditorServer
+                # idle_timeout=0：禁用空闲自动关闭，编辑器服务随阅读页会话长期持有
+                _editor_url = BrowserEditorServer(file_path, idle_timeout=0).start()
+                html = BrowserReader._inject_editor_button(html, _editor_url, "file://" + html_path)
+            except Exception as _e:
+                logger.warning(f"注入浏览器编辑按钮失败: {_e}")
+
             with open(html_path, 'w', encoding='utf-8') as f:
                 f.write(html)
 
@@ -13343,7 +13359,58 @@ class BrowserReader:
 
         except Exception as e:
             return False, f"打开书籍失败：{str(e)}"
-    
+
+    @staticmethod
+    def _inject_editor_button(html: str, editor_url: str, return_url: str) -> str:
+        """在阅读器 HTML 中注入「在浏览器中编辑」浮动按钮
+
+        按钮位于左下角、锁屏按钮上方。点击后在**本页内**以浮层（iframe）
+        打开本地浏览器编辑器，不新开窗口；编辑完成后在编辑器内点击
+        「返回阅读 / 关闭」，编辑器会通过 postMessage 通知本页移除浮层，
+        回到原阅读页（内容仍为打开时的快照，最新内容需重新打开本书）。
+        """
+        import json
+        script = (
+            '<script>'
+            'window.__BR_EDITOR_URL__=' + json.dumps(editor_url) + ';'
+            'window.__BR_RETURN_URL__=' + json.dumps(return_url) + ';'
+            '(function(){'
+            'var b=document.createElement("button");'
+            'b.textContent="✎ 编辑";'
+            'b.title="在浏览器中编辑本书";'
+            'b.style.cssText="position:fixed;left:16px;bottom:72px;z-index:2147483647;'
+            'padding:10px 18px;border:none;border-radius:24px;background:#4579c4;color:#fff;'
+            'font-size:14px;cursor:pointer;box-shadow:0 4px 12px rgba(0,0,0,.35)";'
+            'function openEditorOverlay(){'
+            'if(document.getElementById("brEditorOverlay"))return;'
+            'var base=window.__BR_EDITOR_URL__;'
+            'var sep=base.indexOf("?")>=0?"&":"?";'
+            'var u=base+sep+"return="+encodeURIComponent(window.__BR_RETURN_URL__||location.href);'
+            'var ov=document.createElement("div");'
+            'ov.id="brEditorOverlay";'
+            'ov.style.cssText="position:fixed;inset:0;z-index:2147483646;background:#fff;";'
+            'var ifr=document.createElement("iframe");'
+            'ifr.src=u;'
+            'ifr.style.cssText="width:100%;height:100%;border:none;";'
+            'ov.appendChild(ifr);'
+            'if(document.body)document.body.appendChild(ov);'
+            '}'
+            'window.__brOpenEditor=openEditorOverlay;'
+            'b.onclick=openEditorOverlay;'
+            'window.addEventListener("message",function(e){'
+            'if(e&&e.data&&e.data.type==="br-editor-close"){'
+            'var ov=document.getElementById("brEditorOverlay");'
+            'if(ov)ov.remove();'
+            '}'
+            '});'
+            'document.body.appendChild(b);'
+            '})();'
+            '</script>'
+        )
+        if "</body>" in html:
+            return html.replace("</body>", script + "</body>", 1)
+        return html + script
+
     @staticmethod
     def _start_progress_server(file_path: str,
                            on_progress_save: Optional[Callable[[float, int, int], None]],

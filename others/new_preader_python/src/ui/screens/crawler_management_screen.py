@@ -749,6 +749,7 @@ class CrawlerManagementScreen(Screen[None]):
         ("f", "fill_missing", get_global_i18n().t('merge_detail.fill_missing')),
         ("i", "copy_book_ids_pages", get_global_i18n().t('common.copy_book_id')),
         ("e", "toggle_monitor", get_global_i18n().t('common.start_listen')),
+        ("E", "edit_book", get_global_i18n().t('common.edit')),
         ("z", "merge_mode", get_global_i18n().t('common.merge_mode')),
         ("Z", "merge_mode_all", get_global_i18n().t('common.full_merge_mode')),
         ("g", "toggle_smart_search", get_global_i18n().t('crawler.smart_search')),
@@ -938,6 +939,19 @@ class CrawlerManagementScreen(Screen[None]):
             if 0 <= item_index < len(self.crawler_history):
                 history_item = self.crawler_history[item_index]
                 self._read_book_in_browser(history_item)
+
+    def action_edit_book(self) -> None:
+        """E键 - 编辑光标所在行的书籍（与点击「编辑」按钮效果一致）"""
+        table = self.query_one("#crawl-history-table", DataTable)
+        current_row_index = getattr(table, 'cursor_row', None)
+
+        if current_row_index is not None and 0 <= current_row_index < len(table.rows):
+            # 获取当前行对应的history_item
+            start_index = (self.current_page - 1) * self.items_per_page
+            item_index = start_index + current_row_index
+            if 0 <= item_index < len(self.crawler_history):
+                history_item = self.crawler_history[item_index]
+                self._edit_book(history_item)
 
     def action_copy_ids(self) -> None:
         """Y键 - 复制选中项的ID"""
@@ -1410,6 +1424,7 @@ class CrawlerManagementScreen(Screen[None]):
         table.add_column(get_global_i18n().t('common.view_file'), key="view_file")
         table.add_column(get_global_i18n().t('common.read'), key="read_book")
         table.add_column(get_global_i18n().t('common.browser'), key="browser_read_book")
+        table.add_column(get_global_i18n().t('common.edit'), key="edit_book")
         table.add_column(get_global_i18n().t('common.delete_file'), key="delete_file")
         table.add_column(get_global_i18n().t('crawler.delete_record'), key="delete_record")
         table.add_column(get_global_i18n().t('crawler.view_reason'), key="view_reason")
@@ -1702,6 +1717,7 @@ class CrawlerManagementScreen(Screen[None]):
                     "view_file": get_global_i18n().t('common.view_file') if item["status"] == get_global_i18n().t('common.success') else "",
                     "read_book": get_global_i18n().t('common.read') if item["status"] == get_global_i18n().t('common.success') else "",
                     "browser_read_book": get_global_i18n().t('common.browser') if item["status"] == get_global_i18n().t('common.success') else "",
+                    "edit_book": get_global_i18n().t('common.edit') if item["status"] == get_global_i18n().t('common.success') else "",
                     "delete_file": get_global_i18n().t('common.delete_file') if item["status"] == get_global_i18n().t('common.success') else "",
                     "delete_record": get_global_i18n().t('crawler.delete_record'),
                     "view_reason": get_global_i18n().t('crawler.view_reason') if item["status"] == get_global_i18n().t('common.failed') else "",
@@ -3234,7 +3250,7 @@ class CrawlerManagementScreen(Screen[None]):
                 self._handle_cell_selection(row_key)
                 
             # 处理其他列的按钮点击
-            elif column in ["view_file", "read_book", "browser_read_book", "delete_file", "delete_record", "view_reason", "retry", "rename_novel", "preview", "fill_missing", "search_chapters"]:
+            elif column in ["view_file", "read_book", "browser_read_book", "edit_book", "delete_file", "delete_record", "view_reason", "retry", "rename_novel", "preview", "fill_missing", "search_chapters"]:
                 self._handle_button_click(column, row_key)
             
             # 处理连载列点击：切换连载模式
@@ -3250,7 +3266,7 @@ class CrawlerManagementScreen(Screen[None]):
                 self._copy_novel_title_to_clipboard(row_key)
 
             # 处理空格键选择：当点击任何非按钮列时，触发选择切换
-            elif column not in ["selected", "view_file", "read_book", "browser_read_book", "delete_file", "delete_record", "view_reason", "retry", "novel_title"]:
+            elif column not in ["selected", "view_file", "read_book", "browser_read_book", "edit_book", "delete_file", "delete_record", "view_reason", "retry", "novel_title"]:
                 self._handle_cell_selection(row_key)
                     
         except Exception as e:
@@ -3622,6 +3638,8 @@ class CrawlerManagementScreen(Screen[None]):
                 self._read_book(history_item)
             elif column == "browser_read_book":
                 self._read_book_in_browser(history_item)
+            elif column == "edit_book":
+                self._edit_book(history_item)
             elif column == "delete_file":
                 self._delete_file(history_item)
             elif column == "delete_record":
@@ -5203,6 +5221,103 @@ class CrawlerManagementScreen(Screen[None]):
         except Exception as e:
             self._update_status(f"{get_global_i18n().t('common.open_book_failed')}: {str(e)}", "error")
     
+    def _resolve_book_file_path(self, history_item: Dict[str, Any]) -> Optional[str]:
+        """解析书籍实际文件路径
+
+        依次尝试：内存记录 -> 数据库回查 -> 按书名在存储目录查找。
+        解析成功会写回 history_item['file_path']，失败返回 None。
+        """
+        try:
+            file_path = history_item.get('file_path')
+
+            # 文件路径为空或为占位符时，尝试从数据库重新获取
+            if not file_path or file_path == 'already_exists':
+                site_id = self.novel_site.get('id')
+                novel_id = history_item.get('novel_id')
+                if site_id and novel_id:
+                    crawl_history = self.db_manager.get_crawl_history_by_novel_id(site_id, novel_id)
+                    for record in crawl_history:
+                        if record.get('status') == 'success' and record.get('file_path') and record.get('file_path') != 'already_exists':
+                            file_path = record.get('file_path')
+                            history_item['file_path'] = file_path
+                            break
+
+            if not file_path:
+                return None
+
+            # 仍然是占位符：尝试根据书名在存储目录中查找实际文件
+            if file_path == 'already_exists':
+                novel_title = history_item.get('novel_title', '')
+                storage_folder = self.novel_site.get('storage_folder', 'novels')
+                storage_folder = os.path.expanduser(storage_folder)
+                possible_files = glob.glob(os.path.join(storage_folder, f"*{novel_title}*"))
+                if possible_files:
+                    file_path = possible_files[0]
+                    history_item['file_path'] = file_path
+                else:
+                    return None
+
+            if not os.path.exists(file_path):
+                return None
+
+            return file_path
+        except Exception as e:
+            logger.error(f"解析书籍文件路径失败: {e}")
+            return None
+
+    def _get_focused_history_item(self) -> Optional[Dict[str, Any]]:
+        """获取当前光标所在行的历史记录项"""
+        try:
+            table = self.query_one("#crawl-history-table", DataTable)
+            current_row_index = getattr(table, 'cursor_row', None)
+            if current_row_index is None or current_row_index < 0:
+                return None
+            start_index = (self.current_page - 1) * self.items_per_page
+            item_index = start_index + current_row_index
+            if 0 <= item_index < len(self.crawler_history):
+                return self.crawler_history[item_index]
+        except Exception:
+            pass
+        return None
+
+    def _edit_book(self, history_item: Dict[str, Any]) -> None:
+        """编辑书籍的文本内容
+
+        解析书籍文件路径后，打开可复用文本编辑器；保存成功后再刷新表格的文件大小。
+        """
+        try:
+            file_path = self._resolve_book_file_path(history_item)
+            if not file_path:
+                self._update_status(get_global_i18n().t('editor.not_found'))
+                return
+
+            from src.ui.dialogs.text_editor_dialog import TextEditorModal
+            title = f"{get_global_i18n().t('common.edit')} - {history_item.get('novel_title', get_global_i18n().t('common.unknown_book'))}"
+
+            def _on_edited(result: object) -> None:
+                if result is None:
+                    return
+                # 更新内存中的文件大小并重绘表格
+                try:
+                    from src.utils.file_utils import FileUtils
+                    history_item['file_size'] = FileUtils.get_file_size(file_path)
+                except Exception:
+                    pass
+                self._update_history_table()
+                self._update_status(get_global_i18n().t('editor.saved_success'), "success")
+
+            self.app.push_screen(
+                TextEditorModal(
+                    theme_manager=self.theme_manager,
+                    title=title,
+                    file_path=file_path,
+                    language="markdown",
+                ),
+                _on_edited,
+            )
+        except Exception as e:
+            self._update_status(f"{get_global_i18n().t('common.open_book_failed')}: {str(e)}", "error")
+
     def _read_book_in_browser(self, history_item: Dict[str, Any]) -> None:
         """使用浏览器阅读书籍"""
         try:

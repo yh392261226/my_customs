@@ -1,0 +1,56 @@
+/* 可复用文本编辑器样式 */
+
+#editor-screen-container {
+    width: 95%;
+    height: 95%;
+    align: center middle;
+    content-align: center middle;
+}
+
+#editor-root {
+    width: 100%;
+    height: 100%;
+    background: $surface;
+    border: round $primary;
+    padding: 1 2;
+}
+
+#editor-title {
+    text-style: bold;
+    color: $accent;
+    margin-bottom: 1;
+    height: auto;
+}
+
+#editor-toolbar {
+    height: auto;
+    margin-bottom: 1;
+    align: left middle;
+}
+
+#editor-toolbar Button {
+    margin: 0 1;
+    min-width: 8;
+    height: 3;
+}
+
+#editor-textarea {
+    height: 1fr;
+    border: round $primary;
+    background: $boost;
+}
+
+#editor-textarea:focus {
+    border: round $accent;
+}
+
+#editor-statusbar {
+    height: auto;
+    margin-top: 1;
+    align: left middle;
+}
+
+#editor-statusbar Label {
+    color: $text-muted;
+    margin-right: 2;
+}
