@@ -47,6 +47,167 @@ _CHAPTER_NUM_PATTERNS = [
 # 普通段落的缩进宽度
 _INDENT = "    "
 
+# 智能分段相关常量
+# 句末标点：遇到即视为一个句子的结束（引号外）
+_SENT_END = set('。！？!?…')
+# 直接引语的开引号 -> 闭引号映射（ASCII 双/单引号开闭同形）
+_OPEN_QUOTES = {'“': '”', '「': '」', '『': '』', '"': '"', '‘': '’', "'": "'"}
+# 闭引号集合：仅在已处于引号内时才作为结束符，避免把孤立闭引号误判为开引号
+_CLOSE_QUOTES = set('”」』’')
+# 引导直接引语的提示性结尾（冒号、开引号等）：其后紧跟的引语视为「同位」不另起段
+_LEADIN_TAIL = ('：', ':', '“', '「', '『', '"', '‘', "'", '—', '——', '（', '(')
+# 单段最大字符数：超过则在该句/片段边界处收束另起一段
+_MAX_PARA_LEN = 180
+
+
+def _segment_with_quotes(text: str) -> list:
+    """
+    把正文切成片段序列，每项为 (kind, content)，kind ∈ {'quote', 'text'}。
+
+    规则：
+    - 引号内的完整内容（含其中的句号/感叹号/问号）作为一个 quote 片段，
+      不会被拆成多句——这保证了「配文："……。"」「"媛媛别委屈！……！"」
+      这类直接引语整体不被切断。
+    - 引号外的文本按句末标点切分为 text 片段（每片段通常是一句话）。
+    - 未被闭合的引号在超过安全长度后强制收尾，避免吞噬整段。
+    """
+    segs = []
+    buf = ''
+    kind = 'text'
+    quote_open = None      # 当前打开的引号开字符
+    quote_close = None     # 对应的闭引号字符
+    i = 0
+    n = len(text)
+    while i < n:
+        ch = text[i]
+        if quote_open:
+            buf += ch
+            # 命中闭引号，或引号过长（防失衡），结束该引语片段
+            if ch == quote_close or len(buf) > 500:
+                segs.append(('quote', buf))
+                buf = ''
+                quote_open = None
+                quote_close = None
+            i += 1
+            continue
+        # 不在引号内
+        if ch in _OPEN_QUOTES:
+            if buf:
+                segs.append(('text', buf))
+                buf = ''
+            quote_open = ch
+            quote_close = _OPEN_QUOTES[ch]
+            buf = ch
+            i += 1
+            continue
+        if ch in _CLOSE_QUOTES:
+            # 落单的闭引号：当作普通字符，不开启引号
+            buf += ch
+            i += 1
+            continue
+        if ch in _SENT_END:
+            buf += ch
+            segs.append(('text', buf))
+            buf = ''
+            i += 1
+            continue
+        buf += ch
+        i += 1
+    if buf:
+        segs.append(('text', buf))
+    return segs
+
+
+def _smart_paragraphs(text: str, max_len: int = _MAX_PARA_LEN) -> list:
+    """
+    把一段「无换行」的正文智能聚合为多个自然段落（不含缩进）。
+
+    分段信号：
+    - 直接引语（quote 片段）通常独立成段；但若它紧跟在引语提示
+      （「配文：」「说：」等以 _LEADIN_TAIL 结尾的文本）之后，则视为同位，
+      与提示合并为一段。
+    - 引语结束回到叙述（quote -> text）时另起一段。
+    - 连续叙述按长度聚合，超过 max_len 后在片段边界收束，避免一整面“文字墙”。
+    """
+    segs = _segment_with_quotes(text)
+    paras = []
+    cur = []
+    cur_len = 0
+    last_kind = None
+    last_tail = ''     # 上一个 text 片段的结尾字符（用于判断是否为引语提示）
+    for kind, txt in segs:
+        t = txt.strip()
+        if not t:
+            continue
+        break_before = False
+        if cur:
+            if kind == 'quote':
+                # 引语：若前文也是引语（连续多说话人），或前文不是引语提示
+                # （不以 ：/开引号 等结尾），则另起一段
+                if last_kind == 'quote' or \
+                        (last_kind == 'text' and last_tail not in _LEADIN_TAIL):
+                    break_before = True
+            else:  # text：引语结束后的叙述另起一段
+                if last_kind == 'quote':
+                    break_before = True
+        if break_before:
+            paras.append(''.join(cur))
+            cur = []
+            cur_len = 0
+            last_kind = None
+            last_tail = ''
+        cur.append(txt)
+        cur_len += len(txt)
+        last_kind = kind
+        last_tail = t[-1] if t else ''
+        # 段落过长则强制在下一片段前断开
+        if cur_len >= max_len:
+            paras.append(''.join(cur))
+            cur = []
+            cur_len = 0
+            last_kind = None
+            last_tail = ''
+    if cur:
+        paras.append(''.join(cur))
+    return [p for p in paras if p.strip()]
+
+
+def reflow_paragraphs(text: str, indent: str = _INDENT,
+                      max_para_len: int = _MAX_PARA_LEN) -> list:
+    """
+    把章节正文重排为统一段落：以空行为段落边界，段内软换行合并为一行，
+    对完全没有换行/结构的长文本做智能分段（引号成句、对话独立、按长度收束）；
+    每个段落统一缩进。
+
+    返回缩进后的段落字符串列表（不含空段）。
+    """
+    if not text:
+        return []
+
+    # 以一个或多个空行作为段落边界切分
+    blocks = re.split(r'\n\s*\n', text)
+
+    paragraphs = []
+    for block in blocks:
+        block = block.strip()
+        if not block:
+            continue
+
+        # 段落内有换行：合并软换行为一段（去掉每行首尾空白）
+        if '\n' in block:
+            lines = [ln.strip() for ln in block.split('\n')]
+            lines = [ln for ln in lines if ln]
+            if lines:
+                paragraphs.append(indent + ''.join(lines))
+            continue
+
+        # 单行长文本：智能分段（引号成句、对话独立、按长度收束），
+        # 替代原先「见句末标点就换行」的生硬切分。
+        for p in _smart_paragraphs(block, max_para_len):
+            paragraphs.append(indent + p)
+
+    return paragraphs
+
 
 def cn_to_int(text: str):
     """把中文数字（支持 零~万 量级）转换为整数；纯阿拉伯数字直接转。"""
@@ -123,43 +284,6 @@ def normalize_chapter_title(raw_title: str, position_index: int) -> str:
     if remainder:
         label = f"{label} {remainder}"
     return label
-
-
-def reflow_paragraphs(text: str, indent: str = _INDENT) -> list:
-    """
-    把章节正文重排为统一段落：以空行为段落边界，段内软换行合并为一行，
-    对完全没有换行的长文本做句子级兜底切分；每个段落统一缩进。
-
-    返回缩进后的段落字符串列表（不含空段）。
-    """
-    if not text:
-        return []
-
-    # 以一个或多个空行作为段落边界切分
-    blocks = re.split(r'\n\s*\n', text)
-
-    paragraphs = []
-    for block in blocks:
-        block = block.strip()
-        if not block:
-            continue
-
-        # 段落内没有换行：可能是长文本（无段落结构），做句末兜底切分
-        if '\n' not in block and len(block) > 120:
-            pieces = re.split(r'(?<=[。！？!?])', block)
-            sub_paras = [p.strip() for p in pieces if p.strip()]
-            for p in sub_paras:
-                paragraphs.append(indent + p)
-            continue
-
-        # 段落内有换行：合并软换行为一段（去掉每行首尾空白）
-        lines = [ln.strip() for ln in block.split('\n')]
-        lines = [ln for ln in lines if ln]
-        if lines:
-            merged = ''.join(lines)
-            paragraphs.append(indent + merged)
-
-    return paragraphs
 
 
 def strip_leading_title(content: str, title: str) -> str:
