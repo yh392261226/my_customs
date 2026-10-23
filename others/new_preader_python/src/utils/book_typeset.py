@@ -60,6 +60,32 @@ _LEADIN_TAIL = ('：', ':', '“', '「', '『', '"', '‘', "'", '—', '——
 _MAX_PARA_LEN = 180
 
 
+def _normalize_fullwidth(text: str) -> str:
+    """
+    仅把「全角数字 / 全角字母 / 全角空格」转成半角。
+
+    爬虫抓来的正文常见 ２２岁、１５８公分、３４Ｄ 这类全角 ASCII 残留，
+    阅读时既难看又影响排版宽度。但中文正常的全角标点（。！？、：等）属于
+    U+FF01~U+FF5E 全角区块，必须原样保留，故此处只处理数字/字母/全角空格。
+    """
+    if not text:
+        return text
+    out = []
+    for ch in text:
+        cp = ord(ch)
+        if 0xFF10 <= cp <= 0xFF19:        # ０-９ -> 0-9
+            out.append(chr(cp - 0xFF10 + 0x30))
+        elif 0xFF21 <= cp <= 0xFF3A:      # Ａ-Ｚ -> A-Z
+            out.append(chr(cp - 0xFF21 + 0x41))
+        elif 0xFF41 <= cp <= 0xFF5A:      # ａ-ｚ -> a-z
+            out.append(chr(cp - 0xFF41 + 0x61))
+        elif ch == '\u3000':              # 全角空格 -> 半角空格
+            out.append(' ')
+        else:
+            out.append(ch)
+    return ''.join(out)
+
+
 def _segment_with_quotes(text: str) -> list:
     """
     把正文切成片段序列，每项为 (kind, content)，kind ∈ {'quote', 'text'}。
@@ -193,18 +219,23 @@ def reflow_paragraphs(text: str, indent: str = _INDENT,
         if not block:
             continue
 
+        # 跳过残留的 Markdown 标题行（# 书名 / ## 章节）：否则会作为正文段落出现
+        if re.match(r'^#{1,6}\s+\S', block):
+            continue
+
         # 段落内有换行：合并软换行为一段（去掉每行首尾空白）
         if '\n' in block:
             lines = [ln.strip() for ln in block.split('\n')]
             lines = [ln for ln in lines if ln]
             if lines:
-                paragraphs.append(indent + ''.join(lines))
+                merged = _normalize_fullwidth(''.join(lines))
+                paragraphs.append(indent + merged)
             continue
 
         # 单行长文本：智能分段（引号成句、对话独立、按长度收束），
         # 替代原先「见句末标点就换行」的生硬切分。
         for p in _smart_paragraphs(block, max_para_len):
-            paragraphs.append(indent + p)
+            paragraphs.append(indent + _normalize_fullwidth(p))
 
     return paragraphs
 
@@ -312,6 +343,10 @@ def split_chapters(content: str) -> list:
     把正文切分为章节列表 [{'title': ..., 'content': ...}]，
     章节识别规则与阅读器保持一致（第N章/回/节、(12)、[12]、12.、Chapter N、章节 N）。
 
+    兼容爬虫常见的 Markdown 风格标题：
+    - `# 书名` / `# 书名`：仅作书名标记，不作为章节，且不写入正文；
+    - `## 章节` / `### 章节`：视为章节标题，开始新章节。
+
     用于把整本原始内容送入 typeset_body 做统一重排。
     """
     chapters = []
@@ -327,8 +362,22 @@ def split_chapters(content: str) -> list:
         r'\1\n\2', content)
     lines = content.split('\n')
     current = {"title": "未命名章节", "content": ""}
+    # Markdown 标题正则：二级及以上为章节，一级为书名（跳过）
+    md_chapter_re = re.compile(r'^#{2,6}\s+(.+)$')
+    md_title_re = re.compile(r'^#\s+(.+)$')
     for line in lines:
         stripped = line.strip()
+        # —— Markdown 标题优先于传统规则处理 ——
+        md_chap = md_chapter_re.match(stripped)
+        if md_chap:
+            if current["content"].strip():
+                chapters.append(current.copy())
+            current = {"title": _normalize_fullwidth(md_chap.group(1).strip()),
+                       "content": ""}
+            continue
+        if md_title_re.match(stripped):
+            # 一级标题是书名标记：跳过，不写入正文
+            continue
         is_chapter = (
             # 第N章/回/节/篇/部/页（允许前面有引号、空格、括号等前缀，
             # 兼容「” 第6章」「（第3章」这类被粘连到上一行的标题）
