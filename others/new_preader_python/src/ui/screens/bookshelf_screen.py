@@ -2432,7 +2432,8 @@ class BookshelfScreen(Screen[None]):
             selection_mode="file",
             title=get_global_i18n().t("common.add_book"),
             multiple=True,  # 启用多选模式
-            initial_path=self.bookshelf.data_dir  # 默认打开设置中的书库文件夹
+            initial_path=self.bookshelf.data_dir,  # 默认打开设置中的书库文件夹
+            recursive_diff=True  # 差异模式下递归扫描子目录，自动识别子目录中未添加的书籍
         )
         
         self.app.push_screen(file_explorer_screen, handle_add_book_result)

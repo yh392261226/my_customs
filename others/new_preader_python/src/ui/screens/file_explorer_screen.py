@@ -55,7 +55,7 @@ class FileExplorerScreen(ScreenStyleMixin, Screen[Optional[Union[str, List[str]]
                  selection_mode: str = "file", title: Optional[str] = None, direct_open: bool = False,
                  multiple: bool = False, file_extensions: Optional[Set[str]] = None,
                  initial_path: Optional[str] = None, show_all_files: bool = False,
-                 default_diff_mode: Optional[bool] = None):
+                 default_diff_mode: Optional[bool] = None, recursive_diff: bool = False):
         """
         初始化文件资源管理器屏幕
         
@@ -68,6 +68,8 @@ class FileExplorerScreen(ScreenStyleMixin, Screen[Optional[Union[str, List[str]]
             multiple: 是否允许多选
             file_extensions: 自定义文件扩展名集合（如 {".zip", ".tar"}），如果为None则使用默认的书籍格式
             initial_path: 初始打开的目录路径，若为 None 或不存在则回退到用户主目录
+            recursive_diff: 差异模式下是否递归扫描子目录（用于"添加书籍"场景，
+                自动识别子目录中未添加的书籍）
         """
         super().__init__()
         self.theme_manager = theme_manager
@@ -77,6 +79,8 @@ class FileExplorerScreen(ScreenStyleMixin, Screen[Optional[Union[str, List[str]]
         self.direct_open = direct_open  # 使用传入的direct_open参数
         self.multiple = multiple  # 多选模式
         self.show_all_files = show_all_files  # 是否显示目录下全部文件（含非书籍格式）
+        # 差异模式是否递归扫描子目录（"添加书籍"场景需要自动识别子目录中的书籍）
+        self.recursive_diff = recursive_diff
         # 差异模式（只列出书库中不存在的书籍）开关的默认值；
         # 不传时沿用旧逻辑 not direct_open，传 True/False 时显式指定
         self.default_diff_mode = default_diff_mode if default_diff_mode is not None else (not self.direct_open)
@@ -1327,15 +1331,20 @@ class FileExplorerScreen(ScreenStyleMixin, Screen[Optional[Union[str, List[str]]
             logger.error(f"获取书库文件列表失败: {e}")
             return set()
     
-    def _get_all_files_in_current_directory(self) -> List[Dict[str, str]]:
+    def _get_all_files_in_current_directory(self, recursive: bool = False) -> List[Dict[str, str]]:
         """获取当前目录下的所有文件（性能优化版本 - 缓存 + 零热路径日志）
 
         核心优化：
         1. 单次 os.listdir，扩展名预过滤后再 lstat，减少系统调用
         2. 热循环中无任何日志输出（避免 f-string 求值），仅汇总输出
         3. 结果缓存 1 秒，切换目录时自动失效
+
+        Args:
+            recursive: 是否递归扫描子目录（用于"添加书籍"差异模式，
+                自动识别子目录中未添加的书籍）。开启后会通过 os.walk
+                遍历整个目录树，并在 display 中展示相对子目录路径。
         """
-        cache_key = (self.current_path, tuple(sorted(self.file_extensions)))
+        cache_key = (self.current_path, tuple(sorted(self.file_extensions)), recursive)
 
         if hasattr(self, '_directory_cache'):
             cached_data = self._directory_cache.get(cache_key)
@@ -1346,34 +1355,55 @@ class FileExplorerScreen(ScreenStyleMixin, Screen[Optional[Union[str, List[str]]
 
         all_files = []
         try:
-            items = os.listdir(self.current_path)
             supported_extensions = self.file_extensions
             current_path = self.current_path
 
-            for item in items:
-                # 快速检查扩展名，避免不必要的系统调用
-                if '.' not in item:
-                    continue
-                ext = item.rsplit('.', 1)[-1].lower()
-                if ext.startswith('.'):
-                    ext = ext[1:]
-                ext_with_dot = '.' + ext
+            def _add_file(item_path: str, rel_dir: str) -> None:
+                """根据扩展名收集单个书籍文件"""
+                item = os.path.basename(item_path)
+                try:
+                    stat_info = os.lstat(item_path)
+                    if not stat.S_ISREG(stat_info.st_mode):
+                        return
+                except (OSError, AttributeError):
+                    return
+                # 展示相对子目录，便于区分同名书籍所在位置
+                if rel_dir in (".", ""):
+                    display = f"📖 {item}"
+                else:
+                    display = f"📖 {rel_dir}/{item}"
+                all_files.append({
+                    "name": item,
+                    "path": item_path,
+                    "type": "book",
+                    "display": display,
+                    "directory": rel_dir or "."
+                })
 
-                # 只处理支持的书籍格式
-                if ext_with_dot in supported_extensions:
-                    item_path = os.path.join(current_path, item)
-                    try:
-                        stat_info = os.lstat(item_path)
-                        if stat.S_ISREG(stat_info.st_mode):
-                            all_files.append({
-                                "name": item,
-                                "path": item_path,
-                                "type": "book",
-                                "display": f"📖 {item}",
-                                "directory": "."
-                            })
-                    except (OSError, AttributeError):
+            if recursive:
+                # 递归遍历当前目录树，收集所有支持的书籍格式
+                for root, _, files in os.walk(current_path):
+                    rel_dir = os.path.relpath(root, current_path)
+                    for item in files:
+                        # 快速检查扩展名，避免不必要的系统调用
+                        if '.' not in item:
+                            continue
+                        ext = item.rsplit('.', 1)[-1].lower()
+                        if ext.startswith('.'):
+                            ext = ext[1:]
+                        if ('.' + ext) in supported_extensions:
+                            _add_file(os.path.join(root, item), rel_dir)
+            else:
+                items = os.listdir(current_path)
+                for item in items:
+                    # 快速检查扩展名，避免不必要的系统调用
+                    if '.' not in item:
                         continue
+                    ext = item.rsplit('.', 1)[-1].lower()
+                    if ext.startswith('.'):
+                        ext = ext[1:]
+                    if ('.' + ext) in supported_extensions:
+                        _add_file(os.path.join(current_path, item), ".")
 
         except (PermissionError, OSError) as e:
             logger.warning(f"获取当前目录文件失败: {e}")
@@ -1383,7 +1413,7 @@ class FileExplorerScreen(ScreenStyleMixin, Screen[Optional[Union[str, List[str]]
             self._directory_cache = {}
         self._directory_cache[cache_key] = (time.time(), all_files)
 
-        logger.debug(f"目录扫描完成: {self.current_path} -> {len(all_files)} 个文件")
+        logger.debug(f"目录扫描完成: {self.current_path} (recursive={recursive}) -> {len(all_files)} 个文件")
         return all_files
 
     def _filter_files_not_in_bookshelf(self, files: List[Dict[str, str]]) -> List[Dict[str, str]]:
@@ -1482,7 +1512,9 @@ class FileExplorerScreen(ScreenStyleMixin, Screen[Optional[Union[str, List[str]]
             # 如果对比模式开启，优先处理对比模式
             if diff_mode_enabled:
                 # 差异模式：获取当前目录所有文件，然后过滤掉已添加的书籍
-                all_files = self._get_all_files_in_current_directory()
+                # recursive_diff=True（"添加书籍"场景）时递归扫描子目录，
+                # 自动识别子目录中未添加的书籍
+                all_files = self._get_all_files_in_current_directory(recursive=self.recursive_diff)
 
                 # 如果有搜索条件，先过滤搜索条件
                 # 差异模式下只按关键词搜索，不按文件类型过滤
