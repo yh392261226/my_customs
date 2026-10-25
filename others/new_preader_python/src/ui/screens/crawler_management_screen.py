@@ -747,7 +747,8 @@ class CrawlerManagementScreen(Screen[None]):
         ("v", "preview_book", get_global_i18n().t('common.preview')),
         ("F", "view_current_file", get_global_i18n().t('common.view_file')),
         ("f", "fill_missing", get_global_i18n().t('merge_detail.fill_missing')),
-        ("i", "copy_book_ids_pages", get_global_i18n().t('common.copy_book_id')),
+        ("i", "view_book_details", get_global_i18n().t('book_details.shortcut_i')),
+        ("u", "copy_book_ids_pages", get_global_i18n().t('common.copy_book_id')),
         ("e", "toggle_monitor", get_global_i18n().t('common.start_listen')),
         ("E", "edit_book", get_global_i18n().t('common.edit')),
         ("z", "merge_mode", get_global_i18n().t('common.merge_mode')),
@@ -1434,6 +1435,7 @@ class CrawlerManagementScreen(Screen[None]):
         table.add_column(get_global_i18n().t('common.preview'), key="preview")
         table.add_column(get_global_i18n().t('merge_detail.fill_missing'), key="fill_missing")
         table.add_column(get_global_i18n().t('common.search_chapter'), key="search_chapters")
+        table.add_column(get_global_i18n().t('book_details.view_details'), key="details_action")
         
         table.zebra_stripes = True
         
@@ -1726,7 +1728,8 @@ class CrawlerManagementScreen(Screen[None]):
                     "rename_novel": get_global_i18n().t('common.rename') if item["status"] == get_global_i18n().t('common.success') else "",
                     "preview": get_global_i18n().t('common.preview') if item["status"] == get_global_i18n().t('common.success') else "",
                     "fill_missing": get_global_i18n().t('merge_detail.fill_missing') if item["status"] == get_global_i18n().t('common.success') else "",
-                    "search_chapters": get_global_i18n().t('common.search_chapter')
+                    "search_chapters": get_global_i18n().t('common.search_chapter'),
+                    "details_action": get_global_i18n().t('book_details.view_details')
                 }
                 
                 # 调试：打印row_data
@@ -3249,6 +3252,10 @@ class CrawlerManagementScreen(Screen[None]):
             if column == "selected":
                 self._handle_cell_selection(row_key)
                 
+            # 处理查看详情按钮点击
+            elif column == "details_action":
+                self._view_book_details(row_key)
+
             # 处理其他列的按钮点击
             elif column in ["view_file", "read_book", "browser_read_book", "edit_book", "delete_file", "delete_record", "view_reason", "retry", "rename_novel", "preview", "fill_missing", "search_chapters"]:
                 self._handle_button_click(column, row_key)
@@ -3362,6 +3369,84 @@ class CrawlerManagementScreen(Screen[None]):
         except Exception as e:
             logger.error(f"复制焦点书籍标题失败: {e}")
             self._update_status(get_global_i18n().t('cannot_copy'), "error")
+
+    def action_view_book_details(self) -> None:
+        """快捷键 i：打开当前焦点记录行的详情弹窗。
+
+        若详情弹窗已处于屏幕栈顶，由弹窗自身的 i 绑定负责关闭；本方法
+        仅在爬取管理主页面激活时执行（打开当前焦点记录的详情）。
+        """
+        try:
+            table = self.query_one("#crawl-history-table", DataTable)
+            if not table.rows or table.cursor_row is None or table.cursor_row < 0:
+                self._update_status(get_global_i18n().t('common.no_row_selected'), "warning")
+                return
+
+            start_index = (self.current_page - 1) * self.items_per_page
+            row_index = table.cursor_row
+            if start_index + row_index >= len(self.crawler_history):
+                return
+
+            history_item = self.crawler_history[start_index + row_index]
+            if not history_item:
+                return
+            self._view_book_details(str(history_item.get("id")))
+        except Exception as e:
+            logger.error(f"通过快捷键打开详情失败: {e}")
+
+    def _find_history_by_row_key(self, row_key: str) -> Optional[Dict[str, Any]]:
+        """按行键（记录 id）查找爬取历史记录。"""
+        for item in self.crawler_history:
+            if str(item.get("id")) == str(row_key):
+                return item
+        return None
+
+    def _view_book_details(self, row_key: str) -> None:
+        """构建当前爬取记录的详情并弹出可复用的 BookDetailsDialog。"""
+        try:
+            from src.ui.widgets.book_details_dialog import BookDetailsDialog
+            from src.utils.file_utils import FileUtils
+
+            history_item = self._find_history_by_row_key(row_key)
+            if not history_item:
+                self._update_status(get_global_i18n().t('common.unknown_book'), "warning")
+                return
+
+            # 来源：当前站点名称
+            source = self.novel_site.get("name", get_global_i18n().t('book_details.local_import'))
+            file_path = history_item.get("file_path", "") or ""
+            size_display = ""
+            if history_item.get("file_size"):
+                try:
+                    size_display = FileUtils.format_file_size(history_item.get("file_size"))
+                except Exception:
+                    size_display = str(history_item.get("file_size"))
+
+            details = [
+                (get_global_i18n().t("common.book_title"), history_item.get("novel_title", "")),
+                (get_global_i18n().t("book_details.source"), source),
+                (get_global_i18n().t("book_details.novel_id"), unquote(history_item.get("novel_id", "")) if history_item.get("novel_id") else ""),
+                (get_global_i18n().t("book_details.book_type"), history_item.get("book_type", "")),
+                (get_global_i18n().t("book_details.chapter_count"), str(history_item.get("chapter_count", 0) or 0)),
+                (get_global_i18n().t("book_details.serial_mode"), "是" if history_item.get("serial_mode") else "否"),
+                (get_global_i18n().t("common.file_path"), file_path),
+                (get_global_i18n().t("common.size"), size_display or ""),
+                (get_global_i18n().t("book_details.status"), history_item.get("status", "")),
+                (get_global_i18n().t("book_details.crawl_time"), history_item.get("crawl_time", "")),
+                (get_global_i18n().t("book_details.last_update_time"), history_item.get("last_update_time", "")),
+                (get_global_i18n().t("book_details.error_message"), history_item.get("error_message", "") or ""),
+            ]
+
+            self.app.push_screen(
+                BookDetailsDialog(
+                    title=get_global_i18n().t("book_details.title"),
+                    details=details,
+                    theme_manager=self.theme_manager,
+                )
+            )
+        except Exception as e:
+            logger.error(f"打开详情失败: {e}")
+            self._update_status(get_global_i18n().t('common.action_failed'), "error")
 
     def _toggle_serial_mode(self, row_key: str) -> None:
         """切换连载模式"""

@@ -69,6 +69,7 @@ class BookshelfScreen(Screen[None]):
         ("f", "view_current_file", get_global_i18n().t('common.view_file')),
         ("y", "copy_title", get_global_i18n().t('common.copy_title')),
         ("b", "open_in_browser", get_global_i18n().t('common.browser_read')),
+        ("i", "view_book_details", get_global_i18n().t('book_details.shortcut_i')),
     ]
     # 支持的书籍文件扩展名（从配置文件读取）
     SUPPORTED_EXTENSIONS = set(SUPPORTED_FORMATS)
@@ -158,6 +159,7 @@ class BookshelfScreen(Screen[None]):
             (get_global_i18n().t("common.rename"), "rename_action"),  # 重命名按钮列
             (get_global_i18n().t("common.preview"), "preview_action"),  # 预览按钮列
             (get_global_i18n().t("common.delete"), "delete_action"),  # 删除按钮列
+            (get_global_i18n().t("book_details.view_details"), "details_action"),  # 查看详情按钮列
         ]
         
         # 初始化搜索状态变量
@@ -438,6 +440,17 @@ class BookshelfScreen(Screen[None]):
         
         # 启用隔行变色效果
         table.zebra_stripes = True
+    
+    @staticmethod
+    def _visible_column_keys(table) -> List[str]:
+        """返回表格当前实际存在的列键（按添加顺序），用于保证 add_row 行值与列一一对应。"""
+        keys = []
+        try:
+            for ck in table.columns.keys():
+                keys.append(ck.value if hasattr(ck, "value") else str(ck))
+        except Exception:
+            pass
+        return keys
     
     def _load_books(self, search_keyword: str = "", search_format: str = "all", search_author: str = "all", from_search: bool = False) -> None:
         """加载书籍数据
@@ -1369,19 +1382,23 @@ class BookshelfScreen(Screen[None]):
                 tags_display = book.tags if book.tags else ""
                 
                 # 添加操作按钮
-                # 文件不存在时，不显示阅读、查看文件、重命名、预览按钮
+                # 文件不存在时，不显示阅读、浏览器阅读、查看文件、重命名、预览按钮
                 if getattr(book, 'file_not_found', False):
                     read_button = ""
+                    browser_read_button = ""
                     view_file_button = ""
                     rename_button = ""
                     preview_button = ""
                     delete_button = f"[{get_global_i18n().t('common.delete')}]"
                 else:
                     read_button = f"[{get_global_i18n().t('common.read')}]"
+                    browser_read_button = f"[{get_global_i18n().t('common.browser')}]"
                     view_file_button = f"[{get_global_i18n().t('common.view_file')}]"
                     rename_button = f"[{get_global_i18n().t('common.rename')}]"
                     preview_button = f"[{get_global_i18n().t('common.preview')}]"
                     delete_button = f"[{get_global_i18n().t('common.delete')}]"
+                # 查看详情按钮（只读，始终显示）
+                details_button = f"[{get_global_i18n().t('book_details.view_details')}]"
                 
                 # 如果文件不存在，在标题前添加标记
                 display_title = book.title
@@ -1392,20 +1409,27 @@ class BookshelfScreen(Screen[None]):
                 from src.utils.file_utils import FileUtils
                 size_display = FileUtils.format_file_size(book.file_size) if hasattr(book, 'file_size') and book.file_size else ""
                 
+                # 以「列键 -> 值」字典构建整行数据，再按表格实际存在的列顺序取值，
+                # 这样即使按权限过滤了部分操作列也能保证行值与列一一对应。
+                row_data = {
+                    "id": str(global_index),
+                    "title": display_title,
+                    "author": book.author,
+                    "format": book.format.upper(),
+                    "size": size_display,
+                    "last_read": last_read,
+                    "progress": f"{progress:.1f}%",
+                    "tags": tags_display,
+                    "read_action": read_button,
+                    "browser_read_action": browser_read_button,
+                    "view_action": view_file_button,
+                    "rename_action": rename_button,
+                    "preview_action": preview_button,
+                    "delete_action": delete_button,
+                    "details_action": details_button,
+                }
                 table.add_row(
-                    str(global_index),  # 显示数字序号而不是路径
-                    display_title,
-                    book.author,
-                    book.format.upper(),
-                    size_display,  # 文件大小显示
-                    last_read,
-                    f"{progress:.1f}%",
-                    tags_display,
-                    read_button,  # 阅读按钮
-                    view_file_button,  # 查看文件按钮
-                    rename_button,  # 重命名按钮
-                    preview_button,  # 预览按钮
-                    delete_button,  # 删除按钮,
+                    *[row_data[k] for k in self._visible_column_keys(table)],
                     key=f"{book.path}_{global_index}"  # 使用唯一的key，避免重复（book.path + 索引）
                 )
             
@@ -1592,6 +1616,17 @@ class BookshelfScreen(Screen[None]):
                         return
                         
                     book_id = book.path
+
+                    # 通过列键识别“查看详情”列（基于列键而非索引，避免权限过滤导致列索引偏移）
+                    col_key_value = ""
+                    try:
+                        col_key_value = event.cell_key.column_key.value or ""
+                    except Exception:
+                        col_key_value = ""
+                    if col_key_value == "details_action":
+                        self.logger.info(f"点击查看详情按钮: {book_id}")
+                        self._view_book_details(book_id)
+                        event.stop()
                     
                     # 处理操作按钮列（阅读、浏览器阅读、查看文件、重命名、预览、删除）
                     # 列索引从0开始：8=阅读, 9=浏览器阅读, 10=查看文件, 11=重命名, 12=预览, 13=删除
@@ -1729,6 +1764,87 @@ class BookshelfScreen(Screen[None]):
         except Exception as e:
             self.logger.error(f"复制焦点书籍标题失败: {e}")
             self.notify(get_global_i18n().t("cannot_copy"), severity="error")
+
+    def action_view_book_details(self) -> None:
+        """快捷键 i：打开当前焦点书籍的详情弹窗。
+
+        若详情弹窗已处于屏幕栈顶，由弹窗自身的 i 绑定负责关闭；本方法
+        仅在书架主页面激活时执行（打开当前焦点书籍详情）。
+        """
+        try:
+            table = self.query_one("#books-table", DataTable)
+            if not table.rows or table.cursor_row is None or table.cursor_row < 0:
+                self.notify(get_global_i18n().t("bookshelf.no_books"), severity="warning")
+                return
+
+            start_index = (self._current_page - 1) * self._books_per_page
+            row_index = table.cursor_row
+            if row_index >= len(self._all_books) - start_index:
+                return
+
+            book = self._all_books[start_index + row_index]
+            if not book:
+                return
+            self._view_book_details(book.path)
+        except Exception as e:
+            self.logger.error(f"通过快捷键打开详情失败: {e}")
+
+    def _get_book_source(self, book_path: str) -> str:
+        """反查书籍来源（爬取站点名称）；非爬取书籍返回「本地导入」。"""
+        try:
+            source_map = self.bookshelf.db_manager.get_crawl_history_source_map([book_path])
+            info = source_map.get(os.path.abspath(book_path))
+            if info and info.get("site_id"):
+                site = self.bookshelf.db_manager.get_novel_site_by_id(info["site_id"])
+                if site and site.get("name"):
+                    return site["name"]
+        except Exception:
+            pass
+        return get_global_i18n().t("book_details.local_import")
+
+    def _view_book_details(self, book_path: str) -> None:
+        """构建当前书籍详情并弹出可复用的 BookDetailsDialog。"""
+        try:
+            from src.ui.widgets.book_details_dialog import BookDetailsDialog
+            from src.utils.file_utils import FileUtils
+
+            book = self.bookshelf.get_book(book_path)
+            if book is None:
+                self.notify(get_global_i18n().t("common.book_not_found"), severity="warning")
+                return
+
+            reading_info = self.bookshelf.get_book_reading_info(book.path)
+            progress = (reading_info.get("reading_progress", 0) or 0) * 100
+            source = self._get_book_source(book.path)
+
+            details = [
+                (get_global_i18n().t("common.book_name"), book.title),
+                (get_global_i18n().t("common.author"), book.author),
+                (get_global_i18n().t("book_details.source"), source),
+                (get_global_i18n().t("book_details.file_name"), book.file_name),
+                (get_global_i18n().t("common.file_path"), book.path),
+                (get_global_i18n().t("common.format"), book.format),
+                (get_global_i18n().t("common.size"), FileUtils.format_file_size(book.file_size) if book.file_size else "0"),
+                (get_global_i18n().t("book_details.file_status"),
+                 get_global_i18n().t("book_details.file_missing") if book.file_not_found else get_global_i18n().t("book_details.file_normal")),
+                (get_global_i18n().t("common.tag"), book.tags or ""),
+                (get_global_i18n().t("book_details.add_date"), book.add_date or ""),
+                (get_global_i18n().t("common.progress"), f"{progress:.1f}%"),
+                (get_global_i18n().t("book_details.last_read"), reading_info.get("last_read_date") or ""),
+                (get_global_i18n().t("book_details.word_count"), str(reading_info.get("word_count", 0) or 0)),
+                (get_global_i18n().t("book_details.open_count"), str(getattr(book, "open_count", 0) or 0)),
+            ]
+
+            self.app.push_screen(
+                BookDetailsDialog(
+                    title=get_global_i18n().t("book_details.title"),
+                    details=details,
+                    theme_manager=self.theme_manager,
+                )
+            )
+        except Exception as e:
+            self.logger.error(f"打开书籍详情失败: {e}")
+            self.notify(get_global_i18n().t("common.action_failed"), severity="error")
 
     def _handle_column_filter(self, column_key: int, book) -> None:
         """处理列筛选功能
@@ -2283,19 +2399,23 @@ class BookshelfScreen(Screen[None]):
                     tags_display = book.tags if book.tags else ""
 
                     # 添加操作按钮
-                    # 文件不存在时，不显示阅读、查看文件、重命名、预览按钮
+                    # 文件不存在时，不显示阅读、浏览器阅读、查看文件、重命名、预览按钮
                     if getattr(book, 'file_not_found', False):
                         read_button = ""
+                        browser_read_button = ""
                         view_file_button = ""
                         rename_button = ""
                         preview_button = ""
                         delete_button = f"[{get_global_i18n().t('common.delete')}]"
                     else:
                         read_button = f"[{get_global_i18n().t('common.read')}]"
+                        browser_read_button = f"[{get_global_i18n().t('common.browser')}]"
                         view_file_button = f"[{get_global_i18n().t('common.view_file')}]"
                         rename_button = f"[{get_global_i18n().t('common.rename')}]"
                         preview_button = f"[{get_global_i18n().t('common.preview')}]"
                         delete_button = f"[{get_global_i18n().t('common.delete')}]"
+                    # 查看详情按钮（只读，始终显示）
+                    details_button = f"[{get_global_i18n().t('book_details.view_details')}]"
 
                     # 如果文件不存在，在标题前添加标记
                     display_title = book.title
@@ -2306,20 +2426,27 @@ class BookshelfScreen(Screen[None]):
                     from src.utils.file_utils import FileUtils
                     size_display = FileUtils.format_file_size(book.file_size) if hasattr(book, 'file_size') and book.file_size else ""
 
+                    # 以「列键 -> 值」字典构建整行数据，再按表格实际存在的列顺序取值，
+                    # 保证行值与列一一对应（兼容按权限过滤操作列）。
+                    row_data = {
+                        "id": str(index),
+                        "title": display_title,
+                        "author": book.author,
+                        "format": book.format.upper(),
+                        "size": size_display,
+                        "last_read": last_read,
+                        "progress": f"{progress:.1f}%",
+                        "tags": tags_display,
+                        "read_action": read_button,
+                        "browser_read_action": browser_read_button,
+                        "view_action": view_file_button,
+                        "rename_action": rename_button,
+                        "preview_action": preview_button,
+                        "delete_action": delete_button,
+                        "details_action": details_button,
+                    }
                     table.add_row(
-                        str(index),  # 显示数字序号而不是路径
-                        display_title,
-                        book.author,
-                        book.format.upper(),
-                        size_display,  # 文件大小显示
-                        last_read,
-                        f"{progress:.1f}%",
-                        tags_display,
-                        read_button,  # 阅读按钮
-                        view_file_button,  # 查看文件按钮
-                        rename_button,  # 重命名按钮
-                        preview_button,  # 预览按钮
-                        delete_button,  # 删除按钮,
+                        *[row_data[k] for k in self._visible_column_keys(table)],
                         key=f"{book.path}_{index}"  # 使用唯一的key，避免重复（book.path + 索引）
                     )
                 self._total_pages = max(1, (len(self._all_books) + self._books_per_page - 1) // self._books_per_page)
