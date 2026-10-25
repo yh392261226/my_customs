@@ -993,6 +993,23 @@ class Book:
             logger.debug(f"PDF加密检查失败: {e}")
             return False
 
+    def _try_pdf_password(self, password: str) -> bool:
+        """快速校验 PDF 密码是否正确（仅解密校验，不提取内容）
+
+        用于在主线程弹窗获取密码时先做一次校验，密码错误可立即重试，
+        避免把错误密码带入后台解析线程后才失败。
+        """
+        try:
+            from PyPDF2 import PdfReader
+            with open(self.path, 'rb') as f:
+                reader = PdfReader(f, strict=False)
+                if not reader.is_encrypted:
+                    return True
+                return reader.decrypt(password or "") != 0
+        except Exception as e:
+            logger.debug(f"PDF密码预校验失败: {e}")
+            return False
+
     def _parse_pdf_without_password(self) -> str:
         """解析非加密PDF文件"""
         from src.parsers.pdf_parser import PdfParser
@@ -1058,16 +1075,13 @@ class Book:
                 ta_mod = importlib.import_module("src.ui.components.textual_loading_animation")
                 textual_animation_manager = getattr(ta_mod, "textual_animation_manager", None)
                 if textual_animation_manager and getattr(textual_animation_manager, "show_default", None):
-                    if textual_animation_manager.show_default("正在解析加密PDF文件..."):
-                        logger.debug("显示Textual加载动画: 正在解析加密PDF文件...")
-                        return
-                
-                # 回退到传统动画
-                la_mod = importlib.import_module("src.ui.components.loading_animation")
-                animation_manager = getattr(la_mod, "animation_manager", None)
-                if animation_manager and getattr(animation_manager, "show_default", None):
-                    if animation_manager.show_default("正在解析加密PDF文件..."):
-                        logger.debug("显示传统加载动画: 正在解析加密PDF文件...")
+                    textual_animation_manager.show_default("正在解析加密PDF文件...")
+                else:
+                    # 回退到传统动画
+                    la_mod = importlib.import_module("src.ui.components.loading_animation")
+                    animation_manager = getattr(la_mod, "animation_manager", None)
+                    if animation_manager and getattr(animation_manager, "show_default", None):
+                        animation_manager.show_default("正在解析加密PDF文件...")
             except Exception as e:
                 logger.warning(f"直接显示加载动画失败: {e}")
         

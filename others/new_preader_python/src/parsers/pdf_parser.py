@@ -9,6 +9,7 @@ from typing import Dict, Any, List, Optional
 import PyPDF2
 
 from src.parsers.base_parser import BaseParser
+from src.parsers.progress_callback import ParsingContext
 
 from src.utils.logger import get_logger
 
@@ -258,14 +259,14 @@ class PdfParser(BaseParser):
                             logger.info("PasswordDialog.bridge via app.request_password_async using schedule_on_ui")
                             try:
                                 app.schedule_on_ui(lambda: app.request_password_async(file_path, self.max_password_attempts, future))  # type: ignore[attr-defined]
-                                return await future
+                                return await _asyncio.wait_for(future, timeout=30)
                             except Exception as be:
                                 logger.error(f"PasswordDialog.request_password_async scheduling via schedule_on_ui failed: {be}")
                         elif hasattr(app, "request_password_async") and hasattr(app, "call_from_thread"):
                             logger.info("PasswordDialog.bridge via app.request_password_async using call_from_thread")
                             try:
                                 app.call_from_thread(lambda: app.request_password_async(file_path, self.max_password_attempts, future))  # type: ignore[attr-defined]
-                                return await future
+                                return await _asyncio.wait_for(future, timeout=30)
                             except Exception as be:
                                 logger.error(f"PasswordDialog.request_password_async failed to schedule: {be}")
                         # 次优先：消息桥接
@@ -285,7 +286,7 @@ class PdfParser(BaseParser):
                                         future.set_result(result)
                                 logger.info("PasswordDialog._push executing (fallback)")
                                 PasswordDialog.show(app, file_path, callback=_on_result)
-                            return await future
+                            return await _asyncio.wait_for(future, timeout=30)
                         except Exception as e:
                             logger.error(f"Message bridge failed: {e}")
                             # 最后兜底：CLI

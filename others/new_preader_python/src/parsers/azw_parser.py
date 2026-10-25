@@ -19,13 +19,16 @@ logger = get_logger(__name__)
 class AzwParser(BaseParser):
     """AZW/AZW3文件解析器 - 使用KindleUnpack库"""
     
-    async def parse(self, file_path: str) -> Dict[str, Any]:
+    async def parse(self, file_path: str, parsing_context: Any = None) -> Dict[str, Any]:
         """
         解析AZW/AZW3文件
-        
+
         Args:
             file_path: 文件路径
-            
+            parsing_context: 解析上下文（进度回调等），AzwParser 暂未使用，
+                            但需兼容统一的解析调用签名，否则会触发 TypeError 并
+                            回退为“按文本读取”，导致 azw3 内容变成二进制乱码。
+
         Returns:
             Dict[str, Any]: 解析结果
         """

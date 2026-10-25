@@ -768,6 +768,36 @@ class ReaderScreen(ScreenStyleMixin, Screen[None]):
                     setattr(self.book, "ui_managed_loading", True)
                 except Exception:
                     pass
+
+                # 加密 PDF：必须在【主线程】先获取密码。
+                # 若放到后台线程再通过跨线程桥接弹窗，会因独立事件循环 + 模态状态
+                # 导致 future 永远无法被唤醒，界面卡死。这里用 Textual 原生的
+                # push_screen_wait 在主线程同步拿密码，再由后台线程带密码解析。
+                if getattr(self.book, "format", None) == ".pdf" and not getattr(self.book, "password", None):
+                    try:
+                        if self.book._check_pdf_encryption():
+                            from src.ui.dialogs.password_dialog import PasswordDialog
+                            password_ok = False
+                            for _ in range(3):
+                                pwd = await self.app.push_screen_wait(PasswordDialog(self.book.path))
+                                if pwd is None:
+                                    # 用户取消输入
+                                    self._hide_loading_animation()
+                                    self.app.pop_screen()
+                                    return
+                                if self.book._try_pdf_password(pwd):
+                                    self.book.password = pwd
+                                    password_ok = True
+                                    break
+                                self.notify("密码不正确，请重试", severity="warning")
+                            if not password_ok:
+                                self._hide_loading_animation()
+                                self.notify("PDF 密码错误次数过多", severity="error")
+                                self.app.pop_screen()
+                                return
+                    except Exception as e:
+                        logger.warning(f"主线程获取 PDF 密码失败，回退到后台获取: {e}")
+
                 # 在后台线程执行潜在的重计算/IO，避免阻塞 UI 主循环
                 content = await asyncio.to_thread(self.book.get_content)
             except Exception as e:

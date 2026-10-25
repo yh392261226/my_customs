@@ -142,11 +142,11 @@ class PdfEncryptParser(BaseParser):
                         if hasattr(app, "request_password_async") and hasattr(app, "schedule_on_ui"):
                             logger.info("PasswordDialog.bridge via app.request_password_async using schedule_on_ui")
                             app.schedule_on_ui(lambda: app.request_password_async(file_path, self.max_password_attempts, future))
-                            return await future
+                            return await _asyncio.wait_for(future, timeout=30)
                         elif hasattr(app, "request_password_async") and hasattr(app, "call_from_thread"):
                             logger.info("PasswordDialog.bridge via app.request_password_async using call_from_thread")
                             app.call_from_thread(lambda: app.request_password_async(file_path, self.max_password_attempts, future))
-                            return await future
+                            return await _asyncio.wait_for(future, timeout=30)
                         
                         # 次优先：消息桥接
                         try:
@@ -163,7 +163,7 @@ class PdfEncryptParser(BaseParser):
                                     if not future.done():
                                         future.set_result(result)
                                 PasswordDialog.show(app, file_path, callback=_on_result)
-                            return await future
+                            return await _asyncio.wait_for(future, timeout=30)
                         except Exception as e:
                             logger.error(f"Message bridge failed: {e}")
                             # 回退到CLI
@@ -210,6 +210,10 @@ class PdfEncryptParser(BaseParser):
     async def _parse_with_password(self, file_path: str, password: str) -> Dict[str, Any]:
         """
         使用密码解析PDF文件
+
+        提取顺序：PyMuPDF(fitz) -> pdfminer.six -> PyPDF2。
+        优先使用最快、对加密/CJK 支持最好的 PyMuPDF，避免 pdfminer 在
+        大体积或特殊加密 PDF 上极慢甚至卡死的问题。
         
         Args:
             file_path: 文件路径
@@ -219,65 +223,53 @@ class PdfEncryptParser(BaseParser):
             Dict[str, Any]: 解析结果
         """
         try:
+            # 1) 先用 PyPDF2 校验密码并读取元数据
             with open(file_path, 'rb') as file:
-                reader = PyPDF2.PdfReader(file)
-                
-                # 验证密码
-                if not reader.is_encrypted:
-                    logger.warning("文件不需要密码，但被传递到加密解析器")
-                    # 回退到普通PDF解析
-                    from src.parsers.pdf_parser import PdfParser
-                    pdf_parser = PdfParser(app=self.app)
-                    return await pdf_parser.parse(file_path)
-                
-                # 尝试解密
-                decrypt_result = reader.decrypt(password)
-                if decrypt_result == 0:
-                    raise ValueError("密码不正确")
-                
-                logger.info(f"使用密码解密成功，解密结果: {decrypt_result}")
-                
-                # 提取元数据
+                reader = PyPDF2.PdfReader(file, strict=False)
+                if reader.is_encrypted:
+                    decrypt_result = reader.decrypt(password)
+                    if decrypt_result == 0:
+                        raise ValueError("密码不正确")
                 metadata = self._extract_pdf_metadata(reader)
-                
-                # 如果没有从内容中提取到标题，使用文件名作为标题
-                if "title" not in metadata or not metadata["title"]:
-                    metadata["title"] = os.path.splitext(os.path.basename(file_path))[0]
-                
-                # 优先使用pdfminer提取内容（质量更好）
+
+            # 若没有从元数据提取到标题，使用文件名作为标题
+            if "title" not in metadata or not metadata["title"]:
+                metadata["title"] = os.path.splitext(os.path.basename(file_path))[0]
+
+            # 2) 提取正文：优先 PyMuPDF（快且支持加密/CJK）
+            content = self._extract_pdf_content_pymupdf(file_path, password)
+            if not content or not content.strip():
+                # 回退到 pdfminer.six
+                logger.info("PyMuPDF 提取失败，回退到 pdfminer")
                 content = self._extract_pdf_content_pdfminer(file_path, password)
-                if not content or not content.strip():
-                    # 如果pdfminer失败，回退到pypdf
-                    logger.info("pdfminer提取失败，回退到PyPDF2")
-                    # 使用解密后的reader提取内容 - 解密后reader已经可以访问内容
+            if not content or not content.strip():
+                # 最后回退到 PyPDF2
+                logger.info("pdfminer 提取失败，回退到 PyPDF2")
+                with open(file_path, 'rb') as file:
+                    reader = PyPDF2.PdfReader(file, strict=False)
+                    if reader.is_encrypted:
+                        reader.decrypt(password)
                     content = self._extract_pdf_content(reader)
-                
-                # 清理提取的文本内容
-                content = self._clean_text_content(content)
-                content = self._clean_pdf_specific_content(content)
-                
-                # 检查内容质量，如果内容质量太差，尝试重新提取
-                if self._needs_pdfminer_fallback(content):
-                    logger.info("内容质量较差，尝试重新提取")
-                    content = self._extract_pdf_content(reader)
-                    content = self._clean_text_content(content)
-                    content = self._clean_pdf_specific_content(content)
-                    
-                # 最终内容质量检查
-                if not content or not content.strip():
-                    logger.warning("无法提取有效文本内容")
-                    content = "无法提取有效文本内容，请尝试其他PDF文件"
-                
-                # 提取章节
-                chapters = self._extract_pdf_chapters(content)
-                
-                return {
-                    "content": content,
-                    "title": metadata.get("title", ""),
-                    "author": metadata.get("author", "未知作者"),
-                    "chapters": chapters,
-                    "metadata": metadata
-                }
+
+            # 3) 清理提取的文本内容
+            content = self._clean_text_content(content)
+            content = self._clean_pdf_specific_content(content)
+
+            # 最终内容质量检查
+            if not content or not content.strip():
+                logger.warning("无法提取有效文本内容")
+                content = "无法提取有效文本内容，请尝试其他PDF文件"
+
+            # 4) 提取章节
+            chapters = self._extract_pdf_chapters(content)
+
+            return {
+                "content": content,
+                "title": metadata.get("title", ""),
+                "author": metadata.get("author", "未知作者"),
+                "chapters": chapters,
+                "metadata": metadata
+            }
         except Exception as e:
             logger.error(f"解析加密PDF文件时出错: {e}")
             raise
@@ -353,6 +345,46 @@ class PdfEncryptParser(BaseParser):
             return text or ""
         except Exception as e:
             logger.warning(f"pdfminer 提取文本失败: {e}")
+            return ""
+
+    def _extract_pdf_content_pymupdf(self, file_path: str, password: Optional[str]) -> str:
+        """使用 PyMuPDF 提取文本（优先用于加密/CJK，速度快）"""
+        try:
+            import fitz  # PyMuPDF
+        except Exception:
+            logger.debug("未安装 PyMuPDF，跳过该提取方式")
+            return ""
+        try:
+            if password:
+                doc = fitz.open(file_path, filetype="pdf", password=password)
+            else:
+                doc = fitz.open(file_path)
+            # 密码不正确时文档仍处于锁定状态
+            if getattr(doc, "needs_pass", False):
+                try:
+                    doc.close()
+                except Exception:
+                    pass
+                logger.warning("PyMuPDF：文档仍需密码（密码可能不正确）")
+                return ""
+            texts: List[str] = []
+            for page in doc:
+                try:
+                    txt = page.get_text("text")
+                    if not txt or not txt.strip():
+                        txt = page.get_text("text-with-spaces")
+                    if txt:
+                        texts.append(txt)
+                except Exception as e:
+                    logger.debug(f"PyMuPDF 提取第{page.number + 1}页失败: {e}")
+                    continue
+            try:
+                doc.close()
+            except Exception:
+                pass
+            return "\n\n".join(texts).strip()
+        except Exception as e:
+            logger.debug(f"PyMuPDF 提取失败: {e}")
             return ""
 
     def _extract_pdf_chapters(self, content: str) -> List[Dict[str, Any]]:

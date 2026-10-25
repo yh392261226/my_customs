@@ -5,7 +5,8 @@ MOBI文件解析器
 import os
 
 import re
-from typing import Dict, Any, List
+from typing import Dict, Any, List, Optional
+from .progress_callback import ParsingContext
 try:
     import mobi
     MOBI_AVAILABLE = True
