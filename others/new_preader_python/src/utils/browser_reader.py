@@ -939,6 +939,16 @@ html.br-locked #brLockScreen { display: flex !important; }
   transition: background 0.2s ease, color 0.2s ease;
 }
 #brLockFab:hover { background: rgba(79,172,254,0.9); color: #fff; }
+
+/* 浏览器编辑器浮动按钮：外观与锁屏按钮保持一致（平日透明背景，hover 变换） */
+#brEditFab {
+  position: fixed; left: 16px; bottom: 72px; z-index: 2147483647; display: block;
+  background: transparent; color: inherit; border: 1px solid rgba(128,128,128,0.4); border-radius: 24px;
+  padding: 10px 18px; font-size: 14px; cursor: pointer;
+  box-shadow: 0 2px 6px rgba(0,0,0,0.15);
+  transition: background 0.2s ease, color 0.2s ease;
+}
+#brEditFab:hover { background: rgba(79,172,254,0.9); color: #fff; }
 """
 
 LOCK_SCREEN_JS = r"""
@@ -13376,11 +13386,9 @@ class BrowserReader:
             'window.__BR_RETURN_URL__=' + json.dumps(return_url) + ';'
             '(function(){'
             'var b=document.createElement("button");'
+            'b.id="brEditFab";'
             'b.textContent="✎ 编辑";'
             'b.title="在浏览器中编辑本书";'
-            'b.style.cssText="position:fixed;left:16px;bottom:72px;z-index:2147483647;'
-            'padding:10px 18px;border:none;border-radius:24px;background:#4579c4;color:#fff;'
-            'font-size:14px;cursor:pointer;box-shadow:0 4px 12px rgba(0,0,0,.35)";'
             'function openEditorOverlay(){'
             'if(document.getElementById("brEditorOverlay"))return;'
             'var base=window.__BR_EDITOR_URL__;'
