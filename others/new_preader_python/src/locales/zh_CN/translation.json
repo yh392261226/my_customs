@@ -1224,9 +1224,21 @@
     "selected_files": "已选择文件",
     "selected_path": "已选择目录",
     "shortcut_u": "差异模式",
+    "shortcut_i": "查看详情(I)",
     "single_mode": "单选模式",
     "title": "文件资源管理器",
-    "updown": "选择补全建议"
+    "updown": "选择补全建议",
+    "detail_title": "文件详情",
+    "detail_dir": "目录",
+    "detail_book": "书籍",
+    "detail_file": "文件",
+    "detail_extension": "扩展名",
+    "detail_modified": "修改时间",
+    "detail_items": "项目数",
+    "detail_file_count": "文件数量",
+    "detail_dir_count": "文件夹数量",
+    "detail_disk_usage": "磁盘占用",
+    "detail_no_selection": "请先选择一个文件"
   },
   "fill_invalid_line_number": "行号无效",
   "fill_missing": {

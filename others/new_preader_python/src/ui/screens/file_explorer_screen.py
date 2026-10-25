@@ -6,7 +6,7 @@ import os
 import time
 import stat
 from pathlib import Path
-from typing import Dict, Any, Optional, List, ClassVar, Set, Union
+from typing import Dict, Any, Optional, List, ClassVar, Set, Union, Tuple
 from textual.app import ComposeResult
 from textual.screen import Screen
 from textual.containers import Container, Vertical, Horizontal, Center
@@ -46,6 +46,8 @@ class FileExplorerScreen(ScreenStyleMixin, Screen[Optional[Union[str, List[str]]
         ("enter", "select_button", get_global_i18n().t('common.select')),
         ("s", "select_button", get_global_i18n().t('common.select')),
         ("u", "toggle_diff_mode", get_global_i18n().t('file_explorer.shortcut_u')),
+        # 在当前选中的文件/目录上按 i 显示/隐藏文件详情弹窗
+        ("i", "view_file_details", get_global_i18n().t('file_explorer.shortcut_i')),
     ]
     
     # 支持的书籍文件扩展名（从配置文件读取）
@@ -919,6 +921,125 @@ class FileExplorerScreen(ScreenStyleMixin, Screen[Optional[Union[str, List[str]]
             # 触发开关改变事件（会自动触发 on_diff_mode_switch_changed）
         except Exception as e:
             logger.error(f"切换差异模式失败: {e}")
+
+    def _scan_directory_stats(self, path: str) -> Tuple[int, int, int]:
+        """递归统计目录下的文件数、文件夹数和总磁盘占用（字节）。
+
+        Args:
+            path: 目录路径。
+
+        Returns:
+            (文件数量, 文件夹数量, 总字节数)。
+        """
+        file_count = 0
+        dir_count = 0
+        total_size = 0
+        try:
+            stack = [path]
+            while stack:
+                current = stack.pop()
+                try:
+                    with os.scandir(current) as it:
+                        for entry in it:
+                            try:
+                                if entry.is_dir(follow_symlinks=False):
+                                    dir_count += 1
+                                    stack.append(entry.path)
+                                else:
+                                    file_count += 1
+                                    total_size += entry.stat(follow_symlinks=False).st_size
+                            except (PermissionError, OSError):
+                                continue
+                except (PermissionError, OSError):
+                    continue
+        except (PermissionError, OSError):
+            pass
+        return file_count, dir_count, total_size
+
+    def action_view_file_details(self) -> None:
+        """i 键 - 显示/隐藏当前选中文件（或目录）的详情弹窗。
+
+        弹窗内再次按 i 会由 BookDetailsDialog 自身关闭，从而形成开关效果。
+        """
+        if self.selected_file_index is None or not self.file_items:
+            self.notify(get_global_i18n().t("file_explorer.detail_no_selection"), severity="warning")
+            return
+
+        try:
+            item = self.file_items[self.selected_file_index]
+            self._view_file_details(item)
+        except Exception as e:
+            self.logger.error(f"打开文件详情失败: {e}")
+            self.notify(get_global_i18n().t("common.action_failed"), severity="error")
+
+    def _view_file_details(self, item: Dict[str, str]) -> None:
+        """构建指定文件/目录的详情并弹出可复用的 BookDetailsDialog。"""
+        try:
+            from src.ui.widgets.book_details_dialog import BookDetailsDialog
+
+            i18n = get_global_i18n()
+            path = item.get("path", "")
+            item_type = item.get("type", "file")
+
+            type_label = {
+                "directory": i18n.t("file_explorer.detail_dir"),
+                "book": i18n.t("file_explorer.detail_book"),
+                "file": i18n.t("file_explorer.detail_file"),
+            }.get(item_type, i18n.t("file_explorer.detail_file"))
+
+            details: List[Tuple[str, Any]] = [
+                (i18n.t("book_details.file_name"), item.get("name", "")),
+                (i18n.t("common.file_path"), path),
+                (i18n.t("file_explorer.type"), type_label),
+            ]
+
+            if item_type == "directory":
+                try:
+                    file_count, dir_count, total_size = self._scan_directory_stats(path)
+                    details.append(
+                        (i18n.t("file_explorer.detail_file_count"), str(file_count))
+                    )
+                    details.append(
+                        (i18n.t("file_explorer.detail_dir_count"), str(dir_count))
+                    )
+                    details.append(
+                        (i18n.t("file_explorer.detail_disk_usage"),
+                         FileUtils.format_file_size(total_size))
+                    )
+                except (PermissionError, OSError):
+                    details.append(
+                        (i18n.t("file_explorer.detail_disk_usage"),
+                         i18n.t("file_explorer.access_denied"))
+                    )
+            else:
+                ext = FileUtils.get_file_extension(path)
+                details.append((i18n.t("file_explorer.detail_extension"), ext or "-"))
+                try:
+                    size = FileUtils.get_file_size(path)
+                    details.append(
+                        (i18n.t("common.size"), FileUtils.format_file_size(size))
+                    )
+                except (PermissionError, OSError):
+                    details.append((i18n.t("common.size"), "-"))
+                try:
+                    mtime = os.path.getmtime(path)
+                    details.append(
+                        (i18n.t("file_explorer.detail_modified"),
+                         time.strftime("%Y-%m-%d %H:%M:%S", time.localtime(mtime)))
+                    )
+                except (PermissionError, OSError):
+                    details.append((i18n.t("file_explorer.detail_modified"), "-"))
+
+            self.app.push_screen(
+                BookDetailsDialog(
+                    title=i18n.t("file_explorer.detail_title"),
+                    details=details,
+                    theme_manager=self.theme_manager,
+                )
+            )
+        except Exception as e:
+            self.logger.error(f"构建文件详情失败: {e}")
+            self.notify(get_global_i18n().t("common.action_failed"), severity="error")
 
     def _check_button_permissions(self) -> None:
         """检查按钮权限并禁用/启用按钮"""

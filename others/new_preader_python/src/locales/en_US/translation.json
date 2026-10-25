@@ -1224,9 +1224,21 @@
     "selected_files": "Selected Files",
     "selected_path": "Selected Directory",
     "shortcut_u": "Toggle Diff Mode",
+    "shortcut_i": "View Details (I)",
     "single_mode": "Single File Mode",
     "title": "File Explorer",
-    "updown": "Select complete suggection"
+    "updown": "Select complete suggection",
+    "detail_title": "File Details",
+    "detail_dir": "Directory",
+    "detail_book": "Book",
+    "detail_file": "File",
+    "detail_extension": "Extension",
+    "detail_modified": "Modified",
+    "detail_items": "Items",
+    "detail_file_count": "File Count",
+    "detail_dir_count": "Folder Count",
+    "detail_disk_usage": "Disk Usage",
+    "detail_no_selection": "Please select a file first"
   },
   "fill_invalid_line_number": "Invalid line number",
   "fill_missing": {
