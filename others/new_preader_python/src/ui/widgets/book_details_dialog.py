@@ -34,7 +34,7 @@ from typing import Dict, Any, List, Optional, Tuple
 
 from textual.screen import ModalScreen
 from textual.containers import Container, VerticalScroll, Horizontal
-from textual.widgets import Static, Button, Header, Footer, RichLog
+from textual.widgets import Static, Button, RichLog
 from textual.app import ComposeResult
 from textual import on
 
@@ -53,13 +53,15 @@ class BookDetailsDialog(ModalScreen):
     }
 
     #book-details-window {
-        width: 60%;
+        width: 70%;
         height: auto;
-        max-height: 80%;
         min-width: 40;
         background: $surface;
         border: thick $accent;
         padding: 1 2;
+        /* 关键：窗口本身不滚动，避免把底部的按钮区域滚出可视区。
+           只有内部的 #book-details-body 负责滚动。 */
+        overflow-y: hidden;
     }
 
     #book-details-title {
@@ -74,7 +76,6 @@ class BookDetailsDialog(ModalScreen):
 
     #book-details-body {
         height: auto;
-        max-height: 1fr;
         background: $background;
         border: round $panel;
         padding: 1;
@@ -95,8 +96,12 @@ class BookDetailsDialog(ModalScreen):
 
     #book-details-buttons {
         height: 3;
-        align: center bottom;
+        align: center middle;
         margin-top: 1;
+    }
+
+    #book-details-close-btn {
+        min-width: 16;
     }
     """
 
@@ -132,7 +137,6 @@ class BookDetailsDialog(ModalScreen):
         self.theme_manager = theme_manager
 
     def compose(self) -> ComposeResult:
-        yield Header()
         with Container(id="book-details-window"):
             yield Static(self.dialog_title, id="book-details-title", classes="book-details-title")
             with VerticalScroll(id="book-details-body"):
@@ -154,7 +158,6 @@ class BookDetailsDialog(ModalScreen):
                 id="book-details-buttons",
                 classes="btn-row",
             )
-        yield Footer()
 
     def on_mount(self) -> None:
         if self.theme_manager is not None:
@@ -162,6 +165,10 @@ class BookDetailsDialog(ModalScreen):
                 self.theme_manager.apply_theme_to_screen(self)
             except Exception:
                 pass
+
+        # 按终端实际行数设置窗口高度（屏幕的 70%），并为按钮预留固定空间，
+        # 避免依赖 CSS 的百分比/fr 高度在滚动容器上不生效而导致按钮被裁掉。
+        self._apply_sizing()
 
         self.query_one("#book-details-info", Static).update(self._build_info_text())
 
@@ -175,6 +182,31 @@ class BookDetailsDialog(ModalScreen):
 
         try:
             self.query_one("#book-details-close-btn", Button).focus()
+        except Exception:
+            pass
+
+    def on_resize(self, event) -> None:
+        """终端尺寸变化时重新计算高度。"""
+        self._apply_sizing()
+
+    def _apply_sizing(self) -> None:
+        """将窗口高度固定为屏幕的 70%，并把正文区限制为剩余高度。
+
+        使用终端实际单元格数（而非 CSS 百分比/fr），确保所有环境下按钮都
+        始终保留在窗口底部、不会被滚动容器撑出可视区。
+        """
+        try:
+            window = self.query_one("#book-details-window")
+            screen_height = self.app.size.height
+            # 窗口总高度（含边框与内边距）= 屏幕的 70%
+            total = max(15, int(screen_height * 0.7))
+            window.styles.height = total
+            # 窗口内除正文外固定占用的行数（styles.height 含边框与内边距）：
+            #   窗口上边框 1 + 窗口上内边距 1 + 标题 1 + 标题下边距 1
+            # + 按钮区上边距 1 + 按钮区 3 + 窗口下内边距 1 + 窗口下边框 1 = 10
+            body_height = total - 10
+            body_height = max(3, body_height)
+            self.query_one("#book-details-body").styles.height = body_height
         except Exception:
             pass
 
