@@ -51,7 +51,7 @@ class EpubParser(BaseParser):
                 metadata["title"] = os.path.splitext(os.path.basename(file_path))[0]
 
             # 提取章节和内容
-            chapters, content = self._extract_epub_content(book, parsing_context)
+            chapters, content = self._extract_epub_content(book)
 
             return {
                 "content": content,

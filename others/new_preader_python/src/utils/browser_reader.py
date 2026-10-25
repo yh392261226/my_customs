@@ -6,6 +6,7 @@
 """
 
 import os
+import asyncio
 import platform
 import tempfile
 import webbrowser
@@ -17,10 +18,92 @@ from pathlib import Path
 from http.server import HTTPServer, BaseHTTPRequestHandler
 from threading import Thread
 from urllib.parse import parse_qs, urlparse
+from html import escape as _html_escape
 
 from src.utils.logger import get_logger
 
 logger = get_logger(__name__)
+
+# 浏览器阅读器支持的二进制电子书格式（交由后端解析器统一处理）
+_BROWSER_READER_BINARY_FORMATS = {".epub", ".mobi", ".azw", ".azw3", ".pdf"}
+
+# 浏览器内加密 PDF 解锁逻辑：检测到占位符后向后端请求，需要密码则弹框二次请求
+ENCRYPTED_PDF_JS = r"""
+(function(){
+  'use strict';
+  function brBookPath(){
+    var ph = document.getElementById('br-encrypted-book');
+    if (ph && ph.getAttribute('data-book-path')) return ph.getAttribute('data-book-path');
+    if (window.__BR_BOOK_FILE_PATH__) return window.__BR_BOOK_FILE_PATH__;
+    return '';
+  }
+  function brShowPwd(message, onSubmit){
+    var overlay = document.getElementById('brPdfPwdOverlay');
+    if (!overlay){
+      overlay = document.createElement('div');
+      overlay.id = 'brPdfPwdOverlay';
+      overlay.style.cssText = 'position:fixed;inset:0;background:rgba(0,0,0,.55);z-index:10005;display:flex;align-items:center;justify-content:center;';
+      overlay.innerHTML = '<div class="br-modal" style="background:#fff;color:#222;border-radius:10px;padding:20px;min-width:300px;max-width:90vw;">'
+        + '<h3 style="margin-top:0">🔒 本书已加密</h3>'
+        + '<div class="br-pwd-row" style="display:flex;gap:6px;margin:8px 0;">'
+        + '<input type="password" id="brPdfPwdInput" placeholder="请输入PDF密码" autocomplete="off" style="flex:1;padding:8px;border:1px solid #ccc;border-radius:5px;">'
+        + '</div>'
+        + '<div class="br-modal-msg" id="brPdfPwdMsg" style="color:#e53935;font-size:12px;min-height:16px;margin:4px 0;"></div>'
+        + '<div class="br-modal-btns" style="display:flex;gap:8px;justify-content:flex-end;">'
+        + '<button class="br-cancel" id="brPdfPwdCancel" style="padding:6px 12px;border:none;border-radius:5px;background:#bbb;color:#222;cursor:pointer;">取消</button>'
+        + '<button class="br-ok" id="brPdfPwdOk" style="padding:6px 12px;border:none;border-radius:5px;background:#2e7d32;color:#fff;cursor:pointer;">解锁</button>'
+        + '</div></div>';
+      document.body.appendChild(overlay);
+    }
+    var msgEl = overlay.querySelector('#brPdfPwdMsg');
+    if (msgEl) msgEl.textContent = message || '';
+    var input = overlay.querySelector('#brPdfPwdInput');
+    var okBtn = overlay.querySelector('#brPdfPwdOk');
+    var cancelBtn = overlay.querySelector('#brPdfPwdCancel');
+    overlay.style.display = 'flex';
+    input.value = '';
+    try { input.focus(); } catch(e){}
+    function cleanup(){ overlay.style.display = 'none'; okBtn.onclick = null; cancelBtn.onclick = null; input.onkeydown = null; }
+    okBtn.onclick = function(){ var v = input.value; cleanup(); onSubmit(v); };
+    cancelBtn.onclick = function(){ cleanup(); };
+    input.onkeydown = function(e){ if (e.key === 'Enter'){ var v = input.value; cleanup(); onSubmit(v); } };
+  }
+  function brLoadEncrypted(password){
+    var path = brBookPath();
+    if (!path) return;
+    if (typeof apiPost !== 'function'){ brShowPwd('未连接后端服务，无法解锁', brLoadEncrypted); return; }
+    apiPost('/open_book_content', { path: path, password: password || '' })
+      .then(function(res){
+        if (!res || res.success === false){
+          brShowPwd('无法打开：' + ((res && res.error) || '未知错误'), brLoadEncrypted);
+          return;
+        }
+        if (res.need_password){
+          brShowPwd(res.error ? ('密码错误：' + res.error) : '请输入PDF密码', brLoadEncrypted);
+          return;
+        }
+        var content = document.getElementById('content');
+        if (content){
+          content.innerHTML = res.html || '<p>无法提取内容</p>';
+          var msg = document.querySelector('.br-encrypted-msg');
+          if (msg && msg.parentNode) msg.parentNode.removeChild(msg);
+          if (typeof generateTOC === 'function') generateTOC();
+          if (typeof initSpeech === 'function') initSpeech();
+          if (typeof initMinimap === 'function') initMinimap();
+        }
+      })
+      .catch(function(){ brShowPwd('网络错误，请重试', brLoadEncrypted); });
+  }
+  function brInitEncrypted(){
+    if (!document.getElementById('br-encrypted-book')) return;
+    var run = function(){ setTimeout(brLoadEncrypted, 700); };
+    if (document.readyState === 'loading') document.addEventListener('DOMContentLoaded', run);
+    else run();
+  }
+  if (document.readyState === 'loading') document.addEventListener('DOMContentLoaded', brInitEncrypted);
+  else brInitEncrypted();
+})();
+"""
 
 # 全局字典，保存服务器对象以防止被垃圾回收
 _active_servers: Dict[str, Dict[str, Any]] = {}
@@ -12895,7 +12978,7 @@ class BrowserReader:
 
         # 注入增强功能（CSS / HTML / JS）
         html = html.replace('</style>', EXTRA_READER_CSS + LOCK_SCREEN_CSS + SYNC_CSS + '</style>', 1)
-        html = html.replace('</body>', EXTRA_READER_HTML + SYNC_HTML + '<script>' + EXTRA_READER_JS + '</script>' + '<script>' + LOCK_SCREEN_JS + '</script>' + '<script>' + SYNC_JS + '</script>' + '</body>', 1)
+        html = html.replace('</body>', EXTRA_READER_HTML + SYNC_HTML + '<script>' + EXTRA_READER_JS + '</script>' + '<script>' + LOCK_SCREEN_JS + '</script>' + '<script>' + SYNC_JS + '</script>' + '<script>' + ENCRYPTED_PDF_JS + '</script>' + '</body>', 1)
         
 
         # Python端翻译处理 - 替换所有{t('browser_reader.xxx')}占位符
@@ -12914,8 +12997,243 @@ class BrowserReader:
         return html
 
     
+    # ----------------------------------------------------------------------
+    # 二进制电子书（epub/mobi/azw/azw3/pdf）后端解析支持
+    # ----------------------------------------------------------------------
     @staticmethod
-    def read_file_content(file_path: str) -> str:
+    def _run_coro(coro):
+        """在独立线程中运行协程，避免与已有事件循环（如 Textual 主循环）冲突。"""
+        import concurrent.futures
+        with concurrent.futures.ThreadPoolExecutor(max_workers=1) as ex:
+            return ex.submit(lambda: asyncio.run(coro)).result()
+
+    @staticmethod
+    def _content_text_to_html(content: str) -> str:
+        """
+        将纯文本内容转换为阅读器 HTML（章节标题 -> h1/h2/h3，段落 -> p）。
+        与 .txt 解析保持同一套章节识别逻辑，确保目录/朗读/缩略图一致。
+        """
+        chapter_patterns = [
+            r'^第[零一二三四五六七八九十百千万\d]+\s*[章节回篇部页]',
+            r'^Chapter\s*\d+',
+            r'^Part\s*\d+',
+            r'^第\d+\s*[章节回篇部页]',
+            r'^[（\(]\s*\d+\s*[）\)]',
+            r'^\[\d+\]',
+            r'^\d+[\.、)\）]\s*\S',
+            r'^[零一二三四五六七八九十百千万]+、',
+            r'^[一二三四五六七八九十]+、',
+            r'^\d+[\.、\s]+[^\s]+',
+            r'^卷[一二三四五六七八九十百千万\d]+',
+            r'^篇[一二三四五六七八九十百千万\d]+',
+            r'^序\s*[言章篇页]',
+            r'^前\s*言',
+            r'^引\s*言',
+            r'^楔\s*子',
+            r'^尾声',
+            r'^后记',
+            r'^【.*】',
+            r'^\[.*\]',
+            r'^<.*>',
+            r'^=+\s*.*\s*=+',
+            r'^-+\s*.*\s*-',
+        ]
+        import re
+        paragraphs = content.split('\n')
+        html_content = ''
+        for para in paragraphs:
+            para = para.strip()
+            if not para:
+                continue
+            is_chapter = False
+            for pattern in chapter_patterns:
+                if re.match(pattern, para, re.IGNORECASE):
+                    if re.match(r'^第[零一二三四五六七八九十百千万\d]+\s*[章节回篇部页]', para) or re.match(r'^Chapter\s*\d+', para, re.IGNORECASE) or re.match(r'^卷[一二三四五六七八九十百千万\d]+', para):
+                        html_content += f'<h1>{_html_escape(para)}</h1>'
+                    elif re.match(r'^第\d+\s*[章节回篇部页]', para) or re.match(r'^Part\s*\d+', para, re.IGNORECASE) or re.match(r'^篇[一二三四五六七八九十百千万\d]+', para):
+                        html_content += f'<h2>{_html_escape(para)}</h2>'
+                    else:
+                        html_content += f'<h3>{_html_escape(para)}</h3>'
+                    is_chapter = True
+                    break
+            if not is_chapter:
+                html_content += f'<p>{_html_escape(para)}</p>'
+
+        # 未识别到章节标题且段落较多时，按固定间隔自动分段
+        if '<h1>' not in html_content and '<h2>' not in html_content and '<h3>' not in html_content:
+            paragraph_count = html_content.count('<p>')
+            if paragraph_count > 20:
+                paragraphs_with_chapters = html_content.split('<p>')
+                html_content_new = ''
+                chapter_num = 1
+                for i, para in enumerate(paragraphs_with_chapters):
+                    if i == 0:
+                        continue
+                    if (i - 1) % 10 == 0 and i > 1:
+                        html_content_new += f'<h3>章节 {chapter_num}</h3>'
+                        chapter_num += 1
+                    if para:
+                        html_content_new += f'<p>{para}'
+                html_content = html_content_new
+        return html_content
+
+    @staticmethod
+    def _chapters_to_html(chapters) -> str:
+        """
+        将解析器的 chapters（[{title, content}]）转换为阅读器 HTML。
+        章节标题按层级映射为 h1/h2/h3，正文按换行拆为段落。
+        """
+        import re
+        html = ""
+        for ch in (chapters or []):
+            title = (ch.get("title") or "").strip()
+            body = (ch.get("content") or "").strip()
+            level = 3
+            if (re.match(r'^第[零一二三四五六七八九十百千万\d]+\s*[章节回篇部]', title, re.IGNORECASE)
+                    or re.match(r'^Chapter', title, re.IGNORECASE)
+                    or re.match(r'^卷', title, re.IGNORECASE)):
+                level = 1
+            elif (re.match(r'^第\d+\s*[章节回篇部]', title, re.IGNORECASE)
+                  or re.match(r'^Part', title, re.IGNORECASE)
+                  or re.match(r'^篇', title, re.IGNORECASE)):
+                level = 2
+            if title:
+                html += f'<h{level}>{_html_escape(title)}</h{level}>'
+            for para in body.split('\n'):
+                para = para.strip()
+                if para:
+                    html += f'<p>{_html_escape(para)}</p>'
+        return html
+
+    @staticmethod
+    def _parsed_result_to_html(parsed: Dict[str, Any]) -> str:
+        """
+        把解析结果转为阅读器 HTML：
+        - 若正文 content 仍保留换行（如 PDF/TXT），优先用它转换（章节标题即真实文本行）；
+        - 若 content 已被解析器合并换行（如 EPUB/MOBI/AZW 的 _clean_text_content），
+          则改用结构化 chapters 还原标题层级。
+        """
+        chapters = parsed.get("chapters") or []
+        content = parsed.get("content", "")
+        if content and "\n" in content:
+            return BrowserReader._content_text_to_html(content)
+        if chapters:
+            html = BrowserReader._chapters_to_html(chapters)
+            if html.strip():
+                return html
+        return BrowserReader._content_text_to_html(content)
+
+    @staticmethod
+    def _parse_book_to_html(file_path: str, password: Optional[str] = None) -> Dict[str, Any]:
+        """
+        用后端解析器把二进制书籍转为阅读器 HTML。
+
+        Returns:
+            {
+                "need_password": bool,   # 加密 PDF 且未提供/密码错误
+                "html": str,             # 解析出的 HTML（need_password 时为 ""）
+                "title": str,
+                "author": str,
+                "error": str,
+            }
+        """
+        ext = Path(file_path).suffix.lower()
+
+        # 加密 PDF：先判断是否需要密码
+        if ext == ".pdf":
+            try:
+                from src.parsers.pdf_encrypt_parser import PdfEncryptParser
+                if PdfEncryptParser.is_encrypted_pdf(file_path):
+                    if not password:
+                        return {"need_password": True, "title": Path(file_path).stem, "author": "", "html": "", "error": ""}
+                    try:
+                        parsed = BrowserReader._run_coro(
+                            PdfEncryptParser().parse(file_path, provided_password=password)
+                        )
+                    except Exception as e:  # noqa: BLE001
+                        logger.warning(f"用密码解析加密PDF失败: {e}")
+                        return {"need_password": True, "title": Path(file_path).stem,
+                                "author": "", "html": "", "error": "密码错误或无权限"}
+                    return {
+                        "need_password": False,
+                        "html": BrowserReader._parsed_result_to_html(parsed),
+                        "title": parsed.get("title", ""),
+                        "author": parsed.get("author", ""),
+                        "error": "",
+                    }
+            except Exception as e:  # noqa: BLE001
+                logger.debug(f"检测PDF加密状态失败: {e}")
+
+        # 其余格式（未加密 PDF / epub / mobi / azw / azw3）走解析器工厂
+        try:
+            from src.parsers.parser_factory import parser_factory
+            parser = parser_factory.get_parser(file_path)
+            if parser is None:
+                return {"need_password": False, "html": "", "title": "", "author": "",
+                        "error": f"不支持的格式: {ext}"}
+            parsed = BrowserReader._run_coro(parser.parse(file_path))
+            html = BrowserReader._parsed_result_to_html(parsed)
+            if not html.strip():
+                html = f"<p>无法提取有效文本内容：{_html_escape(Path(file_path).name)}</p>"
+            return {
+                "need_password": False,
+                "html": html,
+                "title": parsed.get("title", ""),
+                "author": parsed.get("author", ""),
+                "error": "",
+            }
+        except Exception as e:  # noqa: BLE001
+            logger.error(f"后端解析书籍失败: {e}", exc_info=True)
+            return {"need_password": False, "html": "", "title": "", "author": "", "error": str(e)}
+
+    @staticmethod
+    def _read_binary_book(file_path: str, pdf_password: Optional[str] = None) -> str:
+        """二进制电子书：后端解析为 HTML；加密 PDF 未给密码时返回占位符供前端弹框。"""
+        try:
+            result = BrowserReader._parse_book_to_html(file_path, password=pdf_password)
+        except Exception as e:  # noqa: BLE001
+            logger.error(f"浏览器阅读器解析二进制书籍失败: {e}", exc_info=True)
+            return f"<p>解析书籍失败：{_html_escape(str(e))}</p>"
+        if result.get("need_password"):
+            return BrowserReader._encrypted_placeholder_html(file_path)
+        if result.get("error") and not (result.get("html") or "").strip():
+            return f"<p>解析书籍失败：{_html_escape(result['error'])}</p>"
+        return result.get("html") or f"<p>无法读取文件：{_html_escape(file_path)}</p>"
+
+    @staticmethod
+    def _encrypted_placeholder_html(file_path: str) -> str:
+        """加密 PDF 占位符：隐藏标记供前端检测，并给出友好提示。"""
+        return (
+            '<div id="br-encrypted-book" data-needs-password="1" '
+            f'data-book-path="{_html_escape(file_path)}" style="display:none"></div>'
+            '<div class="br-encrypted-msg" style="padding:48px;text-align:center;color:inherit;opacity:.8;">'
+            '🔒 本书已加密，正在请求解锁…</div>'
+        )
+
+    @staticmethod
+    def open_book_content_json(path: str, password: Optional[str] = None) -> Dict[str, Any]:
+        """
+        供后端接口 /open_book_content 调用：解析指定书籍并返回 JSON。
+        前端在检测到加密占位符后，弹框收集密码再次请求本接口。
+        """
+        try:
+            if not path or not os.path.exists(path):
+                return {"success": False, "error": "文件不存在"}
+            res = BrowserReader._parse_book_to_html(path, password=password)
+            return {
+                "success": True,
+                "need_password": bool(res.get("need_password")),
+                "error": res.get("error", ""),
+                "title": res.get("title", ""),
+                "author": res.get("author", ""),
+                "html": res.get("html", ""),
+            }
+        except Exception as e:  # noqa: BLE001
+            logger.error(f"open_book_content 失败: {e}", exc_info=True)
+            return {"success": False, "error": str(e)}
+
+    @staticmethod
+    def read_file_content(file_path: str, pdf_password: Optional[str] = None) -> str:
         """
         读取文件内容
         
@@ -12925,13 +13243,18 @@ class BrowserReader:
         Returns:
             文件内容
         """
+        # 先按扩展名路由：二进制电子书格式直接交由后端解析器处理
+        # （必须在 open(...encoding='utf-8') 之前，否则二进制读取会触发
+        #  UnicodeDecodeError 并被后续的 gbk 兜底逻辑当成纯文本处理）
+        ext = Path(file_path).suffix.lower()
+        if ext in _BROWSER_READER_BINARY_FORMATS:
+            return BrowserReader._read_binary_book(file_path, pdf_password)
+
         try:
             with open(file_path, 'r', encoding='utf-8') as f:
                 content = f.read()
-                
+
                 # 根据文件扩展名处理内容
-                ext = Path(file_path).suffix.lower()
-                
                 if ext == '.txt':
                     # TXT文件：智能识别章节标题并转换为HTML
                     paragraphs = content.split('\n')
@@ -13150,6 +13473,7 @@ class BrowserReader:
     @staticmethod
     def open_book_in_browser(file_path: str, theme: str = "light",
                           custom_settings: Optional[Dict[str, str]] = None,
+                          pdf_password: Optional[str] = None,
                           on_progress_save: Optional[Callable[[float, int, int], None]] = None,
                           on_progress_load: Optional[Callable[[str], Optional[Dict[str, Any]]]] = None,
                           on_annotations_save: Optional[Callable[[str, Dict[str, Any]], None]] = None,
@@ -13181,7 +13505,7 @@ class BrowserReader:
             title = Path(file_path).stem
             
             # 读取文件内容
-            content = BrowserReader.read_file_content(file_path)
+            content = BrowserReader.read_file_content(file_path, pdf_password=pdf_password)
             
             # 获取browser_server配置
             browser_server_host = "localhost"
@@ -13698,6 +14022,25 @@ class BrowserReader:
                         self.send_header('Access-Control-Allow-Origin', '*')
                         self.end_headers()
                         self.wfile.write(json.dumps({"success": True}, ensure_ascii=False).encode('utf-8'))
+                    except Exception as e:
+                        self.send_response(500)
+                        self.send_header('Content-type', 'application/json')
+                        self.send_header('Access-Control-Allow-Origin', '*')
+                        self.end_headers()
+                        self.wfile.write(json.dumps({"success": False, "error": str(e)}, ensure_ascii=False).encode('utf-8'))
+                elif req_path == '/open_book_content':
+                    # 备用服务器：浏览器阅读器后端解析二进制书籍（含加密PDF密码）
+                    try:
+                        clen = int(self.headers['Content-Length'])
+                        _data = json.loads(self.rfile.read(clen).decode('utf-8'))
+                        _path = (_data.get('path') or '').strip()
+                        _pwd = _data.get('password') or None
+                        result = BrowserReader.open_book_content_json(_path, _pwd)
+                        self.send_response(200)
+                        self.send_header('Content-type', 'application/json')
+                        self.send_header('Access-Control-Allow-Origin', '*')
+                        self.end_headers()
+                        self.wfile.write(json.dumps(result, ensure_ascii=False).encode('utf-8'))
                     except Exception as e:
                         self.send_response(500)
                         self.send_header('Content-type', 'application/json')

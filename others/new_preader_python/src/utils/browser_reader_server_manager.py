@@ -621,6 +621,30 @@ class BrowserReaderServerManager:
                         self.send_header('Access-Control-Allow-Origin', '*')
                         self.end_headers()
                         self.wfile.write(json.dumps({"success": False, "error": str(e)}, ensure_ascii=False).encode('utf-8'))
+                elif _req_path == '/open_book_content':
+                    # 浏览器阅读器：后端解析二进制书籍（epub/mobi/azw/azw3/pdf），
+                    # 加密 PDF 可带 password 二次请求解密。返回 JSON。
+                    try:
+                        content_length = int(self.headers['Content-Length'])
+                        post_data = self.rfile.read(content_length)
+                        data = json.loads(post_data.decode('utf-8'))
+                        path = (data.get('path') or '').strip()
+                        password = data.get('password') or None
+                        from src.utils.browser_reader import BrowserReader
+                        result = BrowserReader.open_book_content_json(path, password)
+                        self.send_response(200)
+                        self.send_header('Content-type', 'application/json')
+                        self.send_header('Access-Control-Allow-Origin', '*')
+                        self.end_headers()
+                        self.wfile.write(json.dumps(result, ensure_ascii=False).encode('utf-8'))
+                    except Exception as e:
+                        import traceback
+                        logger.error(f"打开书籍内容失败: {e}", exc_info=True)
+                        self.send_response(500)
+                        self.send_header('Content-type', 'application/json')
+                        self.send_header('Access-Control-Allow-Origin', '*')
+                        self.end_headers()
+                        self.wfile.write(json.dumps({"success": False, "error": str(e)}, ensure_ascii=False).encode('utf-8'))
                 else:
                     self.send_response(404)
                     self.end_headers()
