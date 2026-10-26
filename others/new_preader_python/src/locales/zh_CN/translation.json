@@ -2050,7 +2050,12 @@
     "total_books": "书籍数",
     "total_reading_time": "全部阅读时间",
     "trend_7days_data": "最近7天阅读趋势",
-    "weekly_monthly": "周/月统计"
+    "weekly_monthly": "周/月统计",
+    "by_website_stats": "按网站统计",
+    "website_name": "书籍网站",
+    "book_count": "书籍数量",
+    "unknown_website": "未关联网站",
+    "no_website_data": "暂无已关联网站的书籍"
   },
   "translation_dialog": {
     "add_to_vocabulary": "添加到单词本",

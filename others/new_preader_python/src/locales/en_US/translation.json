@@ -2050,7 +2050,12 @@
     "total_books": "Total Books",
     "total_reading_time": "Total Reading Time",
     "trend_7days_data": "Last 7 Days Reading Trend",
-    "weekly_monthly": "Weekly/Monthly Statistics"
+    "weekly_monthly": "Weekly/Monthly Statistics",
+    "by_website_stats": "By Website",
+    "website_name": "Book Website",
+    "book_count": "Book Count",
+    "unknown_website": "Unknown Website",
+    "no_website_data": "No books associated with any website yet"
   },
   "translation_dialog": {
     "add_to_vocabulary": "Add to Vocabulary",

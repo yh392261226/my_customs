@@ -346,6 +346,74 @@ class StatisticsDirect:
             logger.error(f"获取最常阅读作者失败: {e}")
             return []
     
+    def get_books_by_site(self, user_id: Optional[int] = None) -> Dict[str, Any]:
+        """
+        统计每个书籍网站下的书籍数量
+        
+        书籍与网站的关联通过爬取历史表(crawl_history)建立：
+        books.path <-> crawl_history.file_path，crawl_history.site_id -> novel_sites.id。
+        本地导入、未经过爬取的书籍归为「未关联网站」。
+        
+        Args:
+            user_id: 用户ID，如果为None则统计所有用户数据（多用户模式下的超级管理员）
+            
+        Returns:
+            Dict[str, Any]: {
+                "site_stats": [{"site_id", "site_name", "book_count"}, ...],  # 按书籍数量降序
+                "unknown_count": int  # 未关联任何网站的书籍数量
+            }
+        """
+        try:
+            with sqlite3.connect(self.db_path) as conn:
+                conn.row_factory = sqlite3.Row
+                cursor = conn.cursor()
+                
+                # 多用户模式下按用户过滤书籍归属
+                user_join = ""
+                user_where = ""
+                params: List[Any] = []
+                if user_id is not None:
+                    user_join = "JOIN user_books ub ON ub.book_path = b.path"
+                    user_where = "AND ub.user_id = ?"
+                    params.append(user_id)
+                
+                # 每个网站下的书籍数量（通过爬取历史关联，仅统计成功爬取的记录）
+                cursor.execute(f"""
+                    SELECT ns.id AS site_id, ns.name AS site_name,
+                           COUNT(DISTINCT b.path) AS book_count
+                    FROM books b
+                    JOIN crawl_history ch ON ch.file_path = b.path AND ch.file_path <> ''
+                    JOIN novel_sites ns ON ns.id = ch.site_id
+                    {user_join}
+                    WHERE ch.status = 'success' {user_where}
+                    GROUP BY ns.id, ns.name
+                    ORDER BY book_count DESC
+                """, params)
+                site_stats = [
+                    {
+                        "site_id": row["site_id"],
+                        "site_name": row["site_name"],
+                        "book_count": row["book_count"]
+                    }
+                    for row in cursor.fetchall()
+                ]
+                
+                # 未关联任何网站的书籍（如本地导入、手动添加）
+                cursor.execute(f"""
+                    SELECT COUNT(DISTINCT b.path) AS cnt
+                    FROM books b
+                    LEFT JOIN crawl_history ch ON ch.file_path = b.path AND ch.file_path <> ''
+                    {user_join}
+                    WHERE ch.file_path IS NULL {user_where}
+                """, params)
+                unknown_count = cursor.fetchone()["cnt"] or 0
+                
+                return {"site_stats": site_stats, "unknown_count": unknown_count}
+                
+        except sqlite3.Error as e:
+            logger.error(f"统计各网站书籍数量失败: {e}")
+            return {"site_stats": [], "unknown_count": 0}
+
     def get_reading_heatmap(self, year: Optional[int] = None, user_id: Optional[int] = None) -> Dict[str, int]:
         """
         获取阅读热图数据

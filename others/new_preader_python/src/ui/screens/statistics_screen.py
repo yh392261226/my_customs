@@ -57,6 +57,8 @@ class StatisticsScreen(Screen[None]):
         self.global_stats = {}
         self.book_stats = []
         self.authors_stats = []
+        self.site_stats = []  # 每个书籍网站下的书籍数量统计
+        self.unknown_site_count = 0  # 未关联任何网站的书籍数量
     
     def compose(self) -> ComposeResult:
         """
@@ -102,6 +104,14 @@ class StatisticsScreen(Screen[None]):
                         Label(get_global_i18n().t("statistics.weekly_monthly"), id="period-title", classes="section-title"),
                         Static(self._format_period_stats(), id="period-content"),
                         id="detailed-tab"
+                    )
+                
+                # 按网站统计标签页
+                with TabPane(get_global_i18n().t("statistics.by_website_stats"), id="by-website-stats-tab"):
+                    yield Vertical(
+                        Label(get_global_i18n().t("statistics.by_website_stats"), id="website-title", classes="section-title"),
+                        DataTable(id="website-table"),
+                        id="by-website-tab"
                     )
             
             # 底部控制按钮区域
@@ -244,6 +254,8 @@ class StatisticsScreen(Screen[None]):
         table_book.zebra_stripes = True
         table_progress = self.query_one("#progress-table", DataTable)
         table_progress.zebra_stripes = True
+        table_website = self.query_one("#website-table", DataTable)
+        table_website.zebra_stripes = True
         
     
     def _format_global_stats(self) -> str:
@@ -306,10 +318,19 @@ class StatisticsScreen(Screen[None]):
                     self.authors_stats = self.statistics_manager.get_most_read_authors()
                     logger.warning(f"DEBUG: 多用户模式 - 无法获取用户ID，回退到查询所有数据")
 
+            # 加载每个书籍网站下的书籍数量统计（支持多用户过滤）
+            site_user_id = None
+            if is_multi_user and user_role not in ["super_admin", "superadmin"] and user_id is not None:
+                site_user_id = user_id
+            site_result = self.statistics_manager.get_books_by_site(user_id=site_user_id)
+            self.site_stats = site_result.get("site_stats", [])
+            self.unknown_site_count = site_result.get("unknown_count", 0)
+
             # 加载各个数据表
             self._load_book_stats()
             self._load_authors_stats()
             self._load_progress_stats()
+            self._load_site_stats()
         except Exception as e:
             logger.error(f"Error loading stats: {e}")
             # 回退到原始逻辑（无用户ID过滤）
@@ -537,6 +558,68 @@ class StatisticsScreen(Screen[None]):
             import traceback
             logger.error(traceback.format_exc())
     
+    def _load_site_stats(self) -> None:
+        """加载每个书籍网站下的书籍数量统计"""
+        try:
+            table = self.query_one("#website-table", DataTable)
+            table.clear()
+
+            virtual_data = []
+            rank = 0
+
+            # 按网站统计的书籍数量
+            if not self.site_stats:
+                if self.unknown_site_count == 0:
+                    # 没有任何已关联网站的书籍
+                    virtual_data.append({
+                        "rank": "-",
+                        "site_name": get_global_i18n().t("statistics.no_website_data"),
+                        "book_count": "-",
+                        "_row_key": "no_data"
+                    })
+                else:
+                    # 有书籍但都未关联网站
+                    rank += 1
+                    virtual_data.append({
+                        "rank": str(rank),
+                        "site_name": get_global_i18n().t("statistics.unknown_website"),
+                        "book_count": str(self.unknown_site_count),
+                        "_row_key": "unknown"
+                    })
+            else:
+                # 已关联网站的书籍（按数量降序）
+                for idx, site_stat in enumerate(self.site_stats):
+                    rank += 1
+                    virtual_data.append({
+                        "rank": str(rank),
+                        "site_name": site_stat.get("site_name", get_global_i18n().t("statistics.unknown_website")),
+                        "book_count": str(site_stat.get("book_count", 0)),
+                        "_row_key": f"site_{idx}"
+                    })
+
+                # 未关联网站的书籍单独列出
+                if self.unknown_site_count > 0:
+                    rank += 1
+                    virtual_data.append({
+                        "rank": str(rank),
+                        "site_name": get_global_i18n().t("statistics.unknown_website"),
+                        "book_count": str(self.unknown_site_count),
+                        "_row_key": "unknown"
+                    })
+
+            # 填充表格数据
+            table.clear()
+            for row_data in virtual_data:
+                table.add_row(
+                    row_data.get("rank", ""),
+                    row_data.get("site_name", ""),
+                    row_data.get("book_count", "")
+                )
+        except Exception as e:
+            logger.error(f"加载网站统计数据失败: {e}")
+            import traceback
+            logger.error(traceback.format_exc())
+
     def _update_static_content(self) -> None:
         """更新静态内容"""
         # 更新全局统计
@@ -625,6 +708,7 @@ class StatisticsScreen(Screen[None]):
                 "global_stats": self.statistics_manager.get_total_stats(user_id=export_user_id),
                 "book_stats": self.statistics_manager.get_most_read_books(user_id=export_user_id),
                 "authors_stats": self.statistics_manager.get_most_read_authors(user_id=export_user_id),
+                "website_stats": self.statistics_manager.get_books_by_site(user_id=export_user_id),
                 "reading_trend": self.statistics_manager.get_reading_trend(30, user_id=export_user_id),  # 最近30天
                 "daily_stats": self.statistics_manager.get_daily_stats(user_id=export_user_id),
                 "period_stats": {
@@ -932,6 +1016,16 @@ class StatisticsScreen(Screen[None]):
                     progress_table.add_column(get_global_i18n().t("common.read_progress"), key="progress")
             except Exception as e:
                 logger.warning(f"初始化进度统计表失败: {e}")
+            
+            # 初始化按网站统计的数据表
+            try:
+                website_table = self.query_one("#website-table", DataTable)
+                if not website_table.columns:  # 避免重复添加列
+                    website_table.add_column("#", key="rank", width=4)
+                    website_table.add_column(get_global_i18n().t("statistics.website_name"), key="site_name")
+                    website_table.add_column(get_global_i18n().t("statistics.book_count"), key="book_count")
+            except Exception as e:
+                logger.warning(f"初始化网站统计表失败: {e}")
             
             # 延迟加载统计数据，确保表格完全初始化
             self.set_timer(0.1, self._load_all_stats)
