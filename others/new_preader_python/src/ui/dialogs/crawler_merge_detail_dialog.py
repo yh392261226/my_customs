@@ -316,6 +316,8 @@ class CrawlerMergeDetailDialog(ModalScreen[Dict[str, Any]]):
         ("space", "toggle_row", get_global_i18n().t('batch_ops.toggle_row')),
         ("k", "move_up", get_global_i18n().t('merge_detail.move_up')),
         ("j", "move_down", get_global_i18n().t('merge_detail.move_down')),
+        ("K", "move_up_batch", get_global_i18n().t('merge_detail.move_up_batch')),
+        ("J", "move_down_batch", get_global_i18n().t('merge_detail.move_down_batch')),
         ("y", "copy_title", get_global_i18n().t('common.copy_title')),
         ("x", "clear_title", get_global_i18n().t('common.clean')),
         ("v", "preview_book", get_global_i18n().t('common.preview')),
@@ -909,6 +911,49 @@ class CrawlerMergeDetailDialog(ModalScreen[Dict[str, Any]]):
 
         table.focus()
 
+    def _move_selected_rows(self, direction: int) -> None:
+        """
+        将当前组中被选中的书籍作为一个整体一起上下移动（保持彼此相对顺序不变）。
+
+        direction: -1 上移, 1 下移。整块整体平移一格：每本选中书的下标 +direction，
+        紧邻整块边界的那一条未选中书籍被挤到整块的另一端，其余未选中书籍相对位置不变。
+        已到顶部/底部则不再移动。
+        """
+        state = self._group_state[self._current_index]
+        books = state['books']
+        selected = state['selected_ids']
+
+        positions = [i for i, b in enumerate(books) if b.get('id') in selected]
+        if not positions:
+            self.notify(self.i18n.t('merge_detail.batch_move_need_selected'), severity="warning", timeout=2)
+            return
+
+        if direction == -1:  # 上移
+            if positions[0] == 0:
+                self.notify(self.i18n.t('merge_detail.batch_move_top'), severity="warning", timeout=2)
+                return
+            # 选中整块整体下标 -1；原本紧邻整块上方的那一条书籍落到整块底部
+            new_books = list(books)
+            for p in positions:
+                new_books[p - 1] = books[p]
+            new_books[positions[-1]] = books[positions[0] - 1]
+        else:  # 下移
+            if positions[-1] == len(books) - 1:
+                self.notify(self.i18n.t('merge_detail.batch_move_bottom'), severity="warning", timeout=2)
+                return
+            # 选中整块整体下标 +1；原本紧邻整块下方的那一条书籍落到整块顶部
+            new_books = list(books)
+            for p in reversed(positions):
+                new_books[p + 1] = books[p]
+            new_books[positions[0]] = books[positions[-1] + 1]
+
+        state['books'] = new_books
+
+        self._refresh_table()
+
+        table = self.query_one("#merge-detail-table", DataTable)
+        table.focus()
+
     def _move_to_position(self, target_pos: int) -> None:
         """
         将当前行移动到"被选中书籍"中的指定位置（1-based 序号）。
@@ -1415,6 +1460,14 @@ class CrawlerMergeDetailDialog(ModalScreen[Dict[str, Any]]):
 
     def action_move_down(self) -> None:
         self._move_current_row(1)
+
+    def action_move_up_batch(self) -> None:
+        """K键：将选中的书籍作为一个整体一起上移"""
+        self._move_selected_rows(-1)
+
+    def action_move_down_batch(self) -> None:
+        """J键：将选中的书籍作为一个整体一起下移"""
+        self._move_selected_rows(1)
 
     def action_cancel(self) -> None:
         self.on_cancel_all()
