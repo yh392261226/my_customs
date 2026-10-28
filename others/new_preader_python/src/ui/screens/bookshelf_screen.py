@@ -976,7 +976,7 @@ class BookshelfScreen(Screen[None]):
                     stats_text += " (" + ", ".join(format_parts) + ")"
             
             # 添加分页信息
-            pagination_info = f" | {get_global_i18n().t('bookshelf.page_info', page=self._current_page, total_pages=self._total_pages)}"
+            pagination_info = f" | {get_global_i18n().t('bookshelf.page_info', page=self._current_page, total_pages=self._total_pages, total_books=total_count)}"
             stats_label.update(stats_text + pagination_info)
             
         except Exception as e:
@@ -1453,9 +1453,6 @@ class BookshelfScreen(Screen[None]):
     def _update_pagination_controls(self) -> None:
         """更新分页控件状态"""
         try:
-            # 更新分页信息显示
-            pagination_info = f" | {get_global_i18n().t('bookshelf.page_info', page=self._current_page, total_pages=self._total_pages)}"
-            
             # 更新分页按钮状态
             first_btn = self.query_one("#first-page-btn", Button)
             prev_btn = self.query_one("#prev-page-btn", Button)
@@ -1469,7 +1466,7 @@ class BookshelfScreen(Screen[None]):
             
             # 更新页面信息标签
             page_label = self.query_one("#page-info", Label)
-            page_label.update(f"{self._current_page}/{self._total_pages}")
+            page_label.update(get_global_i18n().t('bookshelf.page_info', page=self._current_page, total_pages=self._total_pages, total_books=len(self._all_books)))
             
         except Exception as e:
             logger.error(f"更新分页控件失败: {e}")
@@ -3156,7 +3153,7 @@ class BookshelfScreen(Screen[None]):
         try:
             # 更新分页信息显示
             page_label = self.query_one("#page-info", Label)
-            page_label.update(f"{self._current_page}/{self._total_pages}")
+            page_label.update(get_global_i18n().t('bookshelf.page_info', page=self._current_page, total_pages=self._total_pages, total_books=len(self._all_books)))
             
             # 更新分页按钮状态
             first_btn = self.query_one("#first-page-btn", Button)

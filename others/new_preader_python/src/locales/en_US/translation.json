@@ -220,7 +220,7 @@
     "np_view_file": "No permission to view book files",
     "open_directory_failed": "Cannot open file directory",
     "opened_in_file_explorer": "Opened in file explorer",
-    "page_info": "Page {page}/{total_pages}",
+    "page_info": "Page {page}/{total_pages}, {total_books} books total",
     "press_enter_open_book": "Press Enter to open book: {book_id}",
     "read": "Read",
     "recently_read": "Recently Read",

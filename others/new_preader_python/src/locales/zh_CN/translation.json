@@ -220,7 +220,7 @@
     "np_view_file": "无权限查看书籍文件",
     "open_directory_failed": "无法打开文件所在目录",
     "opened_in_file_explorer": "已在文件管理器中打开",
-    "page_info": "第{page}/{total_pages}页",
+    "page_info": "第{page}/{total_pages}页，共{total_books}本",
     "press_enter_open_book": "按Enter键打开书籍: {book_id}",
     "read": "阅读",
     "recently_read": "最近阅读",
