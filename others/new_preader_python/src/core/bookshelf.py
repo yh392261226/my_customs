@@ -1365,6 +1365,18 @@ class Bookshelf:
             )
             
             if new_book:
+                # 【关键】删除原书籍之前先登记合并溯源。
+                # 合并会删掉源文件与源爬取历史记录，原始书籍ID就此丢失，
+                # 之后再点「自动爬取」会把这些已经爬过的书重新爬一遍。
+                # 这里按文件路径反查出来源站点与书籍ID并记入账本与溯源表。
+                try:
+                    self.db_manager.register_merged_sources_by_paths(
+                        new_filepath, [b.path for b in books_to_merge]
+                    )
+                except Exception as e:
+                    # 溯源失败不阻断合并本身
+                    logger.error(f"登记合并溯源失败: {e}")
+
                 # 删除原书籍（文件和数据库记录）
                 deleted_count = 0
                 for book in books_to_merge:

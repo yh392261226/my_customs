@@ -495,8 +495,33 @@ class DatabaseManager:
                 )
             """)
             
+            # 创建「合并书籍溯源」表
+            # 记录「合并后的书籍文件」由哪些原始站点 + 原始书籍ID组成。
+            # 合并会删除源文件与源爬取历史，事后再想判断"这些ID爬过没有"就无从查起；
+            # 有了这张表，即便账本被清空，也能反推出哪些原始ID已经爬过。
+            cursor.execute("""
+                CREATE TABLE IF NOT EXISTS merged_book_sources (
+                    id INTEGER PRIMARY KEY AUTOINCREMENT,
+                    site_id INTEGER NOT NULL,
+                    merged_file_path TEXT NOT NULL,
+                    novel_id TEXT NOT NULL,
+                    novel_title TEXT DEFAULT '',
+                    merged_at TEXT NOT NULL,
+                    UNIQUE(site_id, merged_file_path, novel_id)
+                )
+            """)
+
+            # 数据库迁移记录表（保证一次性迁移只执行一次）
+            cursor.execute("""
+                CREATE TABLE IF NOT EXISTS schema_migrations (
+                    name TEXT PRIMARY KEY,
+                    applied_at TEXT NOT NULL
+                )
+            """)
+
             # 创建索引
             cursor.execute("CREATE INDEX IF NOT EXISTS idx_crawled_novel_ids_site_id ON crawled_novel_ids(site_id)")
+            cursor.execute("CREATE INDEX IF NOT EXISTS idx_merged_book_sources_site_id ON merged_book_sources(site_id)")
             cursor.execute("CREATE INDEX IF NOT EXISTS idx_novel_sites_name ON novel_sites(name)")
             cursor.execute("CREATE INDEX IF NOT EXISTS idx_novel_sites_url ON novel_sites(url)")
             cursor.execute("CREATE INDEX IF NOT EXISTS idx_crawl_history_site_id ON crawl_history(site_id)")
@@ -570,7 +595,195 @@ class DatabaseManager:
             self._add_column_if_not_exists(cursor, "crawl_history", "last_update_time", "TEXT")
             self._add_column_if_not_exists(cursor, "crawl_history", "pinyin", "TEXT", "''")
 
+            # 一次性迁移：把账本表补建前已存在的成功爬取历史回填到账本，
+            # 否则这些书（尤其是之后又被合并、历史记录被删掉的）每次自动爬取都会被重复抓取
+            self._run_migrations(cursor)
+
             conn.commit()
+
+    def _has_migration(self, cursor: sqlite3.Cursor, name: str) -> bool:
+        """判断指定的一次性迁移是否已经执行过"""
+        cursor.execute("SELECT 1 FROM schema_migrations WHERE name = ?", (name,))
+        return cursor.fetchone() is not None
+
+    def _mark_migration(self, cursor: sqlite3.Cursor, name: str) -> None:
+        """标记一次性迁移已执行"""
+        cursor.execute(
+            "INSERT OR IGNORE INTO schema_migrations (name, applied_at) VALUES (?, ?)",
+            (name, datetime.now().isoformat()),
+        )
+
+    def _run_migrations(self, cursor: sqlite3.Cursor) -> None:
+        """执行所有一次性数据库迁移"""
+        migrations = (
+            ('backfill_crawled_novel_ids_2026', self._migrate_backfill_crawled_novel_ids),
+        )
+        for name, func in migrations:
+            if self._has_migration(cursor, name):
+                continue
+            try:
+                func(cursor)
+                self._mark_migration(cursor, name)
+            except Exception as e:
+                logger.error(f"数据库迁移 {name} 执行失败: {e}")
+
+    def _migrate_backfill_crawled_novel_ids(self, cursor: sqlite3.Cursor) -> None:
+        """
+        迁移：用 crawl_history 中已有的成功记录回填「已爬取书籍ID」账本
+
+        账本表是后加的，在此之前爬的书都不在账本里；而其中不少书后来又被手动合并，
+        合并会删掉源历史记录，导致再也查不到来源。因此这里在账本建好时
+        把所有历史成功记录一次性补进去，让自动爬取的增量判断立刻生效。
+        """
+        cursor.execute("""
+            INSERT OR IGNORE INTO crawled_novel_ids (site_id, novel_id, novel_title, first_crawl_time, last_crawl_time)
+            SELECT site_id, novel_id, MAX(novel_title), MIN(crawl_time), MAX(crawl_time)
+            FROM crawl_history
+            WHERE status = 'success'
+              AND novel_id IS NOT NULL
+              AND novel_id <> ''
+              AND novel_id NOT LIKE 'merged_%'
+            GROUP BY site_id, novel_id
+        """)
+        logger.info(f"已爬取书籍ID账本回填完成，新增 {cursor.rowcount} 条记录")
+
+    def register_merged_sources(self, site_id: int, merged_file_path: str,
+                                sources: List[Dict[str, Any]]) -> int:
+        """
+        登记一次合并的溯源信息（合并前调用，此时源记录还在）
+
+        同时把源书籍ID写入「已爬取书籍ID」账本与「合并溯源」表：
+          - 账本：让自动爬取下次跳过这些ID
+          - 溯源表：账本被清空 / 需要反查这本书由哪些原始书组成时用得上
+
+        Args:
+            site_id: 来源站点ID
+            merged_file_path: 合并后新书籍的文件路径
+            sources: 源书籍列表，每项需含 novel_id，可选 novel_title
+
+        Returns:
+            int: 成功登记的源书籍数量
+        """
+        if not site_id or not merged_file_path or not sources:
+            return 0
+
+        now = datetime.now().isoformat()
+        registered = 0
+        try:
+            with sqlite3.connect(self.db_path) as conn:
+                cursor = conn.cursor()
+                for src in sources:
+                    novel_id = str(src.get('novel_id') or '').strip()
+                    # 合并生成的占位ID不是真实书籍ID，无需登记
+                    if not novel_id or novel_id.startswith('merged_'):
+                        continue
+                    novel_title = str(src.get('novel_title') or '').strip()
+
+                    # 1) 账本
+                    cursor.execute("""
+                        INSERT INTO crawled_novel_ids (site_id, novel_id, novel_title, first_crawl_time, last_crawl_time)
+                        VALUES (?, ?, ?, ?, ?)
+                        ON CONFLICT(site_id, novel_id) DO UPDATE SET
+                            last_crawl_time = excluded.last_crawl_time,
+                            novel_title = CASE
+                                WHEN excluded.novel_title <> '' THEN excluded.novel_title
+                                ELSE crawled_novel_ids.novel_title END
+                    """, (site_id, novel_id, novel_title, now, now))
+
+                    # 2) 溯源表
+                    cursor.execute("""
+                        INSERT OR IGNORE INTO merged_book_sources
+                            (site_id, merged_file_path, novel_id, novel_title, merged_at)
+                        VALUES (?, ?, ?, ?, ?)
+                    """, (site_id, merged_file_path, novel_id, novel_title, now))
+
+                    registered += 1
+                conn.commit()
+        except sqlite3.Error as e:
+            logger.error(f"登记合并溯源信息失败: {e}")
+        return registered
+
+    def get_merged_source_ids(self, site_id: int,
+                              novel_ids: Optional[List[str]] = None) -> List[str]:
+        """
+        查询某站点「已被合并掉的原始书籍ID」
+
+        用作账本的兜底：账本若被清空，仍能通过合并溯源表判断这些ID爬过了。
+
+        Args:
+            site_id: 站点ID
+            novel_ids: 限定在这些ID内查询；为 None 时返回该站点全部
+
+        Returns:
+            List[str]: 已合并过的原始书籍ID列表
+        """
+        try:
+            with sqlite3.connect(self.db_path) as conn:
+                cursor = conn.cursor()
+                if novel_ids is None:
+                    cursor.execute(
+                        "SELECT DISTINCT novel_id FROM merged_book_sources WHERE site_id = ?",
+                        (site_id,)
+                    )
+                    return [row[0] for row in cursor.fetchall()]
+
+                result: List[str] = []
+                chunk_size = 500
+                for i in range(0, len(novel_ids), chunk_size):
+                    chunk = novel_ids[i:i + chunk_size]
+                    placeholders = ','.join('?' * len(chunk))
+                    cursor.execute(
+                        f"SELECT DISTINCT novel_id FROM merged_book_sources "
+                        f"WHERE site_id = ? AND novel_id IN ({placeholders})",
+                        [site_id] + list(chunk)
+                    )
+                    result.extend(row[0] for row in cursor.fetchall())
+                return result
+        except sqlite3.Error as e:
+            logger.error(f"查询合并溯源记录失败: {e}")
+            return []
+
+    def register_merged_sources_by_paths(self, merged_file_path: str,
+                                          source_paths: List[str]) -> int:
+        """
+        按源书籍的「文件路径」反查其来源站点与书籍ID，并登记合并溯源
+
+        用于书库模式的合并入口：那些书在 UI 上只有路径，没有直接的 novel_id，
+        需要通过 crawl_history.file_path 反查来源。合并后源历史记录会被删掉，
+        因此必须在删除之前调用本方法，否则原始书籍ID就永久丢失了。
+
+        Args:
+            merged_file_path: 合并后新书籍的文件路径
+            source_paths: 被合并的源书籍文件路径列表
+
+        Returns:
+            int: 成功登记的源书籍数量
+        """
+        if not merged_file_path or not source_paths:
+            return 0
+        try:
+            source_map = self.get_crawl_history_source_map(source_paths)
+        except Exception as e:
+            logger.error(f"反查合并来源失败: {e}")
+            return 0
+
+        # 按站点归拢，逐站点登记
+        grouped: Dict[int, List[Dict[str, Any]]] = {}
+        for path in source_paths:
+            info = source_map.get(os.path.abspath(path)) or {}
+            site_id = info.get('site_id')
+            novel_id = str(info.get('novel_id') or '').strip()
+            if not site_id or not novel_id or novel_id.startswith('merged_'):
+                continue
+            grouped.setdefault(int(site_id), []).append({
+                'novel_id': novel_id,
+                'novel_title': os.path.splitext(os.path.basename(path))[0],
+            })
+
+        registered = 0
+        for site_id, sources in grouped.items():
+            registered += self.register_merged_sources(site_id, merged_file_path, sources)
+        return registered
     
     def _get_connection_with_retry(self, max_retries: int = 3) -> sqlite3.Connection:
         """
@@ -2555,6 +2768,90 @@ class DatabaseManager:
             logger.error(f"添加爬取历史记录失败: {e}")
             return False
 
+    def record_crawled_novel_ids(self, site_id: int, sources: List[Dict[str, Any]]) -> int:
+        """
+        批量把书籍ID登记到账本（已存在则只刷新时间）
+
+        用于爬取历史记录即将被删除的场景（合并源清理、批量删除等）：
+        先把ID记进账本，之后自动爬取的增量判断才不会把它们当成"没爬过"。
+
+        Args:
+            site_id: 网站ID
+            sources: 每项需含 novel_id，可选 novel_title
+
+        Returns:
+            int: 成功登记的条数
+        """
+        if not site_id or not sources:
+            return 0
+
+        now = datetime.now().isoformat()
+        registered = 0
+        try:
+            with sqlite3.connect(self.db_path) as conn:
+                cursor = conn.cursor()
+                for src in sources:
+                    novel_id = str(src.get('novel_id') or '').strip()
+                    if not novel_id or novel_id.startswith('merged_'):
+                        continue
+                    cursor.execute("""
+                        INSERT INTO crawled_novel_ids (site_id, novel_id, novel_title, first_crawl_time, last_crawl_time)
+                        VALUES (?, ?, ?, ?, ?)
+                        ON CONFLICT(site_id, novel_id) DO UPDATE SET
+                            last_crawl_time = excluded.last_crawl_time,
+                            novel_title = CASE
+                                WHEN excluded.novel_title <> '' THEN excluded.novel_title
+                                ELSE crawled_novel_ids.novel_title END
+                    """, (site_id, novel_id, str(src.get('novel_title') or '').strip(), now, now))
+                    registered += 1
+                conn.commit()
+        except sqlite3.Error as e:
+            logger.error(f"批量登记已爬取书籍ID失败: {e}")
+        return registered
+
+    def unregister_crawled_novel_ids(self, site_id: int, novel_ids: List[str]) -> int:
+        """
+        从账本中移除指定的书籍ID（让它们下次能被重新爬取）
+
+        同时清理「合并溯源」表里的对应记录：只删账本的话，增量判断
+        仍会被溯源表兜底判定为"已爬取"，取消标记就形同无效。
+
+        Args:
+            site_id: 网站ID
+            novel_ids: 要移除的书籍ID列表
+
+        Returns:
+            int: 实际移除的条数
+        """
+        if not site_id or not novel_ids:
+            return 0
+
+        clean_ids = [str(nid).strip() for nid in novel_ids if str(nid or '').strip()]
+        if not clean_ids:
+            return 0
+
+        removed = 0
+        try:
+            with sqlite3.connect(self.db_path) as conn:
+                cursor = conn.cursor()
+                chunk_size = 500
+                for i in range(0, len(clean_ids), chunk_size):
+                    chunk = clean_ids[i:i + chunk_size]
+                    placeholders = ','.join('?' * len(chunk))
+                    cursor.execute(
+                        f"DELETE FROM crawled_novel_ids WHERE site_id = ? AND novel_id IN ({placeholders})",
+                        [site_id] + chunk
+                    )
+                    removed += cursor.rowcount
+                    cursor.execute(
+                        f"DELETE FROM merged_book_sources WHERE site_id = ? AND novel_id IN ({placeholders})",
+                        [site_id] + chunk
+                    )
+                conn.commit()
+        except sqlite3.Error as e:
+            logger.error(f"移除已爬取书籍ID失败: {e}")
+        return removed
+
     def _record_crawled_novel_id(self, site_id: int, novel_id: str, novel_title: str = '') -> bool:
         """
         把成功爬取的书籍ID登记到账本（已存在则只刷新时间）
@@ -2605,18 +2902,21 @@ class DatabaseManager:
         try:
             with sqlite3.connect(self.db_path) as conn:
                 cursor = conn.cursor()
-                crawled: List[str] = []
+                crawled: set = set()
                 # 分批查询，避免 SQL 变量数量超限
                 chunk_size = 500
                 for i in range(0, len(novel_ids), chunk_size):
                     chunk = novel_ids[i:i + chunk_size]
                     placeholders = ','.join('?' * len(chunk))
+                    # 账本 + 合并溯源表一起查：后者用于账本被清空后仍能判断
                     cursor.execute(
-                        f"SELECT novel_id FROM crawled_novel_ids WHERE site_id = ? AND novel_id IN ({placeholders})",
-                        [site_id] + list(chunk)
+                        f"SELECT novel_id FROM crawled_novel_ids WHERE site_id = ? AND novel_id IN ({placeholders}) "
+                        f"UNION "
+                        f"SELECT novel_id FROM merged_book_sources WHERE site_id = ? AND novel_id IN ({placeholders})",
+                        [site_id] + list(chunk) + [site_id] + list(chunk)
                     )
-                    crawled.extend(row[0] for row in cursor.fetchall())
-                return crawled
+                    crawled.update(row[0] for row in cursor.fetchall())
+                return list(crawled)
         except sqlite3.Error as e:
             logger.error(f"查询已爬取书籍ID失败: {e}")
             return []

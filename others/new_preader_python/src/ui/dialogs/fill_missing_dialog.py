@@ -2122,6 +2122,15 @@ class FillMissingDialog(ModalScreen[Dict[str, Any]]):
                 record_id = bf.get('record_id')
                 novel_id = bf.get('novel_id', '')
 
+                # 删除前先记账：历史记录删掉后这个ID就查不到了，
+                # 不记账的话下次自动爬取会把它们再爬一遍
+                try:
+                    self.db_manager.record_crawled_novel_ids(
+                        self.novel_site.get('id', 0), [bf]
+                    )
+                except Exception:
+                    pass
+
                 if file_path:
                     try: self.db_manager.delete_book(file_path, cleanup_associated=True)
                     except Exception: pass

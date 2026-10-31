@@ -561,6 +561,8 @@ class BatchOpsDialog(ModalScreen[Dict[str, Any]]):
                     Button(get_global_i18n().t("common.set_tags"), id="set-tags-btn", variant="primary"),
                     Button(get_global_i18n().t("common.clear_tags"), id="clear-tags-btn", variant="warning"),
                     Button(get_global_i18n().t("common.trad_to_simp"), id="convert-traditional-btn", variant="primary"),
+                    Button(get_global_i18n().t("crawler.mark_crawled"), id="mark-crawled-btn", variant="primary"),
+                    Button(get_global_i18n().t("crawler.unmark_crawled"), id="unmark-crawled-btn"),
                     Button(get_global_i18n().t("common.delete"), id="delete-btn", variant="error"),
                     Button(get_global_i18n().t("common.clean_invalid_short"), id="remove-missing-btn", variant="error"),
                     Button(get_global_i18n().t("common.export"), id="export-btn"),
@@ -1585,6 +1587,98 @@ class BatchOpsDialog(ModalScreen[Dict[str, Any]]):
         else:
             self._select_all_books()
 
+    def _resolve_selected_sources(self) -> Dict[int, List[Dict[str, Any]]]:
+        """
+        把选中的书库书籍反查为来源信息
+
+        书库书籍本身不保存来源，需通过 crawl_history.file_path 反查其
+        来源站点与原始书籍ID，返回 {site_id: [{novel_id, novel_title}]}。
+        查不到来源的书籍（例如已合并过的书）会被忽略——它们没有可登记的原始ID。
+
+        Returns:
+            Dict[int, List[Dict[str, Any]]]: 按站点归拢的来源列表
+        """
+        db = getattr(self.bookshelf, 'db_manager', None)
+        paths = [p for p in self.selected_books if p]
+        if not db or not paths:
+            return {}
+
+        try:
+            source_map = db.get_crawl_history_source_map(paths)
+        except Exception as e:
+            logger.error(f"反查选中书籍来源失败: {e}")
+            return {}
+
+        grouped: Dict[int, List[Dict[str, Any]]] = {}
+        for path in paths:
+            info = source_map.get(os.path.abspath(path)) or {}
+            site_id = info.get('site_id')
+            novel_id = str(info.get('novel_id') or '').strip()
+            # 合并占位ID不是真实书籍ID，不登记
+            if not site_id or not novel_id or novel_id.startswith('merged_'):
+                continue
+            grouped.setdefault(int(site_id), []).append({
+                'novel_id': novel_id,
+                'novel_title': os.path.splitext(os.path.basename(path))[0],
+            })
+        return grouped
+
+    def _mark_selected_as_crawled(self) -> None:
+        """把选中书籍对应的原始书籍ID补录进「已爬取」账本"""
+        if not self.selected_books:
+            self.notify(get_global_i18n().t("common.no_book_selected"), severity="warning")
+            return
+
+        db = getattr(self.bookshelf, 'db_manager', None)
+        if not db:
+            return
+
+        grouped = self._resolve_selected_sources()
+        if not grouped:
+            self.notify(get_global_i18n().t("batch_ops.mark_crawled_no_source"), severity="warning")
+            return
+
+        total = 0
+        for site_id, sources in grouped.items():
+            try:
+                total += db.record_crawled_novel_ids(site_id, sources)
+            except Exception as e:
+                logger.error(f"补录已爬取记录失败 site={site_id}: {e}")
+
+        self.notify(
+            get_global_i18n().t("batch_ops.mark_crawled_done", count=total),
+            severity="information",
+        )
+
+    def _unmark_selected_as_crawled(self) -> None:
+        """把选中书籍对应的原始书籍ID从「已爬取」账本中剔除（允许重新爬取）"""
+        if not self.selected_books:
+            self.notify(get_global_i18n().t("common.no_book_selected"), severity="warning")
+            return
+
+        db = getattr(self.bookshelf, 'db_manager', None)
+        if not db:
+            return
+
+        grouped = self._resolve_selected_sources()
+        if not grouped:
+            self.notify(get_global_i18n().t("batch_ops.mark_crawled_no_source"), severity="warning")
+            return
+
+        total = 0
+        for site_id, sources in grouped.items():
+            try:
+                total += db.unregister_crawled_novel_ids(
+                    site_id, [s['novel_id'] for s in sources]
+                )
+            except Exception as e:
+                logger.error(f"剔除已爬取记录失败 site={site_id}: {e}")
+
+        self.notify(
+            get_global_i18n().t("batch_ops.unmark_crawled_done", count=total),
+            severity="information",
+        )
+
     def action_merge_selected(self) -> None:
         """C键 - 合并选中的书籍"""
         import asyncio
@@ -1793,6 +1887,10 @@ class BatchOpsDialog(ModalScreen[Dict[str, Any]]):
             await self._compare_read_selected_books()
         elif event.button.id == "find-duplicates-btn":
             await self._find_duplicate_books()
+        elif event.button.id == "mark-crawled-btn":
+            self._mark_selected_as_crawled()
+        elif event.button.id == "unmark-crawled-btn":
+            self._unmark_selected_as_crawled()
         elif event.button.id == "delete-btn":
             self._delete_selected_books()
         elif event.button.id == "set-author-btn":

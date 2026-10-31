@@ -1048,6 +1048,13 @@ class CrawlerManagementScreen(Screen[None]):
         if site_id is not None:
             try:
                 crawled_ids = self.db_manager.filter_crawled_novel_ids(site_id, book_ids)
+                # 连载书籍不剔除：它们需要进到爬取流程里做增量更新（与浏览器监听行为一致），
+                # 若在这里一律跳过，连载书就永远拿不到新章节了。
+                # 已被合并的书查不到爬取记录，自然是当作非连载剔除掉。
+                crawled_ids = [
+                    nid for nid in crawled_ids
+                    if not (self.db_manager.get_last_successful_crawl(site_id, nid) or {}).get('serial_mode')
+                ]
             except Exception as e:
                 logger.error(f"查询已爬取书籍ID失败: {e}")
 
@@ -1137,6 +1144,83 @@ class CrawlerManagementScreen(Screen[None]):
                 get_global_i18n().t('crawler.clear_crawled_ids_desc'),
             ),
             handle_clear_confirmation
+        )
+
+    def _collect_selected_history_items(self) -> List[Dict[str, Any]]:
+        """把选中的历史记录ID集合转换为完整的历史记录对象列表"""
+        if not self.selected_history:
+            return []
+        selected = {str(rid) for rid in self.selected_history}
+        return [item for item in self.crawler_history if str(item.get('id')) in selected]
+
+    def _mark_selected_as_crawled(self) -> None:
+        """把选中记录对应的书籍ID补录进「已爬取」账本
+
+        用于手动补记：账本是后加的，在此之前爬的书（尤其是之后又被合并、
+        源历史记录已删掉的）不在账本里，会被自动爬取重复抓取。
+        选中这些记录点一下即可补上。
+        """
+        site_id = self.novel_site.get('id')
+        if site_id is None:
+            self._update_status(get_global_i18n().t('common.cannot_get_site_id'), "error")
+            return
+
+        items = self._collect_selected_history_items()
+        if not items:
+            self._update_status(get_global_i18n().t('crawler.mark_crawled_no_selection'), "warning")
+            return
+
+        sources = [
+            {'novel_id': item.get('novel_id'), 'novel_title': item.get('novel_title', '')}
+            for item in items if item.get('novel_id')
+        ]
+        try:
+            registered = self.db_manager.record_crawled_novel_ids(site_id, sources)
+        except Exception as e:
+            logger.error(f"标记已爬取失败: {e}")
+            self._update_status(
+                get_global_i18n().t('crawler.mark_crawled_failed', error=str(e)), "error"
+            )
+            return
+
+        self._refresh_crawled_ids_button()
+        self._update_status(
+            get_global_i18n().t('crawler.mark_crawled_done', count=registered), "information"
+        )
+
+    def _unmark_selected_as_crawled(self) -> None:
+        """把选中记录对应的书籍ID从「已爬取」账本中剔除（允许重新爬取）"""
+        site_id = self.novel_site.get('id')
+        if site_id is None:
+            self._update_status(get_global_i18n().t('common.cannot_get_site_id'), "error")
+            return
+
+        items = self._collect_selected_history_items()
+        if not items:
+            self._update_status(get_global_i18n().t('crawler.mark_crawled_no_selection'), "warning")
+            return
+
+        novel_ids = [
+            str(item.get('novel_id')).strip()
+            for item in items
+            if item.get('novel_id') and not str(item.get('novel_id')).startswith('merged_')
+        ]
+        if not novel_ids:
+            self._update_status(get_global_i18n().t('crawler.mark_crawled_no_selection'), "warning")
+            return
+
+        try:
+            removed = self.db_manager.unregister_crawled_novel_ids(site_id, novel_ids)
+        except Exception as e:
+            logger.error(f"取消已爬取标记失败: {e}")
+            self._update_status(
+                get_global_i18n().t('crawler.mark_crawled_failed', error=str(e)), "error"
+            )
+            return
+
+        self._refresh_crawled_ids_button()
+        self._update_status(
+            get_global_i18n().t('crawler.unmark_crawled_done', count=removed), "information"
         )
 
     def action_edit_book(self) -> None:
@@ -1482,6 +1566,8 @@ class CrawlerManagementScreen(Screen[None]):
                     Button(get_global_i18n().t('crawler.batch_crawl_latest'), id="batch-crawl-latest-btn", variant="primary"),
                     Button(get_global_i18n().t('crawler.auto_crawl_books'), id="auto-crawl-books-btn", variant="success"),
                     Button(get_global_i18n().t('crawler.clear_crawled_ids'), id="clear-crawled-ids-btn"),
+                    Button(get_global_i18n().t('crawler.mark_crawled'), id="mark-crawled-btn", variant="primary"),
+                    Button(get_global_i18n().t('crawler.unmark_crawled'), id="unmark-crawled-btn"),
                     Button(get_global_i18n().t('common.delete_file'), id="delete-file-btn", variant="warning"),
                     Button(get_global_i18n().t('crawler.delete_record'), id="delete-record-btn", variant="warning"),
                     Button(get_global_i18n().t('common.back'), id="back-btn"),
@@ -3018,6 +3104,12 @@ class CrawlerManagementScreen(Screen[None]):
                         for book in pending_deletes:
                             try:
                                 file_path = book.get('file_path', '')
+                                # 删除前先记账：历史记录删掉后，这个ID就再也查不到了，
+                                # 不记账的话下次自动爬取会把它们再爬一遍
+                                try:
+                                    self.db_manager.record_crawled_novel_ids(site_id, [book])
+                                except Exception as ledger_error:
+                                    logger.error(f"合并模式：登记已爬取ID失败 - {ledger_error}")
                                 # 1) 删除文件（若有）
                                 if file_path and file_path != 'already_exists' and os.path.exists(file_path):
                                     try:
@@ -3248,6 +3340,25 @@ class CrawlerManagementScreen(Screen[None]):
             except Exception as e:
                 logger.error(f"添加合并书籍到书库失败: {e}")
             
+            # 【关键】清理源数据之前先登记溯源：
+            # 合并会删掉源文件与源爬取历史记录，原始书籍ID就此丢失，
+            # 之后再点「自动爬取」会把这些已经爬过的书重新爬一遍。
+            # 这里把每个源的 site_id + novel_id 记入账本与合并溯源表，
+            # 保证合并后的书依然能被增量判断识别为「已爬取」。
+            try:
+                sources = [
+                    {'novel_id': item.get('novel_id'), 'novel_title': item.get('novel_title', '')}
+                    for item in selected_items if item.get('novel_id')
+                ]
+                registered = self.db_manager.register_merged_sources(
+                    site_id, merged_file_path, sources
+                )
+                if registered:
+                    logger.info(f"合并溯源已登记 {registered} 条来源记录: {new_title}")
+            except Exception as e:
+                # 溯源失败不阻断合并本身
+                logger.error(f"登记合并溯源失败 [{new_title}]: {e}")
+
             # 清理所有源文件（含空文件）及其数据库记录
             self._delete_merge_sources(file_paths, record_ids)
 
@@ -6439,6 +6550,10 @@ class CrawlerManagementScreen(Screen[None]):
             self._start_auto_crawl()
         elif button_id == "clear-crawled-ids-btn":
             self._clear_crawled_ids()
+        elif button_id == "mark-crawled-btn":
+            self._mark_selected_as_crawled()
+        elif button_id == "unmark-crawled-btn":
+            self._unmark_selected_as_crawled()
         elif button_id == "delete-file-btn":
             self._batch_delete_files()
         elif button_id == "delete-record-btn":
