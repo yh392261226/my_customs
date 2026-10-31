@@ -1040,6 +1040,28 @@ class CrawlerManagementScreen(Screen[None]):
             self._update_status(get_global_i18n().t('crawler.auto_crawl_error', error=str(e)), "error")
             return
 
+        # 增量判断：剔除账本中已爬取过的ID。
+        # 用账本而非文件是否存在来判断，是因为合并书籍会删除源文件与源历史记录，
+        # 仅凭文件判断会把合并过的书当成没爬过而重复爬取。
+        site_id = self.novel_site.get('id')
+        crawled_ids: List[str] = []
+        if site_id is not None:
+            try:
+                crawled_ids = self.db_manager.filter_crawled_novel_ids(site_id, book_ids)
+            except Exception as e:
+                logger.error(f"查询已爬取书籍ID失败: {e}")
+
+        if crawled_ids:
+            crawled_set = set(crawled_ids)
+            book_ids = [nid for nid in book_ids if nid not in crawled_set]
+
+        if not book_ids and crawled_ids:
+            self._update_status(
+                get_global_i18n().t('crawler.auto_crawl_all_crawled', count=len(crawled_ids)),
+                "information"
+            )
+            return
+
         if not book_ids:
             self._update_status(
                 get_global_i18n().t('crawler.auto_crawl_no_id', links=len(urls)), "warning"
@@ -1055,11 +1077,67 @@ class CrawlerManagementScreen(Screen[None]):
             self._update_status(get_global_i18n().t('crawler.auto_crawl_error', error=str(e)), "error")
             return
 
-        self._update_status(
-            get_global_i18n().t('crawler.auto_crawl_found', links=len(urls), count=len(book_ids)),
-            "information"
-        )
+        if crawled_ids:
+            self._update_status(
+                get_global_i18n().t(
+                    'crawler.auto_crawl_found_skipped',
+                    links=len(urls), count=len(book_ids), skipped=len(crawled_ids)
+                ),
+                "information"
+            )
+        else:
+            self._update_status(
+                get_global_i18n().t('crawler.auto_crawl_found', links=len(urls), count=len(book_ids)),
+                "information"
+            )
         self._start_crawl()
+
+    def _refresh_crawled_ids_button(self) -> None:
+        """刷新「清除已爬记录」按钮上的已记录数量"""
+        try:
+            button = self.query_one("#clear-crawled-ids-btn", Button)
+        except Exception:
+            return
+        site_id = self.novel_site.get('id')
+        count = 0
+        if site_id is not None:
+            try:
+                count = self.db_manager.get_crawled_novel_id_count(site_id)
+            except Exception as e:
+                logger.error(f"统计已爬取书籍ID失败: {e}")
+        button.label = get_global_i18n().t('crawler.clear_crawled_ids_count', count=count)
+
+    def _clear_crawled_ids(self) -> None:
+        """清除本站点已爬取书籍ID账本（用于整站重新爬取）"""
+        site_id = self.novel_site.get('id')
+        if site_id is None:
+            return
+
+        from src.ui.dialogs.confirm_dialog import ConfirmDialog
+
+        def handle_clear_confirmation(confirmed) -> None:
+            if not confirmed:
+                return
+            try:
+                cleared = self.db_manager.clear_crawled_novel_ids(site_id)
+                self._refresh_crawled_ids_button()
+                self._update_status(
+                    get_global_i18n().t('crawler.crawled_ids_cleared', count=cleared), "information"
+                )
+            except Exception as e:
+                logger.error(f"清除已爬取书籍ID失败: {e}")
+                self._update_status(
+                    get_global_i18n().t('crawler.crawled_ids_clear_failed', error=str(e)), "error"
+                )
+
+        self.app.push_screen(
+            ConfirmDialog(
+                self.theme_manager,
+                get_global_i18n().t('crawler.clear_crawled_ids_title'),
+                get_global_i18n().t('crawler.clear_crawled_ids_desc'),
+            ),
+            handle_clear_confirmation
+        )
 
     def action_edit_book(self) -> None:
         """E键 - 编辑光标所在行的书籍（与点击「编辑」按钮效果一致）"""
@@ -1403,6 +1481,7 @@ class CrawlerManagementScreen(Screen[None]):
                     Button(get_global_i18n().t('crawler.set_serial_mode'), id="set-serial-btn", variant="success"),
                     Button(get_global_i18n().t('crawler.batch_crawl_latest'), id="batch-crawl-latest-btn", variant="primary"),
                     Button(get_global_i18n().t('crawler.auto_crawl_books'), id="auto-crawl-books-btn", variant="success"),
+                    Button(get_global_i18n().t('crawler.clear_crawled_ids'), id="clear-crawled-ids-btn"),
                     Button(get_global_i18n().t('common.delete_file'), id="delete-file-btn", variant="warning"),
                     Button(get_global_i18n().t('crawler.delete_record'), id="delete-record-btn", variant="warning"),
                     Button(get_global_i18n().t('common.back'), id="back-btn"),
@@ -1592,6 +1671,9 @@ class CrawlerManagementScreen(Screen[None]):
         except Exception:
             # 如果表格焦点设置失败，回退到输入框
             self.query_one("#novel-id-input", Input).focus()
+
+        # 显示本站点已爬取书籍ID数量（供自动爬取增量判断）
+        self._refresh_crawled_ids_button()
     
     def _on_crawl_status_change(self, task_id: str, task: Any) -> None:
         """爬取状态变化回调"""
@@ -1620,6 +1702,9 @@ class CrawlerManagementScreen(Screen[None]):
                     status_text = f"{get_global_i18n().t('crawler.crawl_failed')}: {task.error_message}"
                 else:
                     status_text = get_global_i18n().t('common.crawl_stopped')
+
+                # 爬取结束后刷新已爬取书籍ID数量
+                self.call_later(self._refresh_crawled_ids_button)
                 
                 self.app.call_later(self._update_status, status_text)
                 self.app.call_later(self._update_crawl_button_state)
@@ -6352,6 +6437,8 @@ class CrawlerManagementScreen(Screen[None]):
             self._clear_invalid_records()
         elif button_id == "auto-crawl-books-btn":
             self._start_auto_crawl()
+        elif button_id == "clear-crawled-ids-btn":
+            self._clear_crawled_ids()
         elif button_id == "delete-file-btn":
             self._batch_delete_files()
         elif button_id == "delete-record-btn":

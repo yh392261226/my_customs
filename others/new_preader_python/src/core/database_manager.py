@@ -480,7 +480,23 @@ class DatabaseManager:
                 )
             """)
             
+            # 创建「已爬取书籍ID」账本表
+            # 只记录"这个ID曾经成功爬取过"，与文件是否还存在、crawl_history是否被删无关，
+            # 因此合并书籍（会删除源文件与源历史记录）后仍能判断为已爬取，避免重复爬取
+            cursor.execute("""
+                CREATE TABLE IF NOT EXISTS crawled_novel_ids (
+                    id INTEGER PRIMARY KEY AUTOINCREMENT,
+                    site_id INTEGER NOT NULL,
+                    novel_id TEXT NOT NULL,
+                    novel_title TEXT DEFAULT '',
+                    first_crawl_time TEXT NOT NULL,
+                    last_crawl_time TEXT NOT NULL,
+                    UNIQUE(site_id, novel_id)
+                )
+            """)
+            
             # 创建索引
+            cursor.execute("CREATE INDEX IF NOT EXISTS idx_crawled_novel_ids_site_id ON crawled_novel_ids(site_id)")
             cursor.execute("CREATE INDEX IF NOT EXISTS idx_novel_sites_name ON novel_sites(name)")
             cursor.execute("CREATE INDEX IF NOT EXISTS idx_novel_sites_url ON novel_sites(url)")
             cursor.execute("CREATE INDEX IF NOT EXISTS idx_crawl_history_site_id ON crawl_history(site_id)")
@@ -2529,10 +2545,115 @@ class DatabaseManager:
                     pinyin_text
                 ))
                 conn.commit()
+
+                # 爬取成功时登记到「已爬取书籍ID」账本（只增不减，供自动爬取增量判断）
+                if status == 'success':
+                    self._record_crawled_novel_id(site_id, novel_id, novel_title)
+
                 return True
         except sqlite3.Error as e:
             logger.error(f"添加爬取历史记录失败: {e}")
             return False
+
+    def _record_crawled_novel_id(self, site_id: int, novel_id: str, novel_title: str = '') -> bool:
+        """
+        把成功爬取的书籍ID登记到账本（已存在则只刷新时间）
+
+        Args:
+            site_id: 网站ID
+            novel_id: 书籍ID
+            novel_title: 书籍标题
+
+        Returns:
+            bool: 登记是否成功
+        """
+        # 合并生成的占位ID（merged_xxx）不是真实书籍ID，不登记
+        if not novel_id or str(novel_id).startswith('merged_'):
+            return False
+        try:
+            with sqlite3.connect(self.db_path) as conn:
+                cursor = conn.cursor()
+                now = datetime.now().isoformat()
+                cursor.execute("""
+                    INSERT INTO crawled_novel_ids (site_id, novel_id, novel_title, first_crawl_time, last_crawl_time)
+                    VALUES (?, ?, ?, ?, ?)
+                    ON CONFLICT(site_id, novel_id) DO UPDATE SET
+                        last_crawl_time = excluded.last_crawl_time,
+                        novel_title = CASE
+                            WHEN excluded.novel_title <> '' THEN excluded.novel_title
+                            ELSE crawled_novel_ids.novel_title END
+                """, (site_id, str(novel_id), novel_title or '', now, now))
+                conn.commit()
+                return True
+        except sqlite3.Error as e:
+            logger.error(f"登记已爬取书籍ID失败: {e}")
+            return False
+
+    def filter_crawled_novel_ids(self, site_id: int, novel_ids: List[str]) -> List[str]:
+        """
+        筛选出账本中已记录为「已爬取」的书籍ID
+
+        Args:
+            site_id: 网站ID
+            novel_ids: 待判断的书籍ID列表
+
+        Returns:
+            List[str]: 已爬取过的书籍ID列表
+        """
+        if not novel_ids:
+            return []
+        try:
+            with sqlite3.connect(self.db_path) as conn:
+                cursor = conn.cursor()
+                crawled: List[str] = []
+                # 分批查询，避免 SQL 变量数量超限
+                chunk_size = 500
+                for i in range(0, len(novel_ids), chunk_size):
+                    chunk = novel_ids[i:i + chunk_size]
+                    placeholders = ','.join('?' * len(chunk))
+                    cursor.execute(
+                        f"SELECT novel_id FROM crawled_novel_ids WHERE site_id = ? AND novel_id IN ({placeholders})",
+                        [site_id] + list(chunk)
+                    )
+                    crawled.extend(row[0] for row in cursor.fetchall())
+                return crawled
+        except sqlite3.Error as e:
+            logger.error(f"查询已爬取书籍ID失败: {e}")
+            return []
+
+    def get_crawled_novel_id_count(self, site_id: int) -> int:
+        """获取某站点账本中已记录的书籍ID数量"""
+        try:
+            with sqlite3.connect(self.db_path) as conn:
+                cursor = conn.cursor()
+                cursor.execute("SELECT COUNT(*) FROM crawled_novel_ids WHERE site_id = ?", (site_id,))
+                return cursor.fetchone()[0] or 0
+        except sqlite3.Error as e:
+            logger.error(f"统计已爬取书籍ID失败: {e}")
+            return 0
+
+    def clear_crawled_novel_ids(self, site_id: int) -> int:
+        """
+        清除某站点的已爬取书籍ID账本（用于整站重新爬取）
+
+        Args:
+            site_id: 网站ID
+
+        Returns:
+            int: 被清除的记录数
+        """
+        try:
+            with sqlite3.connect(self.db_path) as conn:
+                cursor = conn.cursor()
+                cursor.execute("SELECT COUNT(*) FROM crawled_novel_ids WHERE site_id = ?", (site_id,))
+                count = cursor.fetchone()[0] or 0
+                cursor.execute("DELETE FROM crawled_novel_ids WHERE site_id = ?", (site_id,))
+                conn.commit()
+                logger.info(f"已清除站点 {site_id} 的 {count} 条已爬取书籍ID记录")
+                return count
+        except sqlite3.Error as e:
+            logger.error(f"清除已爬取书籍ID失败: {e}")
+            return 0
 
     def get_crawl_history_by_file_path(self, file_path: str) -> List[Dict[str, Any]]:
         """
