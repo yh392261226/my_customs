@@ -9,6 +9,7 @@ import asyncio
 import re
 
 from src.utils.logger import get_logger
+from src.utils.book_typeset import is_chapter_heading
 from .progress_callback import ParsingContext, ProgressCallback
 
 logger = get_logger(__name__)
@@ -92,16 +93,10 @@ class BaseParser(ABC):
         chapter_started = False
 
         for line in lines:
-            # 检查是否是章节标题
+            # 检查是否是章节标题（使用通用识别：阿拉伯/中文/罗马/英文数字词，
+            # 可带 第/Chapter/卷/篇… 前缀、章回节… 单位、各种包裹符号）
             stripped = line.strip()
-            is_chapter = (
-                (stripped.startswith("第") and ("章" in stripped or "节" in stripped or "回" in stripped))
-                or stripped.startswith("章节")  # 排版归一化后的「章节 N」
-                or stripped.lower().startswith("chapter")
-                # 纯数字型章节标题：12 / (12) / [12] / 12. 等（可带描述，如 (12) 神秘章节）
-                or re.match(r'^[（\(]?\s*\d+\s*[）\)\.]?', stripped) is not None
-                or re.match(r'^\d+\s*[\.、\)）]', stripped) is not None
-            )
+            is_chapter = is_chapter_heading(stripped)
             if is_chapter:
                 # 如果已经有章节内容，保存当前章节
                 if chapter_started and current_chapter["content"]:
