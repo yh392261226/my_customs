@@ -2574,6 +2574,8 @@ class BrowserReader:
             border: 1px solid rgba(128, 128, 128, 0.3);
             min-width: 120px;
             transition: background 0.3s ease;
+            cursor: pointer;
+            user-select: none;
         }}
 
         .reading-stats:hover {{
@@ -3509,6 +3511,8 @@ class BrowserReader:
             min-width: 180px;
             transition: background 0.3s ease;
             display:none;
+            cursor: pointer;
+            user-select: none;
         }}
 
         .reading-stats-enhanced:hover {{
@@ -8039,7 +8043,8 @@ class BrowserReader:
                     if (element === toolbar) {{
                         element.style.display = 'flex';
                     }} else if (element === stats || element === statsEnhanced) {{
-                        element.style.display = 'block';
+                        // 统计区域按当前状态恢复，避免大小面板同时显示
+                        setStatsPanel(statsPanelVisible);
                     }} else {{
                         element.style.display = '';
                     }}
@@ -8381,22 +8386,60 @@ class BrowserReader:
         let lastWordCount = 0;
         let statsPanelVisible = false;
         
-        function toggleReadingStats() {{
+        // 切换统计面板：showEnhanced=true 显示大面板，false 显示小面板
+        function setStatsPanel(showEnhanced) {{
             const panel = document.getElementById('readingStatsEnhanced');
             const small_panel = document.getElementById('readingStats');
-            statsPanelVisible = !statsPanelVisible;
-            
+            if (!panel || !small_panel) return;
+
+            statsPanelVisible = !!showEnhanced;
+
+            // 清除内联 display（专注模式可能设置过），统一由 class 控制显隐
+            panel.style.display = '';
+            small_panel.style.display = '';
+
             if (statsPanelVisible) {{
                 panel.classList.add('show');
+                panel.classList.remove('hide');
                 small_panel.classList.remove('show');
                 small_panel.classList.add('hide');
                 updateEnhancedReadingStats();
             }} else {{
                 panel.classList.remove('show');
+                panel.classList.add('hide');
                 small_panel.classList.remove('hide');
                 small_panel.classList.add('show');
             }}
         }}
+
+        function toggleReadingStats() {{
+            setStatsPanel(!statsPanelVisible);
+        }}
+
+        // 点击统计区域本身切换大/小面板
+        function initStatsPanelClickToggle() {{
+            const smallPanel = document.getElementById('readingStats');
+            const bigPanel = document.getElementById('readingStatsEnhanced');
+
+            if (smallPanel) {{
+                smallPanel.addEventListener('click', function (e) {{
+                    if (typeof isFocusMode !== 'undefined' && isFocusMode) return;
+                    e.stopPropagation();
+                    setStatsPanel(true);
+                }});
+            }}
+
+            if (bigPanel) {{
+                bigPanel.addEventListener('click', function (e) {{
+                    if (typeof isFocusMode !== 'undefined' && isFocusMode) return;
+                    e.stopPropagation();
+                    setStatsPanel(false);
+                }});
+            }}
+        }}
+
+        // 绑定统计区域点击切换事件
+        initStatsPanelClickToggle();
         
         function updateEnhancedReadingStats() {{
             if (!statsPanelVisible) return;
