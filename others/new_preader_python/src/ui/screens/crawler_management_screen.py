@@ -35,6 +35,8 @@ from src.utils.file_helpers import read_file_preview
 from src.ui.dialogs.note_dialog import NoteDialog
 from src.ui.dialogs.select_books_dialog import SelectBooksDialog
 from src.utils.browser_tab_monitor import BrowserTabMonitor, BrowserType
+from src.utils.auto_crawl import collect_book_urls, AutoCrawlError
+from src.utils.novel_id_extractor import extract_novel_ids
 from src.utils.book_typeset import typeset_body, strip_leading_title, split_chapters
 from src.config.config_manager import ConfigManager
 import threading
@@ -757,6 +759,7 @@ class CrawlerManagementScreen(Screen[None]):
         ("m", "format_title", get_global_i18n().t('common.format_title')),
         ("b", "browser_read", get_global_i18n().t('common.browser_read')),
         ("S", "search_chapters", get_global_i18n().t('common.search_chapter')),
+        ("G", "auto_crawl_books", get_global_i18n().t('crawler.auto_crawl_shortcut')),
     ]
 
     def action_open_browser(self) -> None:
@@ -940,6 +943,123 @@ class CrawlerManagementScreen(Screen[None]):
             if 0 <= item_index < len(self.crawler_history):
                 history_item = self.crawler_history[item_index]
                 self._read_book_in_browser(history_item)
+
+    def action_auto_crawl_books(self) -> None:
+        """G键 - 按网站配置的页面与规则自动爬取书籍链接"""
+        self._start_auto_crawl()
+
+    def _start_auto_crawl(self) -> None:
+        """
+        启动自动爬取（按钮与 G 快捷键共用入口）
+
+        在后台线程抓取「自动爬取页面」并按规则过滤出真正的书籍链接，
+        回到主线程后把书籍ID回填到输入框，再走原有的爬取流程。
+        """
+        # 权限校验：执行爬取任务需 crawler.run
+        if not getattr(self.app, "has_permission", lambda k: True)("crawler.run"):
+            self._update_status(get_global_i18n().t('crawler.np_crawler'), "error")
+            return
+
+        if self._auto_crawl_running:
+            self._update_status(get_global_i18n().t('crawler.auto_crawl_running'), "warning")
+            return
+
+        if self.is_crawling:
+            self._update_status(get_global_i18n().t('crawler.crawling_in_progress'), "warning")
+            return
+
+        if not (self.novel_site.get('auto_crawl_url') or '').strip():
+            self._update_status(get_global_i18n().t('crawler.auto_crawl_no_url'), "error")
+            return
+
+        self._auto_crawl_running = True
+        self._update_status(get_global_i18n().t('crawler.auto_crawl_fetching'), "information")
+
+        # 传入副本，避免后台线程与UI共享同一字典
+        site_snapshot = dict(self.novel_site)
+        proxy_config = self._build_auto_crawl_proxy_config()
+
+        threading.Thread(
+            target=self._auto_crawl_worker,
+            args=(site_snapshot, proxy_config),
+            daemon=True,
+            name="auto-crawl-books",
+        ).start()
+
+    def _build_auto_crawl_proxy_config(self) -> Dict[str, Any]:
+        """构造抓取自动爬取页面时使用的代理配置"""
+        if not self.novel_site.get('proxy_enabled', False):
+            return {'enabled': False, 'proxy_url': ''}
+        try:
+            enabled_proxy = self.db_manager.get_enabled_proxy()
+            if enabled_proxy:
+                return {
+                    'enabled': True,
+                    'proxy_url': enabled_proxy.get('proxy_url', '') or '',
+                }
+            logger.warning("网站已启用代理但没有可用的代理设置，本次抓取不使用代理")
+        except Exception as e:
+            logger.error(f"获取代理配置失败: {e}")
+        return {'enabled': False, 'proxy_url': ''}
+
+    def _auto_crawl_worker(self, site: Dict[str, Any], proxy_config: Dict[str, Any]) -> None:
+        """后台线程：抓取页面并按规则过滤出书籍链接，结果交回主线程处理"""
+        try:
+            # 只取回符合规则的链接，书籍ID提取交给爬取管理统一处理
+            urls = collect_book_urls(site, proxy_config)
+            self.app.call_later(self._on_auto_crawl_done, urls, None)
+        except AutoCrawlError as e:
+            logger.warning(f"自动爬取失败: {e}")
+            self.app.call_later(self._on_auto_crawl_done, [], str(e))
+        except Exception as e:
+            logger.error(f"自动爬取异常: {e}")
+            self.app.call_later(self._on_auto_crawl_done, [], str(e))
+
+    def _on_auto_crawl_done(self, urls: List[str], error: Optional[str]) -> None:
+        """
+        自动爬取完成的回调（主线程）
+
+        复用浏览器标签页监听同款的书籍ID提取逻辑，把链接转成书籍ID，
+        再回填输入框走原有爬取流程。
+        """
+        self._auto_crawl_running = False
+
+        if error:
+            self._update_status(get_global_i18n().t('crawler.auto_crawl_error', error=error), "error")
+            return
+
+        if not urls:
+            self._update_status(get_global_i18n().t('crawler.auto_crawl_no_match'), "warning")
+            return
+
+        # 从链接中提取书籍ID（与浏览器标签页监听共用同一套提取逻辑）
+        try:
+            book_ids = extract_novel_ids(urls, self.novel_site)
+        except Exception as e:
+            logger.error(f"提取书籍ID失败: {e}")
+            self._update_status(get_global_i18n().t('crawler.auto_crawl_error', error=str(e)), "error")
+            return
+
+        if not book_ids:
+            self._update_status(
+                get_global_i18n().t('crawler.auto_crawl_no_id', links=len(urls)), "warning"
+            )
+            return
+
+        # 回填书籍ID后复用原有爬取流程（含去重、跳过已存在等逻辑）
+        try:
+            novel_id_input = self.query_one("#novel-id-input", Input)
+            novel_id_input.value = ', '.join(book_ids)
+        except Exception as e:
+            logger.error(f"回填书籍ID失败: {e}")
+            self._update_status(get_global_i18n().t('crawler.auto_crawl_error', error=str(e)), "error")
+            return
+
+        self._update_status(
+            get_global_i18n().t('crawler.auto_crawl_found', links=len(urls), count=len(book_ids)),
+            "information"
+        )
+        self._start_crawl()
 
     def action_edit_book(self) -> None:
         """E键 - 编辑光标所在行的书籍（与点击「编辑」按钮效果一致）"""
@@ -1126,6 +1246,9 @@ class CrawlerManagementScreen(Screen[None]):
         self.selected_browser = "chrome"  # 默认选择Chrome
         self.browser_options = ["chrome", "safari", "brave", "firefox"]
         
+        # 自动爬取相关属性
+        self._auto_crawl_running: bool = False  # 自动爬取（抓取页面+规则过滤）是否正在执行
+        
         # 窗口选择相关属性
         self.selected_window_index: Optional[int] = None  # None表示所有窗口
         self.window_options: List[Dict[str, Any]] = []  # 窗口选项列表
@@ -1279,6 +1402,7 @@ class CrawlerManagementScreen(Screen[None]):
                     Button(get_global_i18n().t('common.compare_read'), id="compare-read-btn", variant="success"),
                     Button(get_global_i18n().t('crawler.set_serial_mode'), id="set-serial-btn", variant="success"),
                     Button(get_global_i18n().t('crawler.batch_crawl_latest'), id="batch-crawl-latest-btn", variant="primary"),
+                    Button(get_global_i18n().t('crawler.auto_crawl_books'), id="auto-crawl-books-btn", variant="success"),
                     Button(get_global_i18n().t('common.delete_file'), id="delete-file-btn", variant="warning"),
                     Button(get_global_i18n().t('crawler.delete_record'), id="delete-record-btn", variant="warning"),
                     Button(get_global_i18n().t('common.back'), id="back-btn"),
@@ -6226,6 +6350,8 @@ class CrawlerManagementScreen(Screen[None]):
             self._open_log_viewer()
         elif button_id == "clear-invalid-btn":
             self._clear_invalid_records()
+        elif button_id == "auto-crawl-books-btn":
+            self._start_auto_crawl()
         elif button_id == "delete-file-btn":
             self._batch_delete_files()
         elif button_id == "delete-record-btn":

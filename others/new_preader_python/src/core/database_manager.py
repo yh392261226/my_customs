@@ -434,7 +434,14 @@ class DatabaseManager:
                     rating INTEGER NOT NULL DEFAULT 2,  -- 星级评分，0-5，默认2星
                     created_at TEXT NOT NULL,
                     updated_at TEXT NOT NULL,
-                    book_id_example TEXT DEFAULT ''
+                    book_id_example TEXT DEFAULT '',
+                    url_pattern TEXT DEFAULT '',      -- URL模式，如 book/{novel_id}.html
+                    auto_crawl_url TEXT DEFAULT '',   -- 自动爬取：指定的书籍列表页面/接口地址
+                    auto_crawl_rule TEXT DEFAULT '',  -- 自动爬取：判断/过滤书籍链接的自定义规则
+                    auto_crawl_pages INTEGER NOT NULL DEFAULT 1,  -- 自动爬取：最大抓取页数
+                    auto_crawl_next_rule TEXT DEFAULT '',         -- 自动爬取：下一页规则（返回下一页地址）
+                    auto_crawl_format TEXT DEFAULT '',            -- 自动爬取：数据格式 ''自动/json接口/html链接
+                    auto_crawl_selector TEXT DEFAULT ''          -- 自动爬取：CSS选择器，用于限定只取页面某个区域
                 )
             """)
 
@@ -512,6 +519,28 @@ class DatabaseManager:
             
             # 检查并添加novel_sites表的status列（如果不存在）
             self._add_column_if_not_exists(cursor, "novel_sites", "status", "TEXT NOT NULL", "'正常'")
+            
+            # 检查并添加novel_sites表的url_pattern列（URL模式，{novel_id}为书籍ID占位符）
+            # save_novel_site 会写入该列，但旧库可能没有，必须补建否则保存整站失败
+            self._add_column_if_not_exists(cursor, "novel_sites", "url_pattern", "TEXT", "''")
+            
+            # 检查并添加novel_sites表的auto_crawl_url列（自动爬取：指定的书籍列表页面地址）
+            self._add_column_if_not_exists(cursor, "novel_sites", "auto_crawl_url", "TEXT", "''")
+            
+            # 检查并添加novel_sites表的auto_crawl_rule列（自动爬取：判断/过滤书籍链接的自定义规则）
+            self._add_column_if_not_exists(cursor, "novel_sites", "auto_crawl_rule", "TEXT", "''")
+            
+            # 检查并添加novel_sites表的auto_crawl_pages列（自动爬取：最大抓取页数）
+            self._add_column_if_not_exists(cursor, "novel_sites", "auto_crawl_pages", "INTEGER NOT NULL", "1")
+            
+            # 检查并添加novel_sites表的auto_crawl_next_rule列（自动爬取：下一页规则）
+            self._add_column_if_not_exists(cursor, "novel_sites", "auto_crawl_next_rule", "TEXT", "''")
+            
+            # 检查并添加novel_sites表的auto_crawl_format列（自动爬取：数据格式 自动/JSON接口/HTML链接）
+            self._add_column_if_not_exists(cursor, "novel_sites", "auto_crawl_format", "TEXT", "''")
+            
+            # 检查并添加novel_sites表的auto_crawl_selector列（自动爬取：CSS选择器，限定抓取区域）
+            self._add_column_if_not_exists(cursor, "novel_sites", "auto_crawl_selector", "TEXT", "''")
             
             # 检查并添加crawl_history表的新字段（支持增量爬取）
             self._add_column_if_not_exists(cursor, "crawl_history", "book_type", "TEXT", "'短篇'")
@@ -1826,7 +1855,7 @@ class DatabaseManager:
                     # 更新现有网站
                     cursor.execute("""
                         UPDATE novel_sites 
-                        SET name = ?, url = ?, storage_folder = ?, proxy_enabled = ?, selectable_enabled = ?, parser = ?, tags = ?, rating = ?, book_id_example = ?, status = ?, url_pattern = ?, search_url = ?, updated_at = ?
+                        SET name = ?, url = ?, storage_folder = ?, proxy_enabled = ?, selectable_enabled = ?, parser = ?, tags = ?, rating = ?, book_id_example = ?, status = ?, url_pattern = ?, search_url = ?, auto_crawl_url = ?, auto_crawl_rule = ?, auto_crawl_pages = ?, auto_crawl_next_rule = ?, auto_crawl_format = ?, auto_crawl_selector = ?, updated_at = ?
                         WHERE id = ?
                     """, (
                         site_data["name"],
@@ -1841,6 +1870,12 @@ class DatabaseManager:
                         site_data.get("status", "正常"),  # 默认状态为正常
                         site_data.get("url_pattern", ""),  # URL模式
                         site_data.get("search_url", ""),  # 搜索连接地址
+                        site_data.get("auto_crawl_url", ""),  # 自动爬取页面地址
+                        site_data.get("auto_crawl_rule", ""),  # 自动爬取过滤规则
+                        site_data.get("auto_crawl_pages", 1),  # 自动爬取最大页数
+                        site_data.get("auto_crawl_next_rule", ""),  # 自动爬取下一页规则
+                        site_data.get("auto_crawl_format", ""),  # 自动爬取数据格式
+                        site_data.get("auto_crawl_selector", ""),  # 自动爬取CSS选择器
                         now,
                         site_data["id"]
                     ))
@@ -1848,8 +1883,8 @@ class DatabaseManager:
                     # 插入新网站
                     cursor.execute("""
                         INSERT INTO novel_sites 
-                        (name, url, storage_folder, proxy_enabled, selectable_enabled, parser, tags, rating, book_id_example, status, url_pattern, search_url, created_at, updated_at)
-                        VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
+                        (name, url, storage_folder, proxy_enabled, selectable_enabled, parser, tags, rating, book_id_example, status, url_pattern, search_url, auto_crawl_url, auto_crawl_rule, auto_crawl_pages, auto_crawl_next_rule, auto_crawl_format, auto_crawl_selector, created_at, updated_at)
+                        VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
                     """, (
                         site_data["name"],
                         site_data["url"],
@@ -1863,6 +1898,12 @@ class DatabaseManager:
                         site_data.get("status", "正常"),  # 默认状态为正常
                         site_data.get("url_pattern", ""),  # URL模式
                         site_data.get("search_url", ""),  # 搜索连接地址
+                        site_data.get("auto_crawl_url", ""),  # 自动爬取页面地址
+                        site_data.get("auto_crawl_rule", ""),  # 自动爬取过滤规则
+                        site_data.get("auto_crawl_pages", 1),  # 自动爬取最大页数
+                        site_data.get("auto_crawl_next_rule", ""),  # 自动爬取下一页规则
+                        site_data.get("auto_crawl_format", ""),  # 自动爬取数据格式
+                        site_data.get("auto_crawl_selector", ""),  # 自动爬取CSS选择器
                         now,
                         now
                     ))

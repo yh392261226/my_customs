@@ -6,7 +6,7 @@ from typing import Dict, Any, Optional, List
 from urllib.parse import unquote
 from textual.screen import ModalScreen
 from textual.containers import Container, Vertical, Horizontal
-from textual.widgets import Static, Button, Label, Input, Select, Switch
+from textual.widgets import Static, Button, Label, Input, Select, Switch, TextArea
 from textual.app import ComposeResult
 from textual.reactive import reactive
 from textual import events
@@ -161,6 +161,67 @@ class NovelSiteDialog(ModalScreen[Optional[Dict[str, Any]]]):
                             ),
                             id="search-url-container", classes="form-row"
                         ),
+                        # 自动爬取：数据格式
+                        Horizontal(
+                            Label(get_global_i18n().t('novel_site_dialog.auto_crawl_format'), id="auto-crawl-format-label"),
+                            Select(
+                                options=[
+                                    (get_global_i18n().t('novel_site_dialog.auto_crawl_format_auto'), ""),
+                                    (get_global_i18n().t('novel_site_dialog.auto_crawl_format_json'), "json"),
+                                    (get_global_i18n().t('novel_site_dialog.auto_crawl_format_html'), "html"),
+                                ],
+                                id="auto-crawl-format-select",
+                                allow_blank=False
+                            ),
+                            id="auto-crawl-format-container", classes="form-row"
+                        ),
+                        # 自动爬取：指定页面
+                        Horizontal(
+                            Label(get_global_i18n().t('novel_site_dialog.auto_crawl_url'), id="auto-crawl-url-label"),
+                            Input(
+                                placeholder=get_global_i18n().t('novel_site_dialog.auto_crawl_url_placeholder'),
+                                id="auto-crawl-url-input"
+                            ),
+                            id="auto-crawl-url-container", classes="form-row"
+                        ),
+                        Label(get_global_i18n().t('novel_site_dialog.auto_crawl_url_help'), id="auto-crawl-url-help"),
+                        # 自动爬取：CSS选择器（限定抓取区域）
+                        Horizontal(
+                            Label(get_global_i18n().t('novel_site_dialog.auto_crawl_selector'), id="auto-crawl-selector-label"),
+                            Input(
+                                placeholder=get_global_i18n().t('novel_site_dialog.auto_crawl_selector_placeholder'),
+                                id="auto-crawl-selector-input"
+                            ),
+                            id="auto-crawl-selector-container", classes="form-row"
+                        ),
+                        Label(get_global_i18n().t('novel_site_dialog.auto_crawl_selector_help'), id="auto-crawl-selector-help"),
+                        # 自动爬取：过滤规则
+                        Label(get_global_i18n().t('novel_site_dialog.auto_crawl_rule'), id="auto-crawl-rule-label"),
+                        TextArea(
+                            id="auto-crawl-rule-textarea",
+                            tab_behavior="indent",
+                            placeholder=get_global_i18n().t('novel_site_dialog.auto_crawl_rule_placeholder'),
+                            classes="textarea-std"
+                        ),
+                        Label(get_global_i18n().t('novel_site_dialog.auto_crawl_rule_help'), id="auto-crawl-rule-help"),
+                        # 自动爬取：最大页数
+                        Horizontal(
+                            Label(get_global_i18n().t('novel_site_dialog.auto_crawl_pages'), id="auto-crawl-pages-label"),
+                            Input(
+                                placeholder=get_global_i18n().t('novel_site_dialog.auto_crawl_pages_placeholder'),
+                                id="auto-crawl-pages-input"
+                            ),
+                            id="auto-crawl-pages-container", classes="form-row"
+                        ),
+                        # 自动爬取：下一页规则
+                        Label(get_global_i18n().t('novel_site_dialog.auto_crawl_next_rule'), id="auto-crawl-next-rule-label"),
+                        TextArea(
+                            id="auto-crawl-next-rule-textarea",
+                            tab_behavior="indent",
+                            placeholder=get_global_i18n().t('novel_site_dialog.auto_crawl_next_rule_placeholder'),
+                            classes="textarea-std"
+                        ),
+                        Label(get_global_i18n().t('novel_site_dialog.auto_crawl_next_rule_help'), id="auto-crawl-next-rule-help"),
                         Horizontal(
                             Label(get_global_i18n().t('novel_site_dialog.rating'), id="rating-label"),
                             Select(
@@ -325,6 +386,36 @@ class NovelSiteDialog(ModalScreen[Optional[Dict[str, Any]]]):
         search_url_value = self.novel_site.get("search_url", "")
         search_url_input.value = search_url_value if search_url_value is not None else ""
         
+        # 自动爬取数据格式
+        auto_crawl_format_select = self.query_one("#auto-crawl-format-select", Select)
+        auto_crawl_format_value = self.novel_site.get("auto_crawl_format", "")
+        auto_crawl_format_select.value = auto_crawl_format_value if auto_crawl_format_value is not None else ""
+        
+        # 自动爬取页面地址
+        auto_crawl_url_input = self.query_one("#auto-crawl-url-input", Input)
+        auto_crawl_url_value = self.novel_site.get("auto_crawl_url", "")
+        auto_crawl_url_input.value = auto_crawl_url_value if auto_crawl_url_value is not None else ""
+        
+        # 自动爬取CSS选择器
+        auto_crawl_selector_input = self.query_one("#auto-crawl-selector-input", Input)
+        auto_crawl_selector_value = self.novel_site.get("auto_crawl_selector", "")
+        auto_crawl_selector_input.value = auto_crawl_selector_value if auto_crawl_selector_value is not None else ""
+        
+        # 自动爬取规则
+        auto_crawl_rule_input = self.query_one("#auto-crawl-rule-textarea", TextArea)
+        auto_crawl_rule_value = self.novel_site.get("auto_crawl_rule", "")
+        auto_crawl_rule_input.text = auto_crawl_rule_value if auto_crawl_rule_value is not None else ""
+        
+        # 自动爬取最大页数
+        auto_crawl_pages_input = self.query_one("#auto-crawl-pages-input", Input)
+        auto_crawl_pages_value = self.novel_site.get("auto_crawl_pages", 1)
+        auto_crawl_pages_input.value = str(auto_crawl_pages_value) if auto_crawl_pages_value is not None else "1"
+        
+        # 自动爬取下一页规则
+        auto_crawl_next_rule_input = self.query_one("#auto-crawl-next-rule-textarea", TextArea)
+        auto_crawl_next_rule_value = self.novel_site.get("auto_crawl_next_rule", "")
+        auto_crawl_next_rule_input.text = auto_crawl_next_rule_value if auto_crawl_next_rule_value is not None else ""
+        
         # 如果没有URL模式且已选择解析器，自动填充
         if not url_pattern_value and parser_value:
             self._auto_fill_url_pattern(parser_value)
@@ -376,6 +467,15 @@ class NovelSiteDialog(ModalScreen[Optional[Dict[str, Any]]]):
         except Exception as e:
             logger.error(f"自动填充URL模式失败: {e}")
     
+    @staticmethod
+    def _parse_pages(value: str) -> int:
+        """解析最大页数输入框，非法或空值时回退为1"""
+        try:
+            pages = int((value or '').strip())
+            return pages if pages > 0 else 1
+        except (TypeError, ValueError):
+            return 1
+
     def _save_novel_site(self) -> None:
         """保存书籍网站信息"""
         # 获取输入值
@@ -386,6 +486,12 @@ class NovelSiteDialog(ModalScreen[Optional[Dict[str, Any]]]):
         book_id_example_input = self.query_one("#book-id-example-input", Input)
         url_pattern_input = self.query_one("#url-pattern-input", Input)
         search_url_input = self.query_one("#search-url-input", Input)
+        auto_crawl_url_input = self.query_one("#auto-crawl-url-input", Input)
+        auto_crawl_selector_input = self.query_one("#auto-crawl-selector-input", Input)
+        auto_crawl_format_select = self.query_one("#auto-crawl-format-select", Select)
+        auto_crawl_rule_input = self.query_one("#auto-crawl-rule-textarea", TextArea)
+        auto_crawl_pages_input = self.query_one("#auto-crawl-pages-input", Input)
+        auto_crawl_next_rule_input = self.query_one("#auto-crawl-next-rule-textarea", TextArea)
         parser_select = self.query_one("#parser-select", Select)
         proxy_checkbox = self.query_one("#enable-proxy", Switch)
         selectable_checkbox = self.query_one("#enable-selectable", Switch)
@@ -432,6 +538,12 @@ class NovelSiteDialog(ModalScreen[Optional[Dict[str, Any]]]):
             "book_id_example": book_id_example_input.value.strip(),
             "url_pattern": url_pattern_input.value.strip(),
             "search_url": search_url_input.value.strip(),
+            "auto_crawl_url": auto_crawl_url_input.value.strip(),
+            "auto_crawl_selector": auto_crawl_selector_input.value.strip(),
+            "auto_crawl_format": auto_crawl_format_select.value if auto_crawl_format_select.value != Select.BLANK else "",
+            "auto_crawl_rule": auto_crawl_rule_input.text.strip(),
+            "auto_crawl_pages": self._parse_pages(auto_crawl_pages_input.value),
+            "auto_crawl_next_rule": auto_crawl_next_rule_input.text.strip(),
             "parser": parser_value,
             "proxy_enabled": proxy_checkbox.value,
             "selectable_enabled": selectable_checkbox.value,
