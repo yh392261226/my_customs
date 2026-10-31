@@ -179,6 +179,8 @@ class FillMissingDialog(ModalScreen[Dict[str, Any]]):
                             Static("", id="fm-group-display", classes="group-display"),
                             id="fm-group-scroll",
                         ),
+                        # 分组清空按钮（清空后书籍会重新勾选到左侧，可重新排序再分配覆盖）
+                        Button(self.i18n.t('fill_missing.clear_groups'), id="fm-clear-groups-btn", variant="error"),
                         # 中间组的行号输入 + 快速定位
                         Horizontal(
                             Label(f"{self.i18n.t('fill_missing.middle_line')}:", classes="label-text"),
@@ -746,29 +748,35 @@ class FillMissingDialog(ModalScreen[Dict[str, Any]]):
 
     def _assign_selected_to_group(self, group_key: str) -> None:
         """
-        将当前选中的书籍分配到指定组。
+        将当前选中的书籍分配到指定组（覆盖语义）。
+
         规则：
-        - 如果书籍已在其他组，先移除再添加到目标组
-        - 保持书籍在列表中的原始顺序
-        - 添加到目标组的末尾
+        - 再次点击分配即「覆盖」目标组：目标组原有内容被丢弃，只保留本次选中集合
+        - 组内顺序始终按左侧列表当前顺序重排，左侧调整排序后重新分配即可修正组内顺序
+        - 选中的书籍会同时从其他组中移除，避免同一本书出现在多个组
         """
         if not self._selected_indices:
             self.notify(self.i18n.t('fill_missing.no_selection_hint'), severity="warning", timeout=2)
             return
 
         selected_nids = set(self._selected_indices)
+        target_group = self._insert_groups[group_key]
+        old_nids = list(target_group.get("books") or [])
 
-        # 从所有其他组移除这些 novel_id
+        # 从所有其他组移除这些 novel_id（避免同一本书同时属于多个组）
         for gk, gv in self._insert_groups.items():
             if gk != group_key:
                 gv["books"] = [nid for nid in gv["books"] if nid not in selected_nids]
 
-        # 添加到目标组（按当前列表顺序，追加到末尾，避免重复）
-        target_group = self._insert_groups[group_key]
-        for b in self._crawled_books:
-            nid = b.get('novel_id')
-            if nid in selected_nids and nid not in target_group["books"]:
-                target_group["books"].append(nid)
+        # 覆盖目标组：完全以本次选中集合为准，顺序沿用左侧列表当前顺序
+        target_group["books"] = [
+            b.get('novel_id')
+            for b in self._crawled_books
+            if b.get('novel_id') in selected_nids
+        ]
+
+        # 本次是否产生了「替换」效果（原组有内容且内容/顺序发生了变化）
+        overwritten = len(old_nids) > 0 and old_nids != target_group["books"]
 
         # 清空选择
         self._selected_indices.clear()
@@ -781,10 +789,61 @@ class FillMissingDialog(ModalScreen[Dict[str, Any]]):
         gname = {self.GROUP_FRONT: self.i18n.t('fill_missing.group_front'),
                  self.GROUP_MIDDLE: self.i18n.t('fill_missing.group_middle'),
                  self.GROUP_BACK: self.i18n.t('fill_missing.group_back')}.get(group_key, group_key)
-        self.notify(self.i18n.t('fill_missing.assigned_msg').format(gname=gname, count=len(selected_nids)), timeout=2)
+        count = len(target_group["books"])
+        if overwritten:
+            self.notify(
+                self.i18n.t('fill_missing.assigned_overwrite_msg').format(gname=gname, count=count),
+                timeout=2,
+            )
+        else:
+            self.notify(self.i18n.t('fill_missing.assigned_msg').format(gname=gname, count=count), timeout=2)
 
         # 分配完成后自动触发智能标题（填充合并后的新书名）
         self._apply_smart_title()
+
+    # ─── 分组清空（右侧按钮） ───────────────────────────────
+
+    @on(Button.Pressed, "#fm-clear-groups-btn")
+    def on_clear_groups(self):
+        """一键清空前/中/后三个分组"""
+        cleared_nids: List[str] = []
+        for gk in (self.GROUP_FRONT, self.GROUP_MIDDLE, self.GROUP_BACK):
+            cleared_nids.extend(self._clear_group(gk))
+
+        if not cleared_nids:
+            self.notify(self.i18n.t('fill_missing.no_group_to_clear'), severity="warning", timeout=2)
+            return
+
+        self._after_clear_operation(len(cleared_nids))
+        self.notify(self.i18n.t('fill_missing.cleared_groups_msg').format(count=len(cleared_nids)), timeout=2)
+
+    def _clear_group(self, group_key: str) -> List[str]:
+        """
+        清空指定分组。
+
+        清空后会把组内书籍重新勾选到左侧列表，方便调整排序后再次分配覆盖。
+        返回被移除的 novel_id 列表。
+        """
+        group = self._insert_groups[group_key]
+        nids = list(group.get("books") or [])
+        if not nids:
+            return []
+
+        # 清空组内书籍（中间组的行号保留，避免重复设置）
+        group["books"] = []
+
+        # 重新勾选到左侧，便于重新排序后再次分配
+        for nid in nids:
+            self._selected_indices.add(nid)
+
+        return nids
+
+    def _after_clear_operation(self, count: int) -> None:
+        """清空后的统一刷新：左侧列表、右侧分组显示与智能标题"""
+        self._refresh_books_list_display()
+        self._refresh_group_display()
+        if count:
+            self._apply_smart_title()
 
     # ─── 中间组行号设置 ─────────────────────────────────────
 

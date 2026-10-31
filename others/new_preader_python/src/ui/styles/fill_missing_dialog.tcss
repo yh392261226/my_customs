@@ -161,6 +161,12 @@ FillMissingDialog Container, #fm-container {
     padding: 0;
 }
 
+/* 分组清空按钮 */
+#fm-clear-groups-btn {
+    width: 100%; height: 3; background: $error 60%; color: $text; margin-bottom: 1;
+}
+#fm-clear-groups-btn:hover { background: $error 80%; }
+
 #fm-middle-line-row {
     width: 100%; height: 3; align: center middle; overflow-x: auto;
 }
