@@ -86,6 +86,7 @@ Container {
 #auto-crawl-url-label,
 #auto-crawl-selector-label,
 #auto-crawl-rule-label,
+#auto-crawl-next-rule-label,
 #auto-crawl-pages-label {
     width: 30%;
     height: 1;
@@ -103,12 +104,52 @@ Container {
 #search-url-input,
 #auto-crawl-url-input,
 #auto-crawl-selector-input,
-#auto-crawl-rule-textarea,
 #auto-crawl-pages-input {
     width: 70%;
     min-width: 40;
     height: 3;
     margin: 0;
+}
+
+/* 多行文本域所在行：高度随内容，标签仍占30%与输入框列对齐 */
+#auto-crawl-rule-container,
+#auto-crawl-next-rule-container {
+    layout: horizontal;
+    width: 100%;
+    height: auto;
+    min-height: 7;
+    margin: 1 0;
+    align: left top;
+}
+#auto-crawl-rule-textarea,
+#auto-crawl-next-rule-textarea {
+    width: 70%;
+    min-width: 40;
+    height: auto;
+    min-height: 5;
+    max-height: 10;
+    margin: 0;
+}
+
+/* 提示信息行：左侧占位与标签同宽，使提示与输入框列左对齐 */
+.form-help-row {
+    layout: horizontal;
+    width: 100%;
+    height: auto;
+    margin: 0 0 1 0;
+    align: left top;
+}
+.form-label-spacer {
+    width: 30%;
+    height: 1;
+}
+.form-help {
+    width: 70%;
+    min-width: 40;
+    height: auto;
+    margin: 0;
+    padding: 0 1;
+    color: $text-muted;
 }
 
 #rating-container {

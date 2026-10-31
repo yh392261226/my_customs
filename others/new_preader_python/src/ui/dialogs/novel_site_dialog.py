@@ -184,7 +184,7 @@ class NovelSiteDialog(ModalScreen[Optional[Dict[str, Any]]]):
                             ),
                             id="auto-crawl-url-container", classes="form-row"
                         ),
-                        Label(get_global_i18n().t('novel_site_dialog.auto_crawl_url_help'), id="auto-crawl-url-help"),
+                        self._help_row(get_global_i18n().t('novel_site_dialog.auto_crawl_url_help')),
                         # 自动爬取：CSS选择器（限定抓取区域）
                         Horizontal(
                             Label(get_global_i18n().t('novel_site_dialog.auto_crawl_selector'), id="auto-crawl-selector-label"),
@@ -194,16 +194,18 @@ class NovelSiteDialog(ModalScreen[Optional[Dict[str, Any]]]):
                             ),
                             id="auto-crawl-selector-container", classes="form-row"
                         ),
-                        Label(get_global_i18n().t('novel_site_dialog.auto_crawl_selector_help'), id="auto-crawl-selector-help"),
-                        # 自动爬取：过滤规则
-                        Label(get_global_i18n().t('novel_site_dialog.auto_crawl_rule'), id="auto-crawl-rule-label"),
-                        TextArea(
-                            id="auto-crawl-rule-textarea",
-                            tab_behavior="indent",
-                            placeholder=get_global_i18n().t('novel_site_dialog.auto_crawl_rule_placeholder'),
-                            classes="textarea-std"
+                        self._help_row(get_global_i18n().t('novel_site_dialog.auto_crawl_selector_help')),
+                        # 自动爬取：过滤规则（多行文本域，标签与输入框列对齐）
+                        Horizontal(
+                            Label(get_global_i18n().t('novel_site_dialog.auto_crawl_rule'), id="auto-crawl-rule-label"),
+                            TextArea(
+                                id="auto-crawl-rule-textarea",
+                                tab_behavior="indent",
+                                placeholder=get_global_i18n().t('novel_site_dialog.auto_crawl_rule_placeholder'),
+                            ),
+                            id="auto-crawl-rule-container", classes="form-row-tall"
                         ),
-                        Label(get_global_i18n().t('novel_site_dialog.auto_crawl_rule_help'), id="auto-crawl-rule-help"),
+                        self._help_row(get_global_i18n().t('novel_site_dialog.auto_crawl_rule_help')),
                         # 自动爬取：最大页数
                         Horizontal(
                             Label(get_global_i18n().t('novel_site_dialog.auto_crawl_pages'), id="auto-crawl-pages-label"),
@@ -214,14 +216,16 @@ class NovelSiteDialog(ModalScreen[Optional[Dict[str, Any]]]):
                             id="auto-crawl-pages-container", classes="form-row"
                         ),
                         # 自动爬取：下一页规则
-                        Label(get_global_i18n().t('novel_site_dialog.auto_crawl_next_rule'), id="auto-crawl-next-rule-label"),
-                        TextArea(
-                            id="auto-crawl-next-rule-textarea",
-                            tab_behavior="indent",
-                            placeholder=get_global_i18n().t('novel_site_dialog.auto_crawl_next_rule_placeholder'),
-                            classes="textarea-std"
+                        Horizontal(
+                            Label(get_global_i18n().t('novel_site_dialog.auto_crawl_next_rule'), id="auto-crawl-next-rule-label"),
+                            TextArea(
+                                id="auto-crawl-next-rule-textarea",
+                                tab_behavior="indent",
+                                placeholder=get_global_i18n().t('novel_site_dialog.auto_crawl_next_rule_placeholder'),
+                            ),
+                            id="auto-crawl-next-rule-container", classes="form-row-tall"
                         ),
-                        Label(get_global_i18n().t('novel_site_dialog.auto_crawl_next_rule_help'), id="auto-crawl-next-rule-help"),
+                        self._help_row(get_global_i18n().t('novel_site_dialog.auto_crawl_next_rule_help')),
                         Horizontal(
                             Label(get_global_i18n().t('novel_site_dialog.rating'), id="rating-label"),
                             Select(
@@ -436,6 +440,9 @@ class NovelSiteDialog(ModalScreen[Optional[Dict[str, Any]]]):
         """
         if event.button.id == "save-btn":
             self._save_novel_site()
+        elif event.button.id == "cancel-btn":
+            # 与 Esc 快捷键走同一入口，直接关闭且不回传数据
+            self.action_cancel()
     
     def on_select_changed(self, event: Select.Changed) -> None:
         """
@@ -467,6 +474,20 @@ class NovelSiteDialog(ModalScreen[Optional[Dict[str, Any]]]):
         except Exception as e:
             logger.error(f"自动填充URL模式失败: {e}")
     
+    @staticmethod
+    def _help_row(text: str) -> Horizontal:
+        """
+        构造提示信息行
+
+        左侧用一个与标签列同宽的占位，使提示文字与右侧输入框列左对齐，
+        避免提示信息顶格显示而与上面的「标签+输入框」错位。
+        """
+        return Horizontal(
+            Label("", classes="form-label-spacer"),
+            Label(text, classes="form-help"),
+            classes="form-help-row",
+        )
+
     @staticmethod
     def _parse_pages(value: str) -> int:
         """解析最大页数输入框，非法或空值时回退为1"""
