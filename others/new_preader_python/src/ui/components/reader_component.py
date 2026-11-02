@@ -46,6 +46,7 @@ class ReaderComponent(ABC):
             self._callbacks[event] = []
         self._callbacks[event].append(callback)
     
+    def emit_event(self, event: str, *args, **kwargs) -> None:
         """触发事件"""
         if event in self._callbacks:
             for callback in self._callbacks[event]:
@@ -204,6 +205,10 @@ class ComponentManager:
     def broadcast_event(self, event: str, *args, **kwargs) -> None:
         """广播事件到所有组件"""
         for component in self.components.values():
+            try:
+                component.emit_event(event, *args, **kwargs)
+            except Exception as e:
+                logger.error(f"广播事件 {event} 到组件 {component.component_id} 失败: {e}")
     
     def register_global_callback(self, event: str, callback: Callable) -> None:
         """注册全局事件回调"""

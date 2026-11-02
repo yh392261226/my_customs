@@ -50,11 +50,18 @@ from src.config.settings.setting_registry import SettingRegistry
 from src.config.settings.setting_factory import initialize_settings_registry
 from src.ui.messages import RefreshBookshelfMessage, RequestPasswordMessage, RefreshContentMessage
 from src.ui.styles.quick_fix_isolation import reset_quick_isolation
+from src.ui.utils.button_shortcut_tooltip import install_button_shortcut_tooltips
 
 from src.utils.logger import get_logger
 from src.utils.logger import get_recent_memory_logs, is_file_logging_enabled
 
 logger = get_logger(__name__)
+
+# 全局按钮快捷键 tooltip：在所有屏幕/对话框的按钮上自动提示对应快捷键
+try:
+    install_button_shortcut_tooltips()
+except Exception as _e:  # pragma: no cover - 该补丁失败不应影响应用启动
+    logger.debug(f"按钮快捷键提示安装失败（可忽略）：{_e}")
 
 class ThemeSelectScreen(ModalScreen[str]):
     """App 内主题选择器：列出 ThemeManager 中的所有主题名"""
