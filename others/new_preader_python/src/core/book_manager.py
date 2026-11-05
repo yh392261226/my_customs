@@ -102,8 +102,12 @@ class BookManager:
         - 位于 _imported 内错字母/错位置（如直接丢在 _imported 下或错字母目录）的新文件：
           移动到正确字母目录。
         - 位于书籍库之外的新文件：复制到 书籍库/_imported/<首字母>/（保留原文件）。
-        - 位于网站(site)目录或其它一级目录下的文件：属爬虫/已管理区域，导入流程不挪动，
-          以免把爬虫书籍误判为「导入书籍」而改变其归类。
+        - 位于网站(site)目录下的文件：属爬虫管理区域，导入流程不挪动，
+          以免把爬虫书籍误判为「导入书籍」而改变其归类。站点目录通过数据库中的
+          站点名（novel_sites）计算的目录名来识别。
+        - 位于书籍库内其它一级目录（用户临时存放区）下的文件：这些文件可能只是
+          临时放在该文件夹中，添加书籍时应移动到 书籍库/_imported/<首字母>/
+          规范位置并登记新路径，而不是直接按文件的当前位置入库。
         返回整理后的新路径；无需移动或失败时返回 None。
         """
         from src.utils.storage_layout import (
@@ -152,9 +156,13 @@ class BookManager:
         # 库内文件：top 为相对 library_root 的第一级目录名（扁平文件则为 None）
         top = parts[0] if len(parts) > 1 else None
 
-        # 网站(site)目录或其它一级目录：属爬虫/已管理区域，不挪动
+        # 网站(site)目录：属爬虫管理区域，不挪动。站点目录按数据库中的站点名
+        # 计算目录名来识别；其它一级目录视为用户的临时存放区，文件可能只是
+        # 临时放在那里，添加书籍时应移动到规范分层位置而不是按当前位置登记。
         if top is not None and top != IMPORT_DIR_NAME:
-            return None
+            site_dirs = self._get_known_site_dirnames()
+            if site_dirs is None or top in site_dirs:
+                return None
 
         # top 为 None（根目录扁平）或 _imported（需检查字母是否正确）
         title = os.path.splitext(os.path.basename(abs_src))[0]
@@ -181,6 +189,24 @@ class BookManager:
 
         logger.info(f"导入书籍已整理进分层目录: {abs_src} -> {target}")
         return target
+
+    def _get_known_site_dirnames(self) -> Optional[set]:
+        """返回所有爬虫站点对应的书籍库一级目录名（用于识别爬虫管理区域）。
+
+        爬虫书籍存储在 书籍库/<站点目录名>/<首字母>/ 下，站点目录名由站点名
+        经 safe_site_dirname 计算得到。查询失败时返回 None，调用方应保守地
+        不挪动任何非 _imported 一级目录下的文件，避免误移爬虫书籍。
+        """
+        try:
+            from src.utils.storage_layout import safe_site_dirname
+            sites = self.bookshelf.db_manager.get_novel_sites() or []
+            return {
+                safe_site_dirname(s.get("name") or "")
+                for s in sites if (s.get("name") or "").strip()
+            }
+        except Exception as e:
+            logger.error(f"获取站点目录名失败: {e}")
+            return None
 
     def _update_book_path_everywhere(self, old_path: str, new_path: str) -> None:
         """将书籍在数据库各表中的路径引用由 old_path 更新为 new_path。"""
