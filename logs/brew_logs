@@ -993,3 +993,4 @@ brew install --cask raycast
 brew install harlequin
 brew install yazi
 brew install rga
+brew install ivankovic/omnidiff/omnidiff
