@@ -1434,23 +1434,24 @@ class FileExplorerScreen(ScreenStyleMixin, Screen[Optional[Union[str, List[str]]
         except Exception as e:
             logger.error(f"处理文件列表高亮失败: {e}")
     
-    def _get_bookshelf_files(self) -> Set[str]:
-        """获取书库中所有书籍文件的文件名集合（性能优化版本 - 零热路径日志）
+    def _get_bookshelf_files(self) -> Dict[str, str]:
+        """获取书库中所有书籍文件的 文件名(lower) -> 完整路径 映射（性能优化版本）
 
-        核心优化：不在循环内打日志，也不把整个集合转成字符串输出。
+        返回映射而非集合，供差异过滤在文件名相同时进一步比较文件大小，
+        实现「同名留大去小」的导入覆盖规则。
         """
         try:
-            bookshelf_files: Set[str] = set()
+            bookshelf_files: Dict[str, str] = {}
             for book_path, book in self.bookshelf.books.items():
                 if hasattr(book, 'path') and book.path:
-                    bookshelf_files.add(os.path.basename(book.path))
+                    bookshelf_files[os.path.basename(book.path).lower()] = book.path
                 else:
                     logger.debug(f"书籍对象没有path属性或path为空: {book_path}")
-            logger.debug(f"书库文件名集合构建完成: {len(bookshelf_files)} 个")
+            logger.debug(f"书库文件名映射构建完成: {len(bookshelf_files)} 个")
             return bookshelf_files
         except Exception as e:
             logger.error(f"获取书库文件列表失败: {e}")
-            return set()
+            return {}
     
     def _get_all_files_in_current_directory(self, recursive: bool = False) -> List[Dict[str, str]]:
         """获取当前目录下的所有文件（性能优化版本 - 缓存 + 零热路径日志）
@@ -1540,33 +1541,36 @@ class FileExplorerScreen(ScreenStyleMixin, Screen[Optional[Union[str, List[str]]
     def _filter_files_not_in_bookshelf(self, files: List[Dict[str, str]]) -> List[Dict[str, str]]:
         """过滤掉书库中已存在的文件（性能优化版本 - 集合差集 + 零热路径日志）
 
+        规则（与导入同名去重规则一致）：
+        1. 文件名在书库中不存在：保留（正常新增）。
+        2. 文件名相同（不区分大小写）：比较文件大小，当前文件更大则保留
+           （导入时会覆盖书库中较小的同名书籍文件），否则过滤掉。
+
         核心优化：
-        1. 书架文件名构建为 lowercase 集合，O(1) 查找
+        1. 书架文件名构建为 lowercase 映射，O(1) 查找
         2. 当前目录文件名构建为 lowercase 集合，用集合差集一次性求出"不在书架中"的文件名
         3. 热路径中不做任何日志输出（避免 f-string 求值开销），仅在入口/出口汇总
         """
         try:
-            # 1. 获取书架文件名集合（带缓存）
+            # 1. 获取书架文件名映射（带缓存）
             cache_valid = False
-            bookshelf_files_lower: Set[str] = set()
+            bookshelf_name_map: Dict[str, str] = {}
 
             if hasattr(self, '_bookshelf_cache') and isinstance(self._bookshelf_cache, dict):
                 cache_data = self._bookshelf_cache
                 cached_time = cache_data.get('time')
                 if isinstance(cached_time, (int, float)):
                     if time.time() - cached_time < 30:
-                        cached_files_lower = cache_data.get('files_lower')
-                        if isinstance(cached_files_lower, set):
+                        cached_name_map = cache_data.get('name_map')
+                        if isinstance(cached_name_map, dict):
                             cache_valid = True
-                            bookshelf_files_lower = cached_files_lower
+                            bookshelf_name_map = cached_name_map
 
             if not cache_valid:
-                bookshelf_files = self._get_bookshelf_files()
-                bookshelf_files_lower = {filename.lower() for filename in bookshelf_files}
+                bookshelf_name_map = self._get_bookshelf_files()
                 self._bookshelf_cache = {
                     'time': time.time(),
-                    'files': bookshelf_files,
-                    'files_lower': bookshelf_files_lower
+                    'name_map': bookshelf_name_map,
                 }
 
             if not files:
@@ -1582,18 +1586,35 @@ class FileExplorerScreen(ScreenStyleMixin, Screen[Optional[Union[str, List[str]]
 
             # 3. 集合差集：一次性求出不在书架中的文件名（O(n) 纯 C 实现，无 Python 循环开销）
             dir_names_lower = set(name_to_info.keys())
-            new_names_lower = dir_names_lower - bookshelf_files_lower
+            new_names_lower = dir_names_lower - set(bookshelf_name_map.keys())
 
-            # 4. 按原始顺序输出（保持文件列表顺序稳定）
+            # 4. 同名文件比较大小：当前文件更大则保留（导入时覆盖书库中的较小文件）
+            def _keep_larger(name_lower: str) -> bool:
+                book_path = bookshelf_name_map.get(name_lower)
+                if not book_path:
+                    return True
+                try:
+                    return os.path.getsize(name_to_info[name_lower]["path"]) > os.path.getsize(book_path)
+                except OSError:
+                    # 无法取大小时保守过滤，交给导入流程按同名规则处理
+                    return False
+
+            larger_names_lower = {
+                name_lower for name_lower in (dir_names_lower - new_names_lower)
+                if _keep_larger(name_lower)
+            }
+
+            # 5. 按原始顺序输出（保持文件列表顺序稳定）
             filtered_files = [
                 name_to_info[name_lower]
                 for name_lower in dir_names_lower
-                if name_lower in new_names_lower
+                if name_lower in new_names_lower or name_lower in larger_names_lower
             ]
 
             logger.debug(
-                f"差异过滤完成: 目录文件 {len(files)} 个, 书架文件 {len(bookshelf_files_lower)} 个, "
-                f"新增(不在书架) {len(filtered_files)} 个"
+                f"差异过滤完成: 目录文件 {len(files)} 个, 书架文件 {len(bookshelf_name_map)} 个, "
+                f"新增(不在书架) {len(new_names_lower)} 个, 同名更大(将覆盖) {len(larger_names_lower)} 个, "
+                f"保留 {len(filtered_files)} 个"
             )
             return filtered_files
         except Exception as e:
