@@ -25,6 +25,10 @@ logger = get_logger(__name__)
 
 class BookManager:
     """书籍管理器类"""
+
+    # _organize_imported_file 的特殊返回值：表示「放弃导入该文件」
+    # （如目标 _imported 目录已存在同名且更大的文件），调用方不应再按原路径登记。
+    _SKIP_IMPORT = object()
     
     def __init__(self, bookshelf: Bookshelf, max_workers: int = 4):
         """
@@ -70,6 +74,10 @@ class BookManager:
 
             # 将导入的书籍整理进分层目录（书籍库/来源网站/首字母 或 书籍库/_imported/首字母）
             organized = self._organize_imported_file(file_path)
+            if organized is self._SKIP_IMPORT:
+                # 同名去重：目标位置已有同名且更大（或等大）的文件，放弃导入
+                logger.info(f"跳过重复导入（_imported 已存在同名且不小于该文件的书籍）: {file_path}")
+                return None
             if organized:
                 file_path = organized
 
@@ -108,11 +116,13 @@ class BookManager:
         - 位于书籍库内其它一级目录（用户临时存放区）下的文件：这些文件可能只是
           临时放在该文件夹中，添加书籍时应移动到 书籍库/_imported/<首字母>/
           规范位置并登记新路径，而不是直接按文件的当前位置入库。
+        - 同名去重（主要针对 _imported 目录）：目标位置已存在完全同名文件时比较
+          文件大小，保留较大者——新文件更大则覆盖旧文件（路径不变）；新文件不大于
+          旧文件则放弃导入（库内临时文件会被删除，库外文件保留原样），并返回
+          _SKIP_IMPORT 让调用方按导入失败处理，而不是按当前位置登记。
         返回整理后的新路径；无需移动或失败时返回 None。
         """
-        from src.utils.storage_layout import (
-            IMPORT_DIR_NAME, get_import_storage_dir, make_unique_path,
-        )
+        from src.utils.storage_layout import IMPORT_DIR_NAME, get_import_storage_dir
 
         if not os.path.isfile(src_path):
             return None
@@ -144,7 +154,10 @@ class BookManager:
             title = os.path.splitext(os.path.basename(abs_src))[0]
             target_dir = get_import_storage_dir(abs_root, title)
             os.makedirs(target_dir, exist_ok=True)
-            target = make_unique_path(os.path.join(target_dir, os.path.basename(abs_src)))
+            target = os.path.join(target_dir, os.path.basename(abs_src))
+            import_new, target = self._resolve_import_name_conflict(abs_src, target)
+            if not import_new:
+                return self._SKIP_IMPORT
             try:
                 shutil.copy2(abs_src, target)
                 logger.info(f"导入书籍已整理进分层目录: {abs_src} -> {target}")
@@ -173,7 +186,18 @@ class BookManager:
             return None
 
         os.makedirs(canon_dir, exist_ok=True)
-        target = make_unique_path(os.path.join(canon_dir, os.path.basename(abs_src)))
+        target = os.path.join(canon_dir, os.path.basename(abs_src))
+        import_new, target = self._resolve_import_name_conflict(abs_src, target)
+        if not import_new:
+            # 同名且新文件不大于现有文件：保留现有大文件，删除临时区的小文件
+            # （仅删除未在书架登记的文件，避免误删已入库书籍的源文件）
+            if not existing_book:
+                try:
+                    os.remove(abs_src)
+                    logger.info(f"同名书籍现有文件更大，已丢弃较小的新文件: {abs_src}")
+                except OSError as e:
+                    logger.warning(f"丢弃较小的新文件失败（忽略）: {abs_src}: {e}")
+            return self._SKIP_IMPORT
         try:
             shutil.move(abs_src, target)
         except Exception as e:
@@ -189,6 +213,41 @@ class BookManager:
 
         logger.info(f"导入书籍已整理进分层目录: {abs_src} -> {target}")
         return target
+
+    def _resolve_import_name_conflict(self, abs_src: str, target: str) -> Tuple[bool, Optional[str]]:
+        """处理导入目标位置已存在完全同名文件的冲突（主要针对 _imported 目录）。
+
+        文件名完全相同时比较文件大小，保留较大者：
+        - 目标不存在同名文件：直接导入，返回 (True, target)。
+        - 新文件更大：删除目标位置的旧文件后仍用原路径导入，返回 (True, target)，
+          已登记书籍的路径无需变更，下次打开即为新内容。
+        - 新文件不大于旧文件（更小或等大，视为重复）：放弃导入，返回 (False, None)。
+        - 大小比较或删除旧文件失败：保守起见放弃导入，返回 (False, None)。
+        """
+        if abs_src == os.path.abspath(target) or not os.path.exists(target):
+            return True, target
+        try:
+            new_size = os.path.getsize(abs_src)
+            old_size = os.path.getsize(target)
+        except OSError as e:
+            logger.error(f"比较同名文件大小失败，放弃导入: {abs_src} vs {target}: {e}")
+            return False, None
+        if new_size <= old_size:
+            logger.info(
+                f"目标位置已存在同名文件且不小于新文件，跳过导入: "
+                f"{abs_src} ({new_size}B) <= {target} ({old_size}B)"
+            )
+            return False, None
+        try:
+            os.remove(target)
+        except OSError as e:
+            logger.error(f"删除同名旧文件失败，放弃导入: {target}: {e}")
+            return False, None
+        logger.info(
+            f"目标位置已存在同名文件但新文件更大，覆盖旧文件: "
+            f"{abs_src} ({new_size}B) -> {target} ({old_size}B)"
+        )
+        return True, target
 
     def _get_known_site_dirnames(self) -> Optional[set]:
         """返回所有爬虫站点对应的书籍库一级目录名（用于识别爬虫管理区域）。
