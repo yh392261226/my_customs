@@ -760,6 +760,7 @@ class CrawlerManagementScreen(Screen[None]):
         ("b", "browser_read", get_global_i18n().t('common.browser_read')),
         ("S", "search_chapters", get_global_i18n().t('common.search_chapter')),
         ("G", "auto_crawl_books", get_global_i18n().t('crawler.auto_crawl_shortcut')),
+        ("N", "rename_novel", get_global_i18n().t('crawler.shortcut_N')),
     ]
 
     def action_open_browser(self) -> None:
@@ -3713,6 +3714,26 @@ class CrawlerManagementScreen(Screen[None]):
             self._view_book_details(str(history_item.get("id")))
         except Exception as e:
             logger.error(f"通过快捷键打开详情失败: {e}")
+
+    def action_rename_novel(self) -> None:
+        """快捷键 N：重命名当前焦点记录行的小说标题（与按钮重命名功能一致）。"""
+        try:
+            table = self.query_one("#crawl-history-table", DataTable)
+            if not table.rows or table.cursor_row is None or table.cursor_row < 0:
+                self._update_status(get_global_i18n().t('common.no_row_selected'), "warning")
+                return
+
+            start_index = (self.current_page - 1) * self.items_per_page
+            row_index = table.cursor_row
+            if start_index + row_index >= len(self.crawler_history):
+                return
+
+            history_item = self.crawler_history[start_index + row_index]
+            if not history_item:
+                return
+            self._rename_novel(history_item)
+        except Exception as e:
+            logger.error(f"通过快捷键重命名失败: {e}")
 
     def _find_history_by_row_key(self, row_key: str) -> Optional[Dict[str, Any]]:
         """按行键（记录 id）查找爬取历史记录。"""
