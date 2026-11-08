@@ -64,6 +64,7 @@ Footer {
     align: center middle;
     background: transparent;
     margin-top: 1;
+    overflow-x: auto;
 }
 
 .bookshelf-screen .bookshelf-search-input {
@@ -95,6 +96,12 @@ Footer {
 
 .bookshelf-screen #bookshelf-smart-search-label {
     padding-top: 1;
+}
+
+.bookshelf-screen .bookshelf-search-btn {
+    height: 3;
+    min-width: 8;
+    margin-right: 1;
 }
 
 .bookshelf-screen .bookshelf-search-select {
