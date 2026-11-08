@@ -7,9 +7,7 @@
 - 智能范围合并：自动识别章节号范围并合并
 """
 
-import os
 import re
-from collections import Counter
 from typing import Any, Optional, List, Tuple
 
 
@@ -280,11 +278,12 @@ class SmartTitleUtils:
         # 主数字范围之后的附加信息：缺XX / 番外（及其带编号形式）。
         # 注意 inner 为原始片段（可能含 缺/番外），整串搜索以覆盖被 _parse_inner_chapter
         # 按"缺"截断前的部分。
+        num = r'[\d０-９一二三四五六七八九十百千万零]+'
         m = re.search(
-            r'(?:缺\s*[\d０-９一二三四五六七八九十百千万零]+'
-            r'(?:[－~\-–—]\s*[\d０-９一二三四五六七八九十百千万零]+)?'
-            r'|番外\s*[\d０-９一二三四五六七八九十百千万零]*'
-            r'(?:[－~\-–—]\s*[\d０-９一二三四五六七八九十百千万零]+)?)',
+            r'(?:缺\s*' + num + r'(?:\s*[－~\-–—]\s*' + num + r')?'
+            r'(?:\s*[、，,]\s*' + num + r'(?:\s*[－~\-–—]\s*' + num + r')?)*'
+            r'|番外\s*(?:' + num + r')?'
+            r'(?:\s*[－~\-–—]\s*' + num + r')?)',
             inner)
         if m:
             extra += m.group(0).strip()
@@ -540,7 +539,7 @@ class SmartTitleUtils:
                 else:
                     # 单数字：避免把 2012年9月21日 中的"年9月/月21日"误判为章节
                     after = title[m.end():m.end() + 1]
-                    if after in '年月日号':
+                    if after and after in '年月日号':
                         continue
                     s = SmartTitleUtils._parse_chapter_number(rm.group(1))
                     return (s, s, prefix, suffix, '', False, '', '', rm.group(1), '')
@@ -728,14 +727,13 @@ class SmartTitleUtils:
         max_end = max(num_books, key=lambda ci: SmartTitleUtils._chapter_num_key(ci[1]))[1]
 
         # 公共前缀（书名部分）
-        # 若各书前缀因包裹符号不同（如【】与《》）而无法字符对齐，
-        # commonprefix 会得到空串；此时回退到「出现最多的前缀」，
-        # 平局则取最小章节号那本（num_books[0]）的前缀，避免书名被整体截断。
+        # 书名常有省略/缺字现象（如 "小明你去哪里了..." 与
+        # "小明， 你去哪里了， 那么多的名川大山"），字符级 commonprefix 会得到
+        # 严重截断的碎片（如 "【小明"）；按"字多者优先"原则，只要存在更长
+        # 的前缀就取最长者作为书名（同组书籍本就视为同一本书）。
         prefixes = [ci[2] for ci in num_books if ci[2]]
         if prefixes:
-            common_prefix = os.path.commonprefix(prefixes)
-            if not common_prefix:
-                common_prefix = Counter(prefixes).most_common(1)[0][0]
+            common_prefix = max(prefixes, key=len)
         else:
             common_prefix = ''
 
@@ -749,9 +747,21 @@ class SmartTitleUtils:
 
         # 后缀处理（提取完成标记，剩余作为后缀）
         completion_keywords = ['完结', '完本', '完整', '完', '全本', '全集', '全', '终']
-        first_suffix = num_books[0][3].strip() if num_books[0][3] else ''
-        # 清理尾部进度标记，如 " (13/15)"、"(2/3)"，避免污染合并标题
-        first_suffix = re.sub(r'\(\s*\d+\s*/\s*\d+\s*\)', '', first_suffix).strip()
+
+        # 候选后缀选取："去无用字 + 字多者优先"原则。
+        # 单章书（start == end）的后缀多为该章的章节标题（如 "【书名】4 心跳加快"），
+        # 属于无用字，先剔除；候选优先取多章范围书籍的后缀（如 "作者：小明"），
+        # 无多章候选时再回退到全部后缀，最后在候选中取字数最多者。
+        def _clean_suffix(s: str) -> str:
+            # 清理尾部进度标记，如 " (13/15)"、"(2/3)"，避免污染合并标题
+            return re.sub(r'\(\s*\d+\s*/\s*\d+\s*\)', '', s).strip()
+
+        range_suffixes = [_clean_suffix(ci[3]) for ci in num_books
+                          if ci[0] != ci[1] and ci[3] and ci[3].strip()]
+        all_suffixes = [_clean_suffix(ci[3]) for ci in num_books
+                        if ci[3] and ci[3].strip()]
+        suffix_candidates = range_suffixes or all_suffixes
+        first_suffix = max(suffix_candidates, key=len) if suffix_candidates else ''
         completion_marker = ''
         clean_suffix = first_suffix
         for kw in completion_keywords:
@@ -824,16 +834,69 @@ class SmartTitleUtils:
             else:
                 range_text = f"{SmartTitleUtils._num_to_str(min_start)}{start_suffix}-{SmartTitleUtils._num_to_str(max_end)}{end_suffix}"
 
+        # ── 缺失章节自动检测 ──
+        # 在 [min_start, max_end] 范围内找出未被任何书籍覆盖的章节号，
+        # 生成如 "缺4、7-8" 的提示。仅当所有章节号为同层级整数
+        # （无卷前缀元组、无小数）时检测；marker 以分隔符结尾（"序-3"）时跳过。
+        missing_str = ''
+        marker_ends_sep = bool(detected_marker) and detected_marker[-1] in '-–—~－'
+
+        def _plain_int(v):
+            """章节号规整为纯整数（无卷前缀元组、无小数），失败返回 None"""
+            if isinstance(v, bool):
+                return None
+            if isinstance(v, int):
+                return v
+            if isinstance(v, float):
+                return int(v) if v == int(v) else None
+            if isinstance(v, tuple) and len(v) == 1 and isinstance(v[0], int):
+                return v[0]
+            return None
+
+        starts = [_plain_int(ci[0]) for ci in num_books]
+        ends = [_plain_int(ci[1]) for ci in num_books]
+        if not has_decimal and not marker_ends_sep \
+                and all(s is not None for s in starts) \
+                and all(e is not None for e in ends):
+            lo = min(starts)
+            hi = max(ends)
+            if hi - lo <= 100000:
+                covered = set()
+                for s, e in zip(starts, ends):
+                    covered.update(range(s, e + 1))
+                missing = [n for n in range(lo, hi + 1) if n not in covered]
+                if missing:
+                    # 连续章节合并为区间（7,8 → 7-8），单个保持原样
+                    groups = []
+                    g_start = g_end = missing[0]
+                    for n in missing[1:]:
+                        if n == g_end + 1:
+                            g_end = n
+                        else:
+                            groups.append((g_start, g_end))
+                            g_start = g_end = n
+                    groups.append((g_start, g_end))
+                    missing_str = '缺' + '、'.join(
+                        str(a) if a == b else f"{a}-{b}" for a, b in groups)
+
         # 括号内附加信息（缺XX / 番外 / +番外...）：保留在范围之后。
-        # 收集各书中非空附加串（按书籍顺序），避免重复拼接。
+        # 收集各书中非空附加串（按书籍顺序），避免重复拼接；
+        # 若自动检测发现了缺口，则以计算结果为准，丢弃输入中的"缺X"附加信息
+        # （可能已过时）；未发现缺口时保留输入的"缺X"（自动检测无法感知
+        # 范围内部的缺失，如"1-9缺3"）。
         extras = [ci[9] for ci in num_books if len(ci) > 9 and ci[9]]
-        if extras:
+        if missing_str:
+            extras = [ex for ex in extras if not ex.startswith('缺')]
+        if missing_str or extras:
             seen = set()
             extra_str = ''
             for ex in extras:
                 if ex not in seen:
                     seen.add(ex)
                     extra_str += ex
+            if missing_str:
+                # 缺失提示与范围数字之间以空格分隔，如 "1-11 缺4、7-8"
+                extra_str = ' ' + missing_str + extra_str
             range_text = range_text + extra_str
 
         # 组装书名：书名前缀 + 章节范围 + 后缀。
@@ -847,17 +910,13 @@ class SmartTitleUtils:
         if detected_marker:
             # marker 分支：不保留括号内首尾空格，marker 以分隔符结尾时不加空格
             sep = '' if detected_marker[-1] in '-–—~－' else ' '
-            if has_parens:
-                range_part = f"（{detected_marker}{sep}{range_text}）"
-            else:
-                range_part = f"{detected_marker}{sep}{range_text}"
-        elif has_parens:
-            # 无 marker：保留第一本书括号内原始首尾空格（如 " 1-41 " → "（ 1-42 ）"）
+            range_part = f"（{detected_marker}{sep}{range_text}）"
+        else:
+            # 无 marker：保留第一本书括号内原始首尾空格（如 " 1-41 " → "（ 1-42 ）"）；
+            # 统一用括号包裹范围（如 【书名】1-3 → 【书名】（1-3）），便于容纳缺失提示
             ls = ' ' if str(first_inner).startswith(' ') else ''
             rs = ' ' if str(first_inner).endswith(' ') else ''
             range_part = f"（{ls}{range_text}{rs}）"
-        else:
-            range_part = range_text
 
         parts = []
         if common_prefix:

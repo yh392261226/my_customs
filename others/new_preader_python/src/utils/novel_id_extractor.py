@@ -166,6 +166,15 @@ def extract_novel_id_from_url(url: str, site_config: Dict[str, Any]) -> Optional
             if match:
                 return f"{unquote(match.group(1))}/{unquote(match.group(2))}"
 
+        # 41nr.com：/book/{id}（末尾斜杠可有可无）或 /txt/{id}.html，两种链接的书籍ID相同
+        if '41nr.com' in site_url:
+            match = _find_first(bases, match_url, lambda b: rf"{re.escape(b)}/book/(\d+)")
+            if match:
+                return match.group(1)
+            match = _find_first(bases, match_url, lambda b: rf"{re.escape(b)}/txt/(\d+)\.html")
+            if match:
+                return match.group(1)
+
         if url_pattern:
             # 各站点的特殊URL格式优先匹配；未命中时统一回退到按 url_pattern 的
             # 标准处理，避免「特殊分支不匹配就直接返回None」把有效书籍页漏掉
