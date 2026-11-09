@@ -294,6 +294,47 @@ class SmartTitleUtils:
         return extra
 
     @staticmethod
+    def _parse_missing_chapters(extra: str) -> set:
+        """
+        解析"缺XX"附加串中的缺失章节号集合。
+        支持 "缺84"、"缺4、7-8"、"缺 5、7、8" 等形式（含中文数字）。
+        """
+        nums = set()
+        if not extra:
+            return nums
+        body = extra[1:] if extra.startswith('缺') else extra
+        num_atom = r'[\d０-９一二三四五六七八九十百千万零]+'
+        for m in re.finditer(
+                r'(' + num_atom + r')(?:\s*[－~\-–—]\s*(' + num_atom + r'))?', body):
+            a = SmartTitleUtils.extract_number_from_string(m.group(1))
+            if a is None:
+                continue
+            b = SmartTitleUtils.extract_number_from_string(m.group(2)) if m.group(2) else None
+            if b is not None and b >= a:
+                nums.update(range(a, b + 1))
+            else:
+                nums.add(a)
+        return nums
+
+    @staticmethod
+    def _format_missing_chapters(nums) -> str:
+        """把缺失章节号集合格式化为 "缺4、7-8" 形式（连续章节合并为区间），空集返回 ''"""
+        if not nums:
+            return ''
+        ordered = sorted(nums)
+        groups = []
+        g_start = g_end = ordered[0]
+        for n in ordered[1:]:
+            if n == g_end + 1:
+                g_end = n
+            else:
+                groups.append((g_start, g_end))
+                g_start = g_end = n
+        groups.append((g_start, g_end))
+        return '缺' + '、'.join(
+            str(a) if a == b else f"{a}-{b}" for a, b in groups)
+
+    @staticmethod
     def _parse_inner_chapter(inner: str):
         """
         解析括号内的内容。
@@ -748,6 +789,25 @@ class SmartTitleUtils:
         # 后缀处理（提取完成标记，剩余作为后缀）
         completion_keywords = ['完结', '完本', '完整', '完', '全本', '全集', '全', '终']
 
+        # 无括号形式（如 "书名 1-5缺2 作者：小红"）中，"缺X" 声明会落入后缀
+        # （ci[3]）；先拆分出来：声明部分延后并入缺失章节集合，剩余才参与后缀候选。
+        miss_decl_re = re.compile(
+            r'^\s*缺\s*[\d０-９一二三四五六七八九十百千万零]+'
+            r'(?:\s*[－~\-–—]\s*[\d０-９一二三四五六七八九十百千万零]+)?'
+            r'(?:\s*[、，,]\s*[\d０-９一二三四五六七八九十百千万零]+'
+            r'(?:\s*[－~\-–—]\s*[\d０-９一二三四五六七八九十百千万零]+)?)*')
+        miss_decls = []     # 各书的"缺X"声明（无则为 ''），与 num_books 顺序对应
+        rest_suffixes = []  # 拆出声明后的剩余后缀
+        for ci in num_books:
+            sfx = (ci[3] or '').strip()
+            md = miss_decl_re.match(sfx)
+            if md:
+                miss_decls.append(md.group(0).strip())
+                rest_suffixes.append(sfx[md.end():].strip())
+            else:
+                miss_decls.append('')
+                rest_suffixes.append(sfx)
+
         # 候选后缀选取："去无用字 + 字多者优先"原则。
         # 单章书（start == end）的后缀多为该章的章节标题（如 "【书名】4 心跳加快"），
         # 属于无用字，先剔除；候选优先取多章范围书籍的后缀（如 "作者：小明"），
@@ -756,10 +816,9 @@ class SmartTitleUtils:
             # 清理尾部进度标记，如 " (13/15)"、"(2/3)"，避免污染合并标题
             return re.sub(r'\(\s*\d+\s*/\s*\d+\s*\)', '', s).strip()
 
-        range_suffixes = [_clean_suffix(ci[3]) for ci in num_books
-                          if ci[0] != ci[1] and ci[3] and ci[3].strip()]
-        all_suffixes = [_clean_suffix(ci[3]) for ci in num_books
-                        if ci[3] and ci[3].strip()]
+        range_suffixes = [_clean_suffix(s) for ci, s in zip(num_books, rest_suffixes)
+                          if ci[0] != ci[1] and s]
+        all_suffixes = [_clean_suffix(s) for s in rest_suffixes if s]
         suffix_candidates = range_suffixes or all_suffixes
         first_suffix = max(suffix_candidates, key=len) if suffix_candidates else ''
         completion_marker = ''
@@ -855,6 +914,8 @@ class SmartTitleUtils:
 
         starts = [_plain_int(ci[0]) for ci in num_books]
         ends = [_plain_int(ci[1]) for ci in num_books]
+        covered = None  # 已覆盖章节集合；None 表示未做缺失检测（小数/跨卷/序章等）
+        computed_missing = None
         if not has_decimal and not marker_ends_sep \
                 and all(s is not None for s in starts) \
                 and all(e is not None for e in ends):
@@ -863,30 +924,49 @@ class SmartTitleUtils:
             if hi - lo <= 100000:
                 covered = set()
                 for s, e in zip(starts, ends):
-                    covered.update(range(s, e + 1))
-                missing = [n for n in range(lo, hi + 1) if n not in covered]
-                if missing:
-                    # 连续章节合并为区间（7,8 → 7-8），单个保持原样
-                    groups = []
-                    g_start = g_end = missing[0]
-                    for n in missing[1:]:
-                        if n == g_end + 1:
-                            g_end = n
-                        else:
-                            groups.append((g_start, g_end))
-                            g_start = g_end = n
-                    groups.append((g_start, g_end))
-                    missing_str = '缺' + '、'.join(
-                        str(a) if a == b else f"{a}-{b}" for a, b in groups)
+                    if s <= e:
+                        covered.update(range(s, e + 1))
+                computed_missing = {n for n in range(lo, hi + 1) if n not in covered}
 
         # 括号内附加信息（缺XX / 番外 / +番外...）：保留在范围之后。
-        # 收集各书中非空附加串（按书籍顺序），避免重复拼接；
-        # 若自动检测发现了缺口，则以计算结果为准，丢弃输入中的"缺X"附加信息
-        # （可能已过时）；未发现缺口时保留输入的"缺X"（自动检测无法感知
-        # 范围内部的缺失，如"1-9缺3"）。
+        # 收集各书中非空附加串（按书籍顺序），避免重复拼接。
+        # 缺失信息合并：自动检测只能感知范围之间的缺口（如 1-91 与 96-97 之间
+        # 的 92-95），无法感知范围内部的缺失（如 "1-91缺84"）；故将输入中的
+        # "缺X"解析为章节号后并入缺失集合统一格式化。
+        # 补齐判定：某缺号只有被"未声明缺失它的书"覆盖时才视为已补齐
+        # （如 "1-9缺3" + "3-15" → 3 已补齐）；仅被声明缺它的那本书的
+        # 范围覆盖不算补齐（"1-91缺84" 中的 84 仍缺失）。
         extras = [ci[9] for ci in num_books if len(ci) > 9 and ci[9]]
-        if missing_str:
-            extras = [ex for ex in extras if not ex.startswith('缺')]
+        if computed_missing is not None:
+            def _filled_elsewhere(n):
+                """缺号 n 是否已被某本"未声明缺失它"的书覆盖（视为已补齐）"""
+                for s, e, ci, d in zip(starts, ends, num_books, miss_decls):
+                    if s is not None and e is not None and s <= n <= e:
+                        declared = SmartTitleUtils._parse_missing_chapters(
+                            (ci[9] or '') + d)
+                        if n not in declared:
+                            return True
+                return False
+
+            merged_missing = set(computed_missing)
+            kept_extras = []
+            # 收集来源：括号内 extra（ci[9]）+ 无括号时落入后缀的声明（miss_decls）
+            for ex in extras:
+                if ex.startswith('缺'):
+                    for n in SmartTitleUtils._parse_missing_chapters(ex):
+                        if not _filled_elsewhere(n):
+                            merged_missing.add(n)
+                else:
+                    kept_extras.append(ex)
+            for d in miss_decls:
+                if d:
+                    for n in SmartTitleUtils._parse_missing_chapters(d):
+                        if not _filled_elsewhere(n):
+                            merged_missing.add(n)
+            extras = kept_extras
+            missing_str = SmartTitleUtils._format_missing_chapters(merged_missing)
+        else:
+            missing_str = ''
         if missing_str or extras:
             seen = set()
             extra_str = ''
