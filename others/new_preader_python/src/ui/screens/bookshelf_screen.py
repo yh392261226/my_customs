@@ -62,7 +62,7 @@ class BookshelfScreen(Screen[None]):
         ("g", "toggle_smart_search", get_global_i18n().t('crawler.smart_search')),
         ("j", "jump_to", get_global_i18n().t('bookshelf.jump_to')),
         ("v", "preview_book", get_global_i18n().t('common.preview_book')),
-        ("f", "view_current_file", get_global_i18n().t('common.view_file')),
+        ("F", "view_current_file", get_global_i18n().t('common.view_file')),
         ("y", "copy_title", get_global_i18n().t('common.copy_title')),
         ("b", "open_in_browser", get_global_i18n().t('common.browser_read')),
         ("i", "view_book_details", get_global_i18n().t('book_details.shortcut_i')),
