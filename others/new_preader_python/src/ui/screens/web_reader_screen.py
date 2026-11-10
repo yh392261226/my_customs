@@ -34,6 +34,7 @@ logger = get_logger(__name__)
 # 待检测的接口定义：(i18n键, 方法, 路径, 是否POST)
 _ENDPOINT_DEFS: List[Tuple[str, str, str, bool]] = [
     ("web_reader.endpoint_health", "GET", "/health_check", False),
+    ("web_reader.endpoint_api_health", "GET", "/api/health", False),
     ("web_reader.endpoint_save_progress", "POST", "/save_progress", True),
     ("web_reader.endpoint_load_progress", "GET", "/load_progress", False),
     ("web_reader.endpoint_save_annotations", "POST", "/save_annotations", True),
@@ -181,6 +182,18 @@ class WebReaderScreen(QuickIsolationMixin, Screen[None]):
         return get_browser_reader_server_manager()
 
     def _get_host_port(self) -> Tuple[str, int]:
+        # 优先使用本实例服务实际监听的地址：多实例并存时配置里的基础端口可能已被其它实例占用，
+        # 显示/诊断必须指向当前实例自己的端口
+        try:
+            manager = self._get_server_manager()
+            save_url, _ = manager.get_server_urls()
+            if save_url:
+                from urllib.parse import urlparse
+                parsed = urlparse(save_url)
+                if parsed.port:
+                    return parsed.hostname or "localhost", int(parsed.port)
+        except Exception:
+            pass
         try:
             from src.config.config_manager import ConfigManager
             config = ConfigManager.get_instance().get_config()

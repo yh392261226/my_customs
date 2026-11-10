@@ -1584,6 +1584,19 @@ SYNC_JS = r"""
 })();
 """
 
+def _get_reader_instance_id() -> str:
+    """当前进程（=当前阅读器实例）的标识，注入页面用于校验服务归属。
+
+    多实例并存时，页面必须只认自己这个实例启动的服务；
+    延迟导入避免与 browser_reader_server_manager 形成循环导入。
+    """
+    try:
+        from src.utils.browser_reader_server_manager import get_process_instance_id
+        return get_process_instance_id()
+    except Exception:
+        return ""
+
+
 class BrowserReader:
     """浏览器阅读器类"""
 
@@ -2056,8 +2069,8 @@ class BrowserReader:
             // 检查后端状态
             checkBackendStatus();
             
-            // 启动自动保存进度
-            startAutoSaveProgress();
+            // 启动自动保存进度（函数可能未实现，避免 ReferenceError 中断后续初始化）
+            if (typeof startAutoSaveProgress === 'function') startAutoSaveProgress();
             
             // 初始化工具栏位置
             updateToolbarTogglePosition();
@@ -2073,13 +2086,13 @@ class BrowserReader:
             initMinimap();
             
             // 监听窗口大小变化
-            window.addEventListener('resize', handleWindowResize);
+            if (typeof handleWindowResize === 'function') window.addEventListener('resize', handleWindowResize);
             
             // 监听滚动事件
-            window.addEventListener('scroll', handleScroll);
+            if (typeof handleScroll === 'function') window.addEventListener('scroll', handleScroll);
             
             // 初始化阅读统计
-            initReadingStats();
+            if (typeof initReadingStats === 'function') initReadingStats();
             
             // 延迟初始化拖放区域（即使面板未打开也预先初始化）
             setTimeout(() => {
@@ -5562,6 +5575,9 @@ class BrowserReader:
         // 后端接口密钥：所有数据传输接口需携带此密钥（开放模式为空则不使用）
         let READER_SECRET = {f'"{api_secret}"' if api_secret else '""'};
         
+        // 当前实例标识：只有返回该标识的服务才是"我这个实例"的后端（多实例隔离）
+        let READER_INSTANCE_ID = {f'"{_get_reader_instance_id()}"'};
+        
         // 暴露到window对象，以便可以动态更新
         window.SAVE_PROGRESS_URL = SAVE_PROGRESS_URL;
         window.LOAD_PROGRESS_URL = LOAD_PROGRESS_URL;
@@ -5996,9 +6012,46 @@ class BrowserReader:
         }}
         
 
+        // 判断健康检查的响应是否来自"本实例"的服务。
+        // 多实例并存时，端口上的服务可能是别的实例，连上去会导致保存/书库/回调全错位。
+        async function isOwnServerResponse(response) {{
+            if (!response || !response.ok) return false;
+            try {{
+                const data = await response.clone().json();
+                if (data && data.instance && READER_INSTANCE_ID && data.instance !== READER_INSTANCE_ID) {{
+                    console.warn('忽略其它阅读器实例的服务:', data.instance);
+                    return false;
+                }}
+            }} catch (e) {{
+                // 老版本服务没有 instance 字段，按兼容处理
+            }}
+            return true;
+        }}
+
         // 检测后端是否在线
         async function checkBackendStatus() {{
             if (!SAVE_PROGRESS_URL && !LOAD_PROGRESS_URL) {{
+                // 页面生成时本实例服务尚未就绪（URL 为空）；
+                // 按本实例注入的 host/port 探测一次，且必须是本实例的服务才回填
+                try {{
+                    const base = 'http://{browser_server_host}:{browser_server_port}';
+                    const resp = await Promise.race([
+                        fetch(base + '/health_check', {{ method: 'GET', cache: 'no-cache' }}),
+                        new Promise((_, reject) => setTimeout(() => reject(new Error('Timeout')), 3000))
+                    ]);
+                    if (await isOwnServerResponse(resp)) {{
+                        SAVE_PROGRESS_URL = base + '/save_progress';
+                        LOAD_PROGRESS_URL = base + '/load_progress';
+                        window.SAVE_PROGRESS_URL = SAVE_PROGRESS_URL;
+                        window.LOAD_PROGRESS_URL = LOAD_PROGRESS_URL;
+                        isBackendOnline = true;
+                        updateServerConnectionInfo();
+                        updateBackendStatusDisplay();
+                        return true;
+                    }}
+                }} catch (e) {{
+                    console.log('按配置地址探测后端失败:', e);
+                }}
                 isBackendOnline = false;
                 return false;
             }}
@@ -6016,7 +6069,8 @@ class BrowserReader:
                     ]);
                 }};
                 
-                // 首先尝试health_check端点
+                // 只认本实例注入的地址：不做跨端口"发现"，
+                // 否则会连到同机其它实例的后端（保存/书库/回调都会错位）
                 try {{
                     const healthCheckUrl = checkUrl.replace(new RegExp("save_progress|load_progress"), "health_check");
                     console.log('尝试健康检查URL:', healthCheckUrl);
@@ -6024,67 +6078,22 @@ class BrowserReader:
                         method: 'GET',
                         cache: 'no-cache'
                     }});
-                    
-                    if (response.ok) {{
+
+                    if (await isOwnServerResponse(response)) {{
                         isBackendOnline = true;
                         updateServerConnectionInfo();
+                        updateBackendStatusDisplay();
                         return true;
                     }}
+                    console.log('健康检查响应不来自本实例服务，按离线处理');
                 }} catch (e) {{
-                    console.log('Health check failed, trying to discover server:', e);
-                    
-                    // 尝试发现新的服务器
-                    const serverInfo = await discoverServer();
-                    if (serverInfo && (serverInfo.host !== 'localhost' || serverInfo.port !== getCurrentPort())) {{
-                        console.log(`发现服务器: ${{serverInfo.host}}:${{serverInfo.port}}`);
-                        // 更新URL
-                        const baseUrl = checkUrl.split('/').slice(0, 3).join('/');
-                        const newPath = checkUrl.split('/').slice(3).join('/');
-                        checkUrl = `http://${{serverInfo.host}}:${{serverInfo.port}}/${{newPath}}`;
-                        
-                        // 更新全局变量和本地变量
-                        if (SAVE_PROGRESS_URL) {{
-                            window.SAVE_PROGRESS_URL = checkUrl;
-                            SAVE_PROGRESS_URL = checkUrl;
-                        }}
-                        if (LOAD_PROGRESS_URL) {{
-                            const newLoadUrl = checkUrl.replace('save_progress', 'load_progress');
-                            window.LOAD_PROGRESS_URL = newLoadUrl;
-                            LOAD_PROGRESS_URL = newLoadUrl;
-                        }}
-                        
-                        // 重新尝试连接
-                        const response = await fetchWithTimeout(checkUrl.replace(/save_progress|load_progress/, 'health_check'), {{
-                            method: 'GET',
-                            cache: 'no-cache'
-                        }});
-                        
-                        if (response.ok) {{
-                            isBackendOnline = true;
-                            updateServerConnectionInfo();
-                            return true;
-                        }}
-                    }}
+                    console.log('健康检查失败:', e);
                 }}
-                
-                // 如果health_check失败，尝试原端点的HEAD请求
-                try {{
-                    const headResponse = await fetchWithTimeout(checkUrl, {{
-                        method: 'HEAD',
-                        mode: 'no-cors',
-                        cache: 'no-cache'
-                    }});
-                    
-                    // no-cors模式下，即使失败也会返回opaque response
-                    isBackendOnline = true;
-                    updateServerConnectionInfo();
-                    return true;
-                }} catch (e) {{
-                    console.log('HEAD request failed:', e);
-                    isBackendOnline = false;
-                    updateServerConnectionInfo();
-                    return false;
-                }}
+
+                isBackendOnline = false;
+                updateServerConnectionInfo();
+                updateBackendStatusDisplay();
+                return false;
             }} catch (error) {{
                 console.log(t('browser_reader.backend_check_failed'), error);
                 isBackendOnline = false;
@@ -6093,42 +6102,22 @@ class BrowserReader:
             }}
         }}
         
-        // 发现服务器
+        // 确认本实例的服务地址（不再跨端口扫描：同机可能有多个阅读器实例，
+        // 扫描会把页面粘到"第一个启动的实例"上）
         async function discoverServer() {{
-            // 从配置获取期望的host和port
-            const expectedHost = '{browser_server_host}'; // 从配置获取
-            const expectedPort = {browser_server_port}; // 从配置获取
-            
-            // 尝试连接期望的地址
+            const expectedHost = '{browser_server_host}'; // 本实例实际使用的主机
+            const expectedPort = {browser_server_port}; // 本实例实际使用的端口
             try {{
                 const response = await fetch("http://" + expectedHost + ":" + expectedPort + "/health_check", {{
                     method: 'GET',
-                    cache: 'no-cache',
-                    timeout: 500
+                    cache: 'no-cache'
                 }});
-                if (response.ok) {{
+                if (await isOwnServerResponse(response)) {{
                     return {{host: expectedHost, port: expectedPort}};
                 }}
             }} catch (e) {{
-                // 继续尝试其他端口
+                // 本实例服务不可达
             }}
-            
-            // 扫描端口范围
-            for (let port = expectedPort; port < expectedPort + 100; port++) {{
-                try {{
-                    const response = await fetch("http://" + expectedHost + ":" + port + "/health_check", {{
-                        method: 'GET',
-                        cache: 'no-cache',
-                        timeout: 200
-                    }});
-                    if (response.ok) {{
-                        return {{host: expectedHost, port: port}};
-                    }}
-                }} catch (e) {{
-                    // 继续尝试
-                }}
-            }}
-            
             return null;
         }}
         
@@ -7737,7 +7726,7 @@ class BrowserReader:
         }}
         
         // 保存翻页模式下的进度
-        function savePaginationProgress(progress) {{
+        async function savePaginationProgress(progress) {{
             console.log('开始保存翻页模式进度，SAVE_PROGRESS_URL:', SAVE_PROGRESS_URL);
             
             // 计算页面相关的进度信息
@@ -7794,8 +7783,8 @@ class BrowserReader:
                 return;
             }}
 
-            // 检测后端是否在线
-            const backendOnline = checkBackendStatus();
+            // 检测后端是否在线（必须 await，否则拿到的是 Promise，恒为真）
+            const backendOnline = await checkBackendStatus();
             if (!backendOnline) {{
                 console.log('后端离线，仅保存翻页进度到本地');
                 updateBackendStatusDisplay();
@@ -7822,13 +7811,12 @@ class BrowserReader:
                     console.log('翻页进度已成功保存到服务器');
                 }} else {{
                     console.log('服务器保存翻页进度失败，状态码:', response.status);
-                    isBackendOnline = false;
-                    updateBackendStatusDisplay();
+                    // 保存失败不等于后端离线（可能是密钥/回调/业务错误），以健康检查结果为准
+                    checkBackendStatus().then(() => updateBackendStatusDisplay());
                 }}
             }}).catch(err => {{
                 console.log('保存翻页进度到服务器失败:', err);
-                isBackendOnline = false;
-                updateBackendStatusDisplay();
+                checkBackendStatus().then(() => updateBackendStatusDisplay());
             }});
         }}
         
@@ -8673,14 +8661,13 @@ class BrowserReader:
                     console.log('进度已成功保存到服务器');
                 }} else {{
                     console.log('服务器保存进度失败，状态码:', response.status);
-                    isBackendOnline = false;
-                    updateBackendStatusDisplay();
+                    // 保存失败不等于后端离线（可能是密钥/回调/业务错误），以健康检查结果为准
+                    checkBackendStatus().then(() => updateBackendStatusDisplay());
                 }}
             }}).catch(err => {{
                 console.error('保存进度到服务器失败:', err);
                 console.error('错误详情:', err.message, err.stack);
-                isBackendOnline = false;
-                updateBackendStatusDisplay();
+                checkBackendStatus().then(() => updateBackendStatusDisplay());
                 // 显示错误通知
                 if (typeof showNotification === 'function') {{
                     showNotification('保存进度失败: ' + err.message);
@@ -13651,6 +13638,18 @@ class BrowserReader:
                 }
                 logger.info(f"已保存服务器对象到全局字典，server_id={server_id}")
             
+            # ★ 页面内的"期望服务地址"必须指向本实例实际使用的端口：
+            # 多实例时每个实例独占一个端口，若仍注入配置里的基础端口，页面会去连别的实例。
+            if save_url:
+                try:
+                    from urllib.parse import urlparse as _urlparse
+                    _parsed_srv = _urlparse(save_url)
+                    browser_server_host = _parsed_srv.hostname or browser_server_host
+                    browser_server_port = _parsed_srv.port or browser_server_port
+                    logger.info(f"阅读页注入服务地址: {browser_server_host}:{browser_server_port}")
+                except Exception as _e:
+                    logger.warning(f"解析阅读器服务地址失败，沿用配置端口: {_e}")
+
             # 获取书籍ID和初始进度
             book_id = Path(file_path).stem
             initial_progress = None
@@ -13838,10 +13837,17 @@ class BrowserReader:
         
         # 检测端口是否可用
         if enable_fixed_port and final_port == fixed_port:
-            # 固定端口模式：如果端口被占用，直接失败（让上层处理）
+            # 固定端口模式：端口被其它实例占用时顺延取一个可用端口（多实例各自独立，
+            # 不能复用别人的服务，否则页面会连到别的实例的后端）
             if not BrowserReader._is_port_available(host, final_port):
-                logger.error(f"固定端口 {host}:{final_port} 被占用")
-                return None, None, None, None
+                logger.warning(f"固定端口 {host}:{final_port} 被占用，顺延寻找可用端口")
+                port = 0
+                for candidate in range(final_port + 1, final_port + 100):
+                    if BrowserReader._is_port_available(host, candidate):
+                        port = candidate
+                        break
+                final_port = port
+                logger.info(f"独立服务将使用端口: {final_port or '随机'}")
             else:
                 logger.info(f"固定端口 {host}:{final_port} 可用")
                 port = final_port
@@ -13883,7 +13889,12 @@ class BrowserReader:
                     self.send_header('Content-type', 'application/json')
                     self.send_header('Access-Control-Allow-Origin', '*')
                     self.end_headers()
-                    self.wfile.write(json.dumps({"status": "ok"}).encode())
+                    try:
+                        from src.utils.browser_reader_server_manager import get_process_instance_id
+                        _inst = get_process_instance_id()
+                    except Exception:
+                        _inst = ""
+                    self.wfile.write(json.dumps({"status": "ok", "instance": _inst}).encode())
                     return
                 if req_path.startswith('/src/locales/'):
                     self.serve_static_file(self.path[1:])  # 移除开头的 /

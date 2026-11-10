@@ -2208,6 +2208,7 @@
     "diag_running": "Checking service and APIs...",
     "diagnosis": "Diagnosis",
     "endpoint_health": "Health Check",
+    "endpoint_api_health": "API Health",
     "endpoint_load_annotations": "Load Annotations",
     "endpoint_load_progress": "Load Progress",
     "endpoint_load_vocab": "Load Vocabulary",

@@ -6,11 +6,22 @@
 import threading
 import time
 import re
+import uuid
 from typing import Optional, Dict, Any, Callable
 from src.utils.logger import get_logger
 from src.utils.browser_reader import BrowserReader
 
 logger = get_logger(__name__)
+
+# 当前进程（=当前阅读器实例）的唯一标识。
+# 健康检查会带上它，浏览器阅读页据此确认"对面是不是我这个实例的服务"，
+# 避免多实例并存时页面误连到第一个启动的实例。
+PROCESS_INSTANCE_ID = uuid.uuid4().hex
+
+
+def get_process_instance_id() -> str:
+    """返回当前进程的实例标识（同一进程内所有服务共用）"""
+    return PROCESS_INSTANCE_ID
 
 
 def _map_translate_lang(code: str) -> str:
@@ -157,6 +168,8 @@ class BrowserReaderServerManager:
         self._api_url: Optional[str] = None
         self._api_server = None
         self._api_thread = None
+        # 统一服务是否挂载 /api/* 数据接口（由 start_server 按 browser_server.api_enabled 设置）
+        self._serve_api: bool = True
         self._callbacks: Dict[str, Dict[str, Any]] = {}
         self._book_progress_data: Dict[str, Dict] = {}
         self._book_annotations: Dict[str, Dict[str, Any]] = {}
@@ -182,6 +195,29 @@ class BrowserReaderServerManager:
         except Exception:
             return False
 
+    def _find_available_port(self, host: str, base_port: int, max_tries: int = 100) -> int:
+        """从 base_port 开始找一个可用端口，供当前实例独占使用。
+
+        多实例场景下必须各自独立端口：复用别人的端口会让页面连到别人的后端。
+        全部不可用时返回 0（交由系统随机分配）。
+        """
+        import socket
+        base_port = int(base_port or 54321)
+        for offset in range(max_tries):
+            candidate = base_port + offset
+            probe = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
+            probe.settimeout(0.2)
+            try:
+                in_use = probe.connect_ex((host, candidate)) == 0
+            except Exception:
+                in_use = True
+            finally:
+                probe.close()
+            if not in_use:
+                return candidate
+        logger.warning(f"端口 {base_port} 起的 {max_tries} 个端口都不可用，交由系统分配")
+        return 0
+
     def start_server(self) -> bool:
         """启动浏览器阅读器服务器"""
         try:
@@ -191,13 +227,20 @@ class BrowserReaderServerManager:
             config = config_manager.get_config()
             browser_config = config.get("browser_server", {})
             host = browser_config.get("host", "localhost")
-            # 本地阅读器进度/标注服务使用的密钥（与 API 服务共用 browser_server.api_secret）
+            # 本地统一服务使用的密钥（进度接口与 /api/* 数据接口共用 browser_server.api_secret）
             self._secret = str(browser_config.get("api_secret", "") or "")
-            # 启动后端数据接口（独立于进度服务，先确保可用）
-            self._start_api_if_enabled(host)
+            # 是否在同一服务上提供 /api/* 数据接口（api_enabled=false 时仅提供进度接口）
+            self._serve_api = bool(browser_config.get("api_enabled", True))
+            # 密钥注入到 /api/* 分发器（开放模式下为空）
+            try:
+                from src.api import set_api_secret
+                set_api_secret(self._secret)
+            except Exception as e:
+                logger.warning(f"注入 API 密钥失败: {e}")
 
             if self.is_server_running():
                 logger.info("浏览器阅读器服务器已在运行")
+                self._configure_api()
                 return True
             
             fixed_port = browser_config.get("port", 54321)
@@ -209,75 +252,35 @@ class BrowserReaderServerManager:
             except Exception as _e:
                 logger.warning(f"初始化翻译管理器失败（翻译功能将不可用）: {_e}")
 
-            # ★ 快速检测：端口是否已被其他实例占用
-            # 如果是本程序的服务器，直接复用URL，无需等待或重复启动
+            # ★ 多实例隔离：端口被占用时"换端口"，绝不"复用"别人的服务。
+            # 复用会让浏览器页面连到另一个实例的后端（数据回调/书库都在别人进程里），
+            # 表现为页面连错后端、保存 404、状态显示混乱。
             import socket
             sock = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
             sock.settimeout(0.2)
             port_in_use = sock.connect_ex((host, fixed_port)) == 0
             sock.close()
 
-            if port_in_use and self._check_existing_server(host, fixed_port):
-                logger.info(f"检测到端口 {fixed_port} 已有服务在运行，直接复用")
-                self._save_url = f"http://{host}:{fixed_port}/save_progress"
-                self._load_url = f"http://{host}:{fixed_port}/load_progress"
-                self._server = None  # 不持有服务器对象，因为不是我们启动的
-                self._server_thread = None
-                return True
-
-            # 端口未被占用或非本程序服务，等待后启动（缩短等待时间）
+            chosen_port = fixed_port
             if port_in_use:
-                max_wait = 2  # 减少到最多等2秒
-                wait_interval = 0.2
-                
-                for i in range(int(max_wait / wait_interval)):
-                    sock = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
-                    sock.settimeout(0.1)
-                    result = sock.connect_ex((host, fixed_port))
-                    sock.close()
-                    
-                    if result != 0:  # 端口释放了
-                        break
-                    
-                    time.sleep(wait_interval)
-            
-            # 获取配置中的host设置
-            from src.config.config_manager import ConfigManager
-            config_manager = ConfigManager.get_instance()
-            config = config_manager.get_config()
-            browser_config = config.get("browser_server", {})
-            host = browser_config.get("host", "localhost")
-            
-            # 启动服务器（使用自定义方法）
-            logger.info(f"尝试启动服务器 - host: {host}, port: {fixed_port}")
+                if self._check_existing_server(host, fixed_port):
+                    logger.info(f"端口 {fixed_port} 已被其它阅读器实例占用，本实例将使用独立端口（不复用）")
+                else:
+                    logger.info(f"端口 {fixed_port} 被其它程序占用，本实例将使用独立端口")
+                chosen_port = self._find_available_port(host, fixed_port)
+
+            # 启动统一服务器（进度接口 + 可选的 /api/* 数据接口）
+            logger.info(f"尝试启动统一服务 - host: {host}, port: {chosen_port}, serve_api: {self._serve_api}")
             self._save_url, self._load_url, self._server, self._server_thread = \
-                self._start_custom_server(fixed_port, host)
+                self._start_custom_server(chosen_port, host, serve_api=self._serve_api)
             
             logger.info(f"服务器启动结果 - save_url: {self._save_url}, load_url: {self._load_url}")
-            if self._save_url and self._load_url:
-                # 验证端口
-                from urllib.parse import urlparse
-                parsed_url = urlparse(self._save_url)
-                actual_port = parsed_url.port
-                
-                if actual_port == fixed_port:
-                    logger.info(f"浏览器阅读器服务器已在固定端口 {fixed_port} 启动: {self._save_url}")
-                else:
-                    logger.error(f"服务器启动在错误端口 {actual_port}，期望 {fixed_port}")
-                    # 停止服务器
-                    if self._server:
-                        self._server.shutdown()
-                    if self._server_thread:
-                        self._server_thread.join(timeout=1)
-                    self._server = None
-                    self._server_thread = None
-                    self._save_url = None
-                    self._load_url = None
-            else:
+            if not (self._save_url and self._load_url):
                 logger.error("浏览器阅读器服务器启动失败")
             
             if self._save_url and self._load_url:
                 logger.info(f"浏览器阅读器服务器已启动: {self._save_url}")
+                self._configure_api()
                 return True
             else:
                 return False
@@ -286,7 +289,7 @@ class BrowserReaderServerManager:
             logger.error(f"启动浏览器阅读器服务器时出错: {e}", exc_info=True)
             return False
     
-    def _start_custom_server(self, port: int, host: str = "localhost") -> tuple:
+    def _start_custom_server(self, port: int, host: str = "localhost", serve_api: bool = True) -> tuple:
         """启动自定义服务器"""
         from http.server import BaseHTTPRequestHandler
         import json
@@ -303,13 +306,13 @@ class BrowserReaderServerManager:
                 query = parse_qs(parsed.query)
                 secret = BrowserReaderServerManager.get_instance()._secret
 
-                # 健康检查：仅返回状态，且需被无密钥的本地/远程健康探测访问，故保持开放
+                # 健康检查：仅返回状态与实例标识，且需被无密钥的本地/远程健康探测访问，故保持开放
                 if path == '/health_check':
                     self.send_response(200)
                     self.send_header('Content-type', 'application/json')
                     self.send_header('Access-Control-Allow-Origin', '*')
                     self.end_headers()
-                    self.wfile.write(json.dumps({"status": "ok"}).encode())
+                    self.wfile.write(json.dumps({"status": "ok", "instance": PROCESS_INSTANCE_ID}).encode())
                     return
 
                 # 其余读取接口（进度/标注/单词本）均需密钥匹配；开放模式下 secret 为空则放行
@@ -375,6 +378,11 @@ class BrowserReaderServerManager:
                         self.end_headers()
                         self.wfile.write(json.dumps({"success": False, "error": str(e)}, ensure_ascii=False).encode('utf-8'))
                 else:
+                    # 统一服务：/api/* 数据接口分发（api_enabled 时挂载在同一端口）
+                    if serve_api and (path == '/api' or path.startswith('/api/')):
+                        from src.api import dispatch_api
+                        dispatch_api(self)
+                        return
                     self.send_response(404)
                     self.end_headers()
             
@@ -646,6 +654,11 @@ class BrowserReaderServerManager:
                         self.end_headers()
                         self.wfile.write(json.dumps({"success": False, "error": str(e)}, ensure_ascii=False).encode('utf-8'))
                 else:
+                    # 统一服务：/api/* 数据接口分发（api_enabled 时挂载在同一端口）
+                    if serve_api and (_req_path == '/api' or _req_path.startswith('/api/')):
+                        from src.api import dispatch_api
+                        dispatch_api(self)
+                        return
                     self.send_response(404)
                     self.end_headers()
             
@@ -666,45 +679,52 @@ class BrowserReaderServerManager:
             server_thread = threading.Thread(target=server.serve_forever, daemon=True)
             server_thread.start()
             
-            save_url = f"http://{host}:{port}/save_progress"
-            load_url = f"http://{host}:{port}/load_progress"
+            # 实际绑定的端口（port=0 时由系统随机分配，取真实端口回填 URL）
+            actual_port = server.server_address[1] or port
+            save_url = f"http://{host}:{actual_port}/save_progress"
+            load_url = f"http://{host}:{actual_port}/load_progress"
             
             return save_url, load_url, server, server_thread
         except Exception as e:
             logger.error(f"启动自定义服务器失败: {e}")
             return None, None, None, None
     
-    def _start_api_if_enabled(self, host: str) -> None:
-        """按配置启动后端数据接口（api/ 服务）。失败不影响进度服务。"""
+    def _configure_api(self) -> None:
+        """配置后端数据接口地址。
+
+        /api/* 已并入统一服务（与进度接口同端口），无需单独启动服务：
+        - api_enabled=false 时页面进入仅本地模式（_api_url=None）；
+        - api_base_url 有值时优先使用（如远程后端）；
+        - 否则使用统一服务实际绑定的地址。
+        """
         try:
             from src.config.config_manager import ConfigManager
             cfg = ConfigManager.get_instance().get_config()
             bc = cfg.get("browser_server", {})
             if not bc.get("api_enabled", True):
                 self._api_url = None
+                logger.info("后端数据接口已按配置禁用（浏览器将仅本地模式）")
                 return
-            port = int(bc.get("api_port", 54322))
+            try:
+                from src.api import set_open_book_callback
+                set_open_book_callback(self._open_book_by_path)
+            except Exception as e:
+                logger.warning(f"注册打开书籍回调失败: {e}")
             base = (bc.get("api_base_url") or "").strip()
-            self._api_url = base.rstrip("/") if base else f"http://{host}:{port}"
-            if self._api_server is not None:
-                return
-            import socket
-            s = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
-            s.settimeout(0.2)
-            in_use = s.connect_ex((host, port)) == 0
-            s.close()
-            if in_use:
-                # 端口已被占用（可能是其它实例已启动的 API 服务），直接复用地址
-                return
-            from src.api import start_api_server, set_open_book_callback
-            secret = str(bc.get("api_secret", "") or "")
-            server, thread = start_api_server(host, port, secret=secret)
-            set_open_book_callback(self._open_book_by_path)
-            self._api_server = server
-            self._api_thread = thread
-            logger.info(f"后端数据接口已启动: {self._api_url}" + (f"（已启用密钥校验）" if secret else "（开放模式）"))
+            if base:
+                self._api_url = base.rstrip("/")
+            elif self._save_url:
+                from urllib.parse import urlparse
+                parsed = urlparse(self._save_url)
+                self._api_url = f"http://{parsed.hostname or 'localhost'}:{parsed.port or 54321}"
+            else:
+                self._api_url = None
+            if self._api_url:
+                logger.info(f"后端数据接口已并入统一服务: {self._api_url}"
+                            + ("" if self._secret else "（开放模式）"))
         except Exception as e:
-            logger.warning(f"启动后端数据接口失败（浏览器将仅本地模式）: {e}")
+            logger.warning(f"配置后端数据接口失败（浏览器将仅本地模式）: {e}")
+            self._api_url = None
 
     def get_api_url(self) -> Optional[str]:
         """获取后端数据接口地址（供浏览器阅读器连接）。"""

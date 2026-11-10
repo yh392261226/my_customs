@@ -2208,6 +2208,7 @@
     "diag_running": "正在检测服务与接口...",
     "diagnosis": "诊断结果",
     "endpoint_health": "健康检查",
+    "endpoint_api_health": "数据接口健康",
     "endpoint_load_annotations": "标注加载",
     "endpoint_load_progress": "进度加载",
     "endpoint_load_vocab": "单词本加载",

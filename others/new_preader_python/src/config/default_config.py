@@ -148,9 +148,9 @@ DEFAULT_CONFIG = {
         "port_range_max": 60000,  # 随机端口范围最大值
         "max_retry_attempts": 10,  # 端口冲突时最大重试次数
         "lock_enabled": False,  # 浏览器阅读器锁屏开关（开启后每次打开需先设置密码锁屏）
-        "api_enabled": True,  # 是否启动后端数据接口（api/ 服务）
-        "api_port": 54322,  # 后端数据接口端口
-        "api_base_url": "",  # 浏览器阅读器连接的后端接口地址，留空则使用本机 api_port
+        "api_enabled": True,  # 是否提供后端数据接口（/api/* 已并入统一服务，与进度接口同端口）
+        "api_port": 54322,  # 已废弃：/api/* 数据接口现统一使用上方 port；仅作旧配置兼容保留
+        "api_base_url": "",  # 浏览器阅读器连接的后端接口地址，留空则使用本机统一服务地址（port）
         "api_secret": "",  # 后端数据接口密钥：浏览器阅读器须使用相同密钥才能通信，留空则为开放模式
     }
 }

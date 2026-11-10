@@ -690,21 +690,21 @@ def create_browser_settings() -> SettingSection:
         key="browser_server.api_enabled",
         default_value=True,
         display_name="启用后端数据接口",
-        description="开启后在浏览器阅读器内启动 api/ 后端服务，提供书库/网站/爬取等数据的上传与下拉，并与本地缓存互通",
+        description="开启后在统一服务（browser_server.port）上提供 api/ 数据接口，提供书库/网站/爬取等数据的上传与下拉，并与本地缓存互通",
         category="browser"
     ))
     section.add_setting(StringSetting(
         key="browser_server.api_base_url",
         default_value="",
         display_name="后端接口地址",
-        description="留空则使用本机 api_port；如需连接其它后端，请填写完整地址，如 http://192.168.1.10:54322",
+        description="留空则使用本机统一服务地址（browser_server.port）；如需连接其它后端，请填写完整地址，如 http://192.168.1.10:54321",
         category="browser"
     ))
     section.add_setting(IntegerSetting(
         key="browser_server.api_port",
         default_value=54322,
         display_name="后端接口端口",
-        description="api/ 后端服务监听的端口（本机模式使用）",
+        description="已废弃：/api/* 数据接口已并入统一服务（browser_server.port），本项仅作旧配置兼容保留",
         category="browser"
     ))
     section.add_setting(StringSetting(

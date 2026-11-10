@@ -8,6 +8,20 @@
 实现采用标准库 http.server，无需额外依赖。
 """
 
-from .server import start_api_server, get_api_base_url, set_open_book_callback  # noqa: F401
+from .server import (  # noqa: F401
+    start_api_server,
+    get_api_base_url,
+    set_open_book_callback,
+    set_api_secret,
+    dispatch_api,
+    is_api_path,
+)
 
-__all__ = ["start_api_server", "get_api_base_url", "set_open_book_callback"]
+__all__ = [
+    "start_api_server",
+    "get_api_base_url",
+    "set_open_book_callback",
+    "set_api_secret",
+    "dispatch_api",
+    "is_api_path",
+]
