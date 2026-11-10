@@ -1327,6 +1327,41 @@ class BaseParser:
             }]
         }
     
+    @staticmethod
+    def _chinese_numeral_to_int(text: str) -> int:
+        """
+        将中文数字转换为整数，支持 一~十、十一~九十九、一百零五 等
+
+        Args:
+            text: 中文数字字符串，如 "十"、"二十三"、"一百零五"
+
+        Returns:
+            对应的整数，解析失败返回 None
+        """
+        digit_map = {'零': 0, '一': 1, '二': 2, '两': 2, '三': 3, '四': 4,
+                     '五': 5, '六': 6, '七': 7, '八': 8, '九': 9}
+        unit_map = {'十': 10, '百': 100, '千': 1000}
+
+        result = 0
+        current = 0
+        has_digit = False
+        for ch in text:
+            if ch in digit_map:
+                current = digit_map[ch]
+                has_digit = True
+            elif ch in unit_map:
+                if current == 0:
+                    current = 1  # 处理 "十五" 这种"十"开头的情况
+                result += current * unit_map[ch]
+                current = 0
+                has_digit = True
+            elif ch == '零':
+                continue
+            else:
+                return None  # 含非中文数字字符，解析失败
+
+        return result + current if has_digit else None
+
     def _extract_chapter_number_from_title(self, title: str) -> int:
         """
         从章节标题中提取章节编号
@@ -1339,21 +1374,30 @@ class BaseParser:
         """
         # 尝试从标题中提取章节编号
         # 例如: 第1章 美女班長 -> 提取 1
-        # 或者: 第一章 美女班長 -> 提取 1
+        # 或者: 第一章 美女班長 -> 提取 1（支持中文数字）
         # 或者: 第3卷 第5章 标题 -> 提取 5
         patterns = [
             r'第(\d+)章',  # 第1章
             r'第(\d+)节',  # 第1节
             r'第(\d+)回',  # 第1回
+            r'第([零一二两三四五六七八九十百千]+)章',  # 第十章
+            r'第([零一二两三四五六七八九十百千]+)节',  # 第十节
+            r'第([零一二两三四五六七八九十百千]+)回',  # 第十回
             r'第(\d+)卷\s*第(\d+)章',  # 第1卷第5章 -> 提取5
         ]
-        
+
         for pattern in patterns:
             match = re.search(pattern, title)
             if match:
                 # 对于"第x卷第y章"模式，我们想要y（章号）
                 groups = match.groups()
-                return int(groups[-1])  # 取最后一个匹配的数字
+                raw = groups[-1]  # 取最后一个匹配的数字
+                if raw.isdigit():
+                    return int(raw)
+                # 中文数字转整数，如 "十" -> 10
+                num = self._chinese_numeral_to_int(raw)
+                if num is not None:
+                    return num
         
         # 如果标题中没有明确的章节号，尝试其他方法
         # 例如: "1. 标题" 或 "01 标题"
@@ -1388,11 +1432,18 @@ class BaseParser:
     def _sort_chapters_by_number(self, chapter_links: List[Dict[str, str]]) -> None:
         """
         按章节编号对章节链接列表进行排序
-        
+
+        注意：只有当大多数章节能解析出真实编号时才执行排序，
+        否则保持页面原有的章节顺序（避免番外/后记等特殊章节被错误前置）。
+
         Args:
             chapter_links: 章节链接列表，会被原地排序
         """
-        chapter_links.sort(key=lambda x: self._extract_chapter_number_from_title(x.get('title', '')))
+        numbers = [self._extract_chapter_number_from_title(c.get('title', '')) for c in chapter_links]
+        # 90000以下视为真实解析出的编号（90000以上为序章/番外等特殊标记）
+        real_count = sum(1 for n in numbers if n < 90000)
+        if real_count >= max(2, len(numbers) // 2):
+            chapter_links.sort(key=lambda x: self._extract_chapter_number_from_title(x.get('title', '')))
     
     def _parse_multichapter_novel(self, content: str, novel_url: str, title: str) -> Dict[str, Any]:
         """解析多章节小说"""
