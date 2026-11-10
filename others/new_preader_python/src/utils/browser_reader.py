@@ -2307,6 +2307,44 @@ class BrowserReader:
             background: rgba(255, 255, 255, 0.95);
         }}
 
+        /* 后端端口指示（右侧"进度"与"阅读统计"之间常驻，样式与"接口"徽标一致，随故障转移实时更新） */
+        .backend-port-badge {{
+            position: fixed;
+            bottom: 50px;
+            right: 10px;
+            padding: 4px 10px;
+            border-radius: 12px;
+            font-size: 12px;
+            color: var(--reader-text);
+            background: transparent;
+            border: 1px solid rgba(128,128,128,0.4);
+            box-shadow: 0 2px 6px rgba(0,0,0,0.15);
+            user-select: none;
+            z-index: 1000;
+            cursor: default;
+            transition: background 0.2s ease, color 0.2s ease;
+        }}
+
+        .backend-port-badge.online {{
+            border-color: #1f9d55;
+            color: #1f9d55;
+        }}
+
+        .backend-port-badge.online:hover {{
+            background: #1f9d55;
+            color: #fff;
+        }}
+
+        .backend-port-badge.offline {{
+            border-color: #b45309;
+            color: #b45309;
+        }}
+
+        .backend-port-badge.offline:hover {{
+            background: #b45309;
+            color: #fff;
+        }}
+
         /* 快捷键提示 */
         .keyboard-hint, #keyboardHint {{
             position: fixed !important;
@@ -4915,6 +4953,9 @@ class BrowserReader:
     <!-- 进度信息 -->
     <div class="progress-info" id="progressInfo" onclick="togglePositionJump()" title="{{t('browser_reader.progress_click_title')}}"><script>document.write(t('browser_reader.progress_info'));</script></div>
 
+    <!-- 后端端口指示（右下角"进度"与"阅读统计"之间，端口随故障转移变化时自动刷新） -->
+    <div class="backend-port-badge offline" id="backendPortBadge" title="检测后端中…">后端 …</div>
+
     <!-- 缩略图导航 -->
     <div class="minimap-container" id="minimapContainer">
         <div class="minimap-content" id="minimapContent">
@@ -6182,7 +6223,12 @@ class BrowserReader:
         async function discoverServer() {{
             const host = '{browser_server_host}';
             const lo = Math.max(READER_BASE_PORT || {browser_server_port}, READER_PORT_RANGE_MIN);
-            const hi = Math.min(lo + 100, READER_PORT_RANGE_MAX);
+            let hi = Math.min(lo + 100, READER_PORT_RANGE_MAX);
+            if (hi < lo) {{
+                // 基础端口与设置中心范围脱节（如手动指定了范围外的端口）：
+                // 退化为从基础端口起限量扫描，保证故障转移仍可用
+                hi = lo + READER_MAX_RETRY - 1;
+            }}
             const currentPort = getCurrentPort();
             if (failoverState.cursor === null) failoverState.cursor = lo;
             for (let tried = 0; tried < READER_MAX_RETRY && failoverState.cursor <= hi;) {{
@@ -6211,6 +6257,9 @@ class BrowserReader:
                 }}
             }}
             failoverState.failedRounds++;
+            // 本轮失败且窗口已扫完：游标重置，下一轮从头再扫（否则游标停在窗口外，
+            // 后续轮次的循环条件 cursor<=hi 恒为假，扫描永远空转）
+            if (failoverState.cursor > hi) failoverState.cursor = null;
             return null;
         }}
         
@@ -8620,6 +8669,26 @@ class BrowserReader:
             triggerProgressSave(progress);
         }}
 
+        // 更新左下角"后端端口"指示徽标（端口变化/离线时自动刷新）
+        function updateBackendPortBadge() {{
+            const badge = document.getElementById('backendPortBadge');
+            if (!badge) return;
+            let port = '';
+            try {{
+                const u = SAVE_PROGRESS_URL || LOAD_PROGRESS_URL;
+                if (u) port = (new URL(u)).port || '';
+            }} catch (e) {{}}
+            if (isBackendOnline && port) {{
+                badge.textContent = '后端 :' + port;
+                badge.className = 'backend-port-badge online';
+                badge.title = '当前连接的后端: ' + (SAVE_PROGRESS_URL || LOAD_PROGRESS_URL || '');
+            }} else {{
+                badge.textContent = '后端 离线';
+                badge.className = 'backend-port-badge offline';
+                badge.title = '未连接到阅读器后端（每30秒自动重试/扫描）';
+            }}
+        }}
+
         // 更新后端状态显示
         function updateBackendStatusDisplay() {{
             const progressInfo = document.getElementById('progressInfo');
@@ -8627,6 +8696,7 @@ class BrowserReader:
                 const currentText = progressInfo.textContent.replace(/（后端离线）|（后端在线）/, '').trim();
                 progressInfo.textContent = currentText + getBackendStatusText();
             }}
+            updateBackendPortBadge();
         }}
         
         // 触发进度保存（防抖）
