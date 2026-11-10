@@ -195,27 +195,60 @@ class BrowserReaderServerManager:
         except Exception:
             return False
 
-    def _find_available_port(self, host: str, base_port: int, max_tries: int = 100) -> int:
+    @staticmethod
+    def _is_port_free(host: str, port: int) -> bool:
+        """用 bind 探测端口是否可用（与真正启动语义一致，比 connect_ex 可靠）。
+
+        connect_ex 对"已监听但未 accept 且 backlog 满"的端口会误判为空闲。
+        """
+        import socket
+        probe = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
+        try:
+            probe.setsockopt(socket.SOL_SOCKET, socket.SO_REUSEADDR, 1)
+            probe.bind((host, int(port)))
+            return True
+        except OSError:
+            return False
+        finally:
+            probe.close()
+
+    def _find_available_port(self, host: str, base_port: int, max_tries: int = 100,
+                             max_port: Optional[int] = None) -> int:
         """从 base_port 开始找一个可用端口，供当前实例独占使用。
 
         多实例场景下必须各自独立端口：复用别人的端口会让页面连到别人的后端。
-        全部不可用时返回 0（交由系统随机分配）。
+        max_port（设置中心 port_range_max）用于限定顺延上限，超出后交由系统随机分配。
         """
-        import socket
         base_port = int(base_port or 54321)
         for offset in range(max_tries):
             candidate = base_port + offset
-            probe = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
-            probe.settimeout(0.2)
-            try:
-                in_use = probe.connect_ex((host, candidate)) == 0
-            except Exception:
-                in_use = True
-            finally:
-                probe.close()
-            if not in_use:
+            if max_port and candidate > max_port:
+                break
+            if self._is_port_free(host, candidate):
                 return candidate
-        logger.warning(f"端口 {base_port} 起的 {max_tries} 个端口都不可用，交由系统分配")
+        logger.warning(f"端口 {base_port} 起的 {max_tries} 个端口都不可用，走随机端口范围兜底")
+        return 0
+
+    def _find_random_available_port(self, host: str, min_port: int, max_port: int,
+                                    tries: int = 10) -> int:
+        """在设置中心的随机端口范围 [min_port, max_port] 内随机找一个可用端口。
+
+        用于：browser_server.port=0 时的初始分配，以及顺延窗口耗尽后的兜底。
+        范围内全部失败时返回 0（最终兜底：系统随机分配）。
+        """
+        import random
+        min_port, max_port = int(min_port), int(max_port)
+        if min_port > max_port:
+            min_port, max_port = max_port, min_port
+        tried = set()
+        for _ in range(max(tries, 1)):
+            candidate = random.randint(min_port, max_port)
+            if candidate in tried:
+                continue
+            tried.add(candidate)
+            if self._is_port_free(host, candidate):
+                return candidate
+        logger.warning(f"随机端口范围 [{min_port}, {max_port}] 内 {tries} 次尝试均失败，交由系统分配")
         return 0
 
     def start_server(self) -> bool:
@@ -243,7 +276,15 @@ class BrowserReaderServerManager:
                 self._configure_api()
                 return True
             
-            fixed_port = browser_config.get("port", 54321)
+            fixed_port = int(browser_config.get("port", 54321) or 0)
+            # 设置中心的端口规则：port=0 时在 [port_range_min, port_range_max] 内随机分配；
+            # port 非 0 时用指定端口，被占用则向上顺延（上限 port_range_max），
+            # 顺延窗口耗尽后同样按随机端口范围兜底
+            _range_min = int(browser_config.get("port_range_min", 10000) or 10000)
+            _range_max = int(browser_config.get("port_range_max", 60000) or 60000)
+            _max_retry = int(browser_config.get("max_retry_attempts", 10) or 10)
+            if _range_min > _range_max:
+                _range_min, _range_max = _range_max, _range_min
 
             # 初始化翻译管理器（复用系统中的翻译配置）
             try:
@@ -252,22 +293,26 @@ class BrowserReaderServerManager:
             except Exception as _e:
                 logger.warning(f"初始化翻译管理器失败（翻译功能将不可用）: {_e}")
 
-            # ★ 多实例隔离：端口被占用时"换端口"，绝不"复用"别人的服务。
-            # 复用会让浏览器页面连到另一个实例的后端（数据回调/书库都在别人进程里），
-            # 表现为页面连错后端、保存 404、状态显示混乱。
-            import socket
-            sock = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
-            sock.settimeout(0.2)
-            port_in_use = sock.connect_ex((host, fixed_port)) == 0
-            sock.close()
-
             chosen_port = fixed_port
-            if port_in_use:
-                if self._check_existing_server(host, fixed_port):
-                    logger.info(f"端口 {fixed_port} 已被其它阅读器实例占用，本实例将使用独立端口（不复用）")
-                else:
-                    logger.info(f"端口 {fixed_port} 被其它程序占用，本实例将使用独立端口")
-                chosen_port = self._find_available_port(host, fixed_port)
+            if fixed_port == 0:
+                # port=0：按设置中心的随机端口范围分配
+                logger.info(f"端口设置为0，将按设置中心随机端口范围 [{_range_min}, {_range_max}] 分配")
+                chosen_port = self._find_random_available_port(host, _range_min, _range_max, _max_retry)
+            else:
+                # ★ 多实例隔离：端口被占用时"换端口"，绝不"复用"别人的服务。
+                # 复用会让浏览器页面连到另一个实例的后端（数据回调/书库都在别人进程里），
+                # 表现为页面连错后端、保存 404、状态显示混乱。
+                if not self._is_port_free(host, fixed_port):
+                    if self._check_existing_server(host, fixed_port):
+                        logger.info(f"端口 {fixed_port} 已被其它阅读器实例占用，本实例将使用独立端口（不复用）")
+                    else:
+                        logger.info(f"端口 {fixed_port} 被其它程序占用，本实例将使用独立端口")
+                    chosen_port = self._find_available_port(host, fixed_port, max_port=_range_max)
+
+            # 顺延窗口耗尽仍无端口：按设置中心随机端口范围兜底（最终仍失败则系统随机分配）
+            if chosen_port == 0 and fixed_port != 0:
+                logger.info(f"顺延窗口内无可用端口，按设置中心随机端口范围 [{_range_min}, {_range_max}] 兜底")
+                chosen_port = self._find_random_available_port(host, _range_min, _range_max, _max_retry)
 
             # 启动统一服务器（进度接口 + 可选的 /api/* 数据接口）
             logger.info(f"尝试启动统一服务 - host: {host}, port: {chosen_port}, serve_api: {self._serve_api}")

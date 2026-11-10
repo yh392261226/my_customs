@@ -1287,6 +1287,8 @@ SYNC_HTML = r"""
 SYNC_JS = r"""
 (function(){
   var API = window.__BR_API_BASE__ || '';
+  // 后端地址统一动态读取：故障转移切换到其它实例端口时，只需更新 window.__BR_API_BASE__
+  function apiBase(){ return window.__BR_API_BASE__ || ''; }
   var TIMEOUT = 8000;
   function el(id){ return document.getElementById(id); }
   function lsGet(k){ try { return JSON.parse(localStorage.getItem(k)||'null'); } catch(e){ return null; } }
@@ -1313,9 +1315,9 @@ SYNC_JS = r"""
 
   function brApi(method, path, body){
     return new Promise(function(resolve, reject){
-      if(!API){ reject(new Error('no-api')); return; }
+      if(!apiBase()){ reject(new Error('no-api')); return; }
       var xhr = new XMLHttpRequest();
-      xhr.open(method, API + path, true);
+      xhr.open(method, apiBase() + path, true);
       xhr.timeout = TIMEOUT;
       xhr.setRequestHeader('Content-Type','application/json');
       var sk = getSecret();
@@ -1336,7 +1338,7 @@ SYNC_JS = r"""
     if(d){ d.textContent = (online && ifaces) ? ('书库 '+ik(ifaces.books)+' · 网站 '+ik(ifaces.websites)+' · 爬取 '+ik(ifaces.crawls)) : (msg || '未连接后端，使用本地缓存'); }
   }
   function detect(){
-    if(!API){ setStatus(false, null, '未配置后端地址'); return; }
+    if(!apiBase()){ setStatus(false, null, '未配置后端地址'); return; }
     brApi('GET','/api/health').then(function(r){
       if(r.status===200 && r.data && r.data.interfaces){ setStatus(true, r.data.interfaces); }
       else if(r.status===401){ setStatus(false, null, '密钥错误/未授权'); }
@@ -1578,7 +1580,7 @@ SYNC_JS = r"""
   window.brSync = {
     api: function(m,p,b){ return brApi(m,p,b); },
     openBook: function(p){ brOpenBook(p); },
-    base: function(){ return API || (window.__BR_API_BASE__||''); },
+    base: function(){ return apiBase(); },
     secret: getSecret
   };
 })();
@@ -2035,6 +2037,7 @@ class BrowserReader:
                         initial_progress: Optional[float] = None,
                         browser_server_host: str = "localhost",
                         browser_server_port: int = 54321,
+                        browser_server_base_port: Optional[int] = None,
                         file_path: Optional[str] = None,
                         lock_enabled: bool = False,
                         api_base_url: Optional[str] = None,
@@ -2053,6 +2056,22 @@ class BrowserReader:
         Returns:
             HTML字符串
         """
+        # 故障转移扫描起始端口：未指定时取本实例实际端口
+        if browser_server_base_port is None:
+            browser_server_base_port = browser_server_port
+
+        # 故障转移扫描参数：与后端端口选择使用同一套设置中心配置（browser_server.*）
+        try:
+            from src.config.config_manager import ConfigManager
+            _bs_cfg = ConfigManager.get_instance().get_config().get("browser_server", {})
+            _port_range_min = int(_bs_cfg.get("port_range_min", 10000) or 10000)
+            _port_range_max = int(_bs_cfg.get("port_range_max", 60000) or 60000)
+            _max_retry = int(_bs_cfg.get("max_retry_attempts", 10) or 10)
+        except Exception:
+            _port_range_min, _port_range_max, _max_retry = 10000, 60000, 10
+        if _port_range_min > _port_range_max:
+            _port_range_min, _port_range_max = _port_range_max, _port_range_min
+
         # 页面加载完成后执行的全局初始化
         global_init_code = """
         // 页面加载完成后执行
@@ -5577,6 +5596,17 @@ class BrowserReader:
         
         // 当前实例标识：只有返回该标识的服务才是"我这个实例"的后端（多实例隔离）
         let READER_INSTANCE_ID = {f'"{_get_reader_instance_id()}"'};
+        // 当前信任的后端实例标识（初始为本实例；故障转移采纳新后端后随之更新）
+        let CURRENT_BACKEND_INSTANCE = READER_INSTANCE_ID;
+        // 故障转移扫描的起始端口（配置的基础端口；本实例实际端口可能已顺延）
+        let READER_BASE_PORT = {browser_server_base_port};
+        // 扫描范围与次数限制：全部来自设置中心（browser_server.port_range_min/max、max_retry_attempts），
+        // 与后端选端口的规则保持一致，避免无限制扫描占用资源
+        let READER_PORT_RANGE_MIN = {_port_range_min};
+        let READER_PORT_RANGE_MAX = {_port_range_max};
+        let READER_MAX_RETRY = {_max_retry};
+        // 扫描状态：游标跨轮续扫 + 失败轮次上限（达到上限后停止自动扫描，刷新页面才会重置）
+        const failoverState = {{ cursor: null, failedRounds: 0, nextScanAt: 0 }};
         
         // 暴露到window对象，以便可以动态更新
         window.SAVE_PROGRESS_URL = SAVE_PROGRESS_URL;
@@ -6012,13 +6042,13 @@ class BrowserReader:
         }}
         
 
-        // 判断健康检查的响应是否来自"本实例"的服务。
-        // 多实例并存时，端口上的服务可能是别的实例，连上去会导致保存/书库/回调全错位。
+        // 判断健康检查的响应是否来自"当前信任的后端"。
+        // 初始只认本实例；故障转移采纳其它实例后，信任实例随之更新。
         async function isOwnServerResponse(response) {{
             if (!response || !response.ok) return false;
             try {{
                 const data = await response.clone().json();
-                if (data && data.instance && READER_INSTANCE_ID && data.instance !== READER_INSTANCE_ID) {{
+                if (data && data.instance && CURRENT_BACKEND_INSTANCE && data.instance !== CURRENT_BACKEND_INSTANCE) {{
                     console.warn('忽略其它阅读器实例的服务:', data.instance);
                     return false;
                 }}
@@ -6069,8 +6099,7 @@ class BrowserReader:
                     ]);
                 }};
                 
-                // 只认本实例注入的地址：不做跨端口"发现"，
-                // 否则会连到同机其它实例的后端（保存/书库/回调都会错位）
+                // 首选当前后端地址
                 try {{
                     const healthCheckUrl = checkUrl.replace(new RegExp("save_progress|load_progress"), "health_check");
                     console.log('尝试健康检查URL:', healthCheckUrl);
@@ -6085,9 +6114,52 @@ class BrowserReader:
                         updateBackendStatusDisplay();
                         return true;
                     }}
-                    console.log('健康检查响应不来自本实例服务，按离线处理');
+                    console.log('当前后端不可用，尝试故障转移扫描其它端口');
                 }} catch (e) {{
-                    console.log('健康检查失败:', e);
+                    console.log('健康检查失败，尝试故障转移扫描其它端口:', e);
+                }}
+
+                // 故障转移：当前后端已关闭时，扫描其它端口寻找仍在运行的阅读器实例。
+                // 总轮数与频率双重限制：最多 READER_MAX_RETRY 轮失败后停止自动扫描；
+                // 相邻轮之间指数退避（30s 起步，最长 10 分钟），避免无限扫描占用资源。
+                const _now = Date.now();
+                if (failoverState.failedRounds >= READER_MAX_RETRY) {{
+                    console.warn('故障转移扫描已达上限(' + READER_MAX_RETRY + ' 轮)，停止自动扫描；刷新页面可重置');
+                }} else if (_now < failoverState.nextScanAt) {{
+                    console.log('故障转移扫描退避中，本轮跳过');
+                }} else {{
+                    try {{
+                        const found = await discoverServer();
+                        if (found) {{
+                            const base = 'http://' + found.host + ':' + found.port;
+                            console.log('故障转移: 发现可用后端', base, '实例:', found.instance || '未知');
+                            SAVE_PROGRESS_URL = base + '/save_progress';
+                            LOAD_PROGRESS_URL = base + '/load_progress';
+                            window.SAVE_PROGRESS_URL = SAVE_PROGRESS_URL;
+                            window.LOAD_PROGRESS_URL = LOAD_PROGRESS_URL;
+                            // 信任实例更新为被采纳的后端，后续健康检查以它为准
+                            CURRENT_BACKEND_INSTANCE = found.instance || '';
+                            // 数据接口（同步面板）跟随切换；显式配置的远程后端地址不覆盖
+                            try {{
+                                const oldBase = window.__BR_API_BASE__ || '';
+                                if (!oldBase || /localhost|127\.0\.0\.1/.test(oldBase)) {{
+                                    window.__BR_API_BASE__ = base;
+                                }}
+                            }} catch (e) {{}}
+                            if (typeof showNotification === 'function') {{
+                                showNotification('原后端不可达，已切换到后端 ' + found.host + ':' + found.port);
+                            }}
+                            isBackendOnline = true;
+                            updateServerConnectionInfo();
+                            updateBackendStatusDisplay();
+                            return true;
+                        }}
+                        // 本轮未找到：安排退避
+                        failoverState.nextScanAt = Date.now() + Math.min(30000 * Math.pow(2, failoverState.failedRounds), 600000);
+                        console.log('故障转移第', failoverState.failedRounds, '轮未找到可用后端，下次扫描将退避');
+                    }} catch (e) {{
+                        console.log('故障转移扫描失败:', e);
+                    }}
                 }}
 
                 isBackendOnline = false;
@@ -6102,22 +6174,43 @@ class BrowserReader:
             }}
         }}
         
-        // 确认本实例的服务地址（不再跨端口扫描：同机可能有多个阅读器实例，
-        // 扫描会把页面粘到"第一个启动的实例"上）
+        // 故障转移：当前后端不可达时，按设置中心的端口范围扫描其它实例。
+        // 规则与后端选端口一致：实例顺延只落在 基础端口..基础端口+100 且不超出 port_range_max，
+        // 因此扫描窗口 = [max(基础端口, port_range_min), min(基础端口+100, port_range_max)]；
+        // 每轮最多探测 READER_MAX_RETRY（max_retry_attempts）个端口，游标跨轮续扫，
+        // 窗口扫完仍未找到计一轮失败（由调用方限制总轮数并退避）。
         async function discoverServer() {{
-            const expectedHost = '{browser_server_host}'; // 本实例实际使用的主机
-            const expectedPort = {browser_server_port}; // 本实例实际使用的端口
-            try {{
-                const response = await fetch("http://" + expectedHost + ":" + expectedPort + "/health_check", {{
-                    method: 'GET',
-                    cache: 'no-cache'
-                }});
-                if (await isOwnServerResponse(response)) {{
-                    return {{host: expectedHost, port: expectedPort}};
+            const host = '{browser_server_host}';
+            const lo = Math.max(READER_BASE_PORT || {browser_server_port}, READER_PORT_RANGE_MIN);
+            const hi = Math.min(lo + 100, READER_PORT_RANGE_MAX);
+            const currentPort = getCurrentPort();
+            if (failoverState.cursor === null) failoverState.cursor = lo;
+            for (let tried = 0; tried < READER_MAX_RETRY && failoverState.cursor <= hi;) {{
+                const port = failoverState.cursor++;
+                if (port === currentPort) continue; // 当前地址已确认失败，跳过
+                tried++;
+                try {{
+                    const response = await fetch("http://" + host + ":" + port + "/health_check", {{
+                        method: 'GET',
+                        cache: 'no-cache'
+                    }});
+                    if (response && response.ok) {{
+                        let instance = '';
+                        try {{
+                            const data = await response.clone().json();
+                            instance = (data && data.instance) || '';
+                        }} catch (e) {{}}
+                        // 找到可用后端：重置扫描状态
+                        failoverState.cursor = null;
+                        failoverState.failedRounds = 0;
+                        failoverState.nextScanAt = 0;
+                        return {{host: host, port: port, instance: instance}};
+                    }}
+                }} catch (e) {{
+                    // 该端口无服务，继续扫描
                 }}
-            }} catch (e) {{
-                // 本实例服务不可达
             }}
+            failoverState.failedRounds++;
             return null;
         }}
         
@@ -13549,7 +13642,9 @@ class BrowserReader:
                 browser_server_port = browser_server_config.get("port", 54321)
             except Exception as e:
                 logger.warning(f"无法获取browser_server配置，使用默认值: {e}")
-            
+            # 故障转移扫描的起始端口（配置的基础端口）；实际端口可能因多实例顺延而不同
+            browser_server_base_port = browser_server_port
+
             # 优先使用全局浏览器阅读器服务器
             save_url = None
             load_url = None
@@ -13691,6 +13786,7 @@ class BrowserReader:
             html = BrowserReader.create_reader_html(
                 content, title, theme, custom_settings, save_url, load_url,
                 book_id, initial_progress, browser_server_host, browser_server_port,
+                browser_server_base_port,
                 file_path, lock_enabled=_lock_enabled, api_base_url=_api_base_url,
                 api_secret=_api_secret
             )
@@ -13842,10 +13938,18 @@ class BrowserReader:
             if not BrowserReader._is_port_available(host, final_port):
                 logger.warning(f"固定端口 {host}:{final_port} 被占用，顺延寻找可用端口")
                 port = 0
-                for candidate in range(final_port + 1, final_port + 100):
+                for candidate in range(final_port + 1, min(final_port + 100, int(port_range_max) + 1)):
                     if BrowserReader._is_port_available(host, candidate):
                         port = candidate
                         break
+                if port == 0:
+                    # 顺延窗口内无可用端口：按设置中心随机端口范围兜底（再失败才交由系统分配）
+                    logger.info(f"顺延窗口内无可用端口，按随机端口范围 [{port_range_min}, {port_range_max}] 兜底")
+                    for _ in range(max_retry):
+                        cand = random.randint(int(port_range_min), int(port_range_max))
+                        if BrowserReader._is_port_available(host, cand):
+                            port = cand
+                            break
                 final_port = port
                 logger.info(f"独立服务将使用端口: {final_port or '随机'}")
             else:
@@ -14183,12 +14287,16 @@ class BrowserReader:
             bool: 端口是否可用
         """
         import socket
-        
+
+        # 用 bind 探测（与真正启动语义一致）；connect_ex 对"已监听但未 accept
+        # 且 backlog 满"的端口会误判为空闲
         try:
             with socket.socket(socket.AF_INET, socket.SOCK_STREAM) as sock:
-                sock.settimeout(1)
-                result = sock.connect_ex((host, port))
-                return result != 0  # 连接失败表示端口可用
+                sock.setsockopt(socket.SOL_SOCKET, socket.SO_REUSEADDR, 1)
+                sock.bind((host, int(port)))
+                return True
+        except OSError:
+            return False
         except Exception:
             return False
     
