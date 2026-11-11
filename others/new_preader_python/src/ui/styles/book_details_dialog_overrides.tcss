@@ -1,0 +1,72 @@
+/* 书籍详情弹窗样式
+   放在 CSS_PATH 而非 Screen 的 DEFAULT_CSS：app 级 common.tcss 中的
+   Container / ScrollableContainer { width: 100%; height: 100% } 会覆盖
+   DEFAULT_CSS，导致窗口变成全屏、Footer（继承自 ScrollableContainer）
+   被撑满整个内容区。CSS_PATH 的规则优先级更高，可确保窗口与顶栏/底栏
+   尺寸和 BookPreviewDialog 保持一致。 */
+BookDetailsDialog {
+    align: center middle;
+}
+
+BookDetailsDialog Header {
+    width: 100%;
+    height: 1;
+    dock: top;
+}
+
+BookDetailsDialog Footer {
+    width: 100%;
+    height: 1;
+    dock: bottom;
+}
+
+#book-details-window {
+    width: 70%;
+    height: auto;
+    min-width: 40;
+    background: $surface;
+    border: thick $accent;
+    padding: 1 2;
+    /* 窗口本身不滚动，只有 #book-details-body 负责滚动，避免底部按钮被滚出可视区 */
+    overflow-y: hidden;
+}
+
+#book-details-title {
+    width: 100%;
+    height: 1;
+    background: $accent;
+    color: $text;
+    text-style: bold;
+    content-align: center middle;
+    margin-bottom: 1;
+}
+
+#book-details-body {
+    height: auto;
+    background: $background;
+    border: round $panel;
+    padding: 1;
+}
+
+#book-details-info {
+    width: 100%;
+    height: auto;
+}
+
+#book-details-content {
+    height: 12;
+    margin-top: 1;
+    border: round $border;
+    background: $background;
+    padding: 0 1;
+}
+
+#book-details-buttons {
+    height: 3;
+    align: center middle;
+    margin-top: 1;
+}
+
+#book-details-close-btn {
+    min-width: 16;
+}

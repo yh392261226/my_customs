@@ -114,6 +114,8 @@ FillMissingDialog Container, #fm-container {
     overflow-x: auto;
 }
 #fm-sel-ops-row > Button { margin: 0 1; }
+/* 左侧「预览书籍」按钮：放在操作行首位，确保在横向滚动时始终可见 */
+#fm-preview-book-btn { background: $accent 40%; min-width: 10; }
 #fm-select-all-btn { background: $primary 40%; min-width: 6; }
 #fm-move-up-btn, #fm-move-down-btn { background: $secondary 60%; min-width: 6; }
 #fm-assign-front-btn { background: $success 70%; min-width: 6; }

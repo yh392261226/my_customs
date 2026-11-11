@@ -80,9 +80,11 @@ BUTTON_ACTION_OVERRIDES: Dict[str, Dict[str, str]] = {
     "LogViewerPopup": {
         "close-log-btn": "close",
     },
-    # 书籍预览弹窗：全屏预览(V)、关闭(esc)
+    # 书籍预览弹窗：全屏预览(V)、查看文件(F)、查看详情(i)、关闭(esc)
     "BookPreviewDialog": {
         "preview-full-btn": "toggle_preview",
+        "preview-view-file-btn": "view_file",
+        "preview-details-btn": "view_details",
         "preview-close-btn": "close",
     },
     "_MergePreviewDialog": {
@@ -95,8 +97,15 @@ BUTTON_ACTION_OVERRIDES: Dict[str, Dict[str, str]] = {
         "editor-wrap-btn": "toggle_wrap",
         "editor-close-btn": "close",
     },
-    # 书籍详情弹窗：关闭(esc)
+    # 补足缺失章节：预览当前光标行书籍(v)、可视化补足(V)
+    "FillMissingDialog": {
+        "fm-preview-book-btn": "preview_current_book",
+        "fm-visual-merge-btn": "visual_merge",
+    },
+    # 书籍详情弹窗：查看文件(F)、预览(v)、关闭(i/q/esc)
     "BookDetailsDialog": {
+        "book-details-view-file-btn": "view_file",
+        "book-details-preview-btn": "preview",
         "book-details-close-btn": "close",
     },
     # 获取书籍：代理设置(P)

@@ -42,7 +42,9 @@ class FillMissingDialog(ModalScreen[Dict[str, Any]]):
         ("p", "move_up", get_global_i18n().t('common.move_up')),
         ("n", "move_down", get_global_i18n().t('common.move_down')),
         ("space", "toggle_row", get_global_i18n().t('fill_missing.toggle_row_shortcut')),
-        ("v", "visual_merge", get_global_i18n().t('fill_missing.visual_merge_btn')),
+        # v：预览左侧「新爬取的书籍」当前光标所在行；可视化合并让位给大写 V
+        ("v", "preview_current_book", get_global_i18n().t('common.preview_book')),
+        ("V", "visual_merge", get_global_i18n().t('fill_missing.visual_merge_btn')),
         ("S", "search_chapters", get_global_i18n().t('common.search_chapter')),
         ("y", "copy_title", get_global_i18n().t('fill_missing.copy_title_shortcut')),
     ]
@@ -154,6 +156,7 @@ class FillMissingDialog(ModalScreen[Dict[str, Any]]):
                         DataTable(id="fm-books-table"),
                         # 选择+分配按钮行
                         Horizontal(
+                            Button(self.i18n.t('common.preview'), id="fm-preview-book-btn", variant="primary"),
                             Button(self.i18n.t('common.select_all'), id="fm-select-all-btn", variant="default"),
                             Button(self.i18n.t('common.move_up'), id="fm-move-up-btn", variant="default"),
                             Button(self.i18n.t('common.move_down'), id="fm-move-down-btn", variant="default"),
@@ -2474,9 +2477,63 @@ class FillMissingDialog(ModalScreen[Dict[str, Any]]):
     def action_cancel(self): self.on_cancel()
 
     def action_visual_merge(self):
-        """快捷键 v: 打开可视化补足缺失章节"""
+        """快捷键 V: 打开可视化补足缺失章节"""
         if self._stage == "merge":
             self._open_visual_merge()
+
+    @on(Button.Pressed, "#fm-preview-book-btn")
+    def on_preview_current_book(self, event: Button.Pressed) -> None:
+        """左侧「预览书籍」按钮：预览当前光标所在行的新爬取书籍"""
+        event.stop()
+        self._preview_current_book()
+
+    def action_preview_current_book(self) -> None:
+        """快捷键 v：预览左侧列表当前光标所在行的新爬取书籍"""
+        self._preview_current_book()
+
+    def _preview_current_book(self) -> None:
+        """预览左侧「新爬取的书籍」列表中当前光标所在行的书籍。
+
+        与书库/爬取管理页的预览一致：读取文件前 2000 字，弹出
+        BookPreviewDialog；metadata 带上文件路径以启用「预览全部 / 查看文件」。
+        """
+        try:
+            table = self.query_one("#fm-books-table", DataTable)
+            cursor = table.cursor_row
+            if cursor is None or cursor < 0 or cursor >= len(self._crawled_books):
+                self.notify(self.i18n.t('common.no_row_selected'), severity="warning", timeout=2)
+                return
+
+            book = self._crawled_books[cursor]
+            file_path = book.get('file_path') or ''
+            if not file_path or not os.path.exists(file_path):
+                self.notify(self.i18n.t('common.file_not_exist'), severity="warning", timeout=2)
+                return
+
+            # 局部导入：避免与爬取管理屏幕形成模块级循环依赖
+            from src.utils.file_helpers import read_file_preview
+            from src.ui.screens.crawler_management_screen import BookPreviewDialog
+
+            content = read_file_preview(file_path, max_chars=2000)
+            if not content.strip():
+                self.notify(self.i18n.t('crawler.preview_empty'), severity="information", timeout=2)
+                return
+
+            self.app.push_screen(
+                BookPreviewDialog(
+                    self.theme_manager,
+                    book.get('title') or book.get('novel_title') or '',
+                    content,
+                    metadata={
+                        "novel_id": book.get('novel_id'),
+                        "crawl_time": book.get('crawl_time'),
+                        "file_path": file_path,
+                    },
+                )
+            )
+        except Exception as e:
+            logger.error(f"预览当前书籍失败: {e}")
+            self.notify(self.i18n.t('common.action_failed'), severity="error", timeout=2)
 
     def action_search_chapters(self):
         """快捷键 S: 搜索章节（使用网站配置的搜索连接地址）"""

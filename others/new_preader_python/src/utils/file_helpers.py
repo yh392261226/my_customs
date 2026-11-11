@@ -206,6 +206,51 @@ def read_file_full(file_path: str) -> str:
         logger.error(f"读取文件全文失败: {file_path}, 错误: {e}")
         return ""
 
+def reveal_in_file_manager(file_path: str) -> bool:
+    """
+    在系统文件管理器中显示指定文件（定位到该文件）；若传入目录则直接打开该目录。
+
+    Args:
+        file_path: 文件或目录的路径
+
+    Returns:
+        是否成功触发打开操作
+    """
+    import platform
+    import subprocess
+
+    try:
+        if not file_path:
+            return False
+        file_path = os.path.abspath(os.path.expanduser(file_path))
+        system = platform.system()
+
+        # 目录：直接在文件管理器中打开该目录
+        if os.path.isdir(file_path):
+            if system == "Windows":
+                os.startfile(file_path)  # type: ignore[attr-defined]
+            else:
+                opener = "open" if system == "Darwin" else "xdg-open"
+                subprocess.run([opener, file_path], check=False)
+            return True
+
+        # 文件：定位并选中该文件
+        if not os.path.exists(file_path):
+            logger.warning(f"文件不存在，无法在文件管理器中显示: {file_path}")
+            return False
+
+        if system == "Darwin":  # macOS
+            subprocess.run(["open", "-R", file_path], check=False)
+        elif system == "Windows":
+            subprocess.run(["explorer", "/select,", file_path], check=False)
+        else:  # Linux 及其他
+            folder = os.path.dirname(file_path)
+            subprocess.run(["xdg-open", folder], check=False)
+        return True
+    except Exception as e:
+        logger.error(f"在文件管理器中显示文件失败: {file_path}, 错误: {e}")
+        return False
+
 def write_text_file(file_path: str, content: str) -> bool:
     """
     写入文本文件

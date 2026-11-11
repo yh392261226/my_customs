@@ -1789,45 +1789,54 @@ class BookshelfScreen(Screen[None]):
         """构建当前书籍详情并弹出可复用的 BookDetailsDialog。"""
         try:
             from src.ui.widgets.book_details_dialog import BookDetailsDialog
-            from src.utils.file_utils import FileUtils
 
-            book = self.bookshelf.get_book(book_path)
-            if book is None:
-                self.notify(get_global_i18n().t("common.book_not_found"), severity="warning")
+            dialog = self._build_book_details_dialog(book_path)
+            if dialog is None:
                 return
-
-            reading_info = self.bookshelf.get_book_reading_info(book.path)
-            progress = (reading_info.get("reading_progress", 0) or 0) * 100
-            source = self._get_book_source(book.path)
-
-            details = [
-                (get_global_i18n().t("common.book_name"), book.title),
-                (get_global_i18n().t("common.author"), book.author),
-                (get_global_i18n().t("book_details.source"), source),
-                (get_global_i18n().t("book_details.file_name"), book.file_name),
-                (get_global_i18n().t("common.file_path"), book.path),
-                (get_global_i18n().t("common.format"), book.format),
-                (get_global_i18n().t("common.size"), FileUtils.format_file_size(book.file_size) if book.file_size else "0"),
-                (get_global_i18n().t("book_details.file_status"),
-                 get_global_i18n().t("book_details.file_missing") if book.file_not_found else get_global_i18n().t("book_details.file_normal")),
-                (get_global_i18n().t("common.tag"), book.tags or ""),
-                (get_global_i18n().t("book_details.add_date"), book.add_date or ""),
-                (get_global_i18n().t("common.progress"), f"{progress:.1f}%"),
-                (get_global_i18n().t("book_details.last_read"), reading_info.get("last_read_date") or ""),
-                (get_global_i18n().t("book_details.word_count"), str(reading_info.get("word_count", 0) or 0)),
-                (get_global_i18n().t("book_details.open_count"), str(getattr(book, "open_count", 0) or 0)),
-            ]
-
-            self.app.push_screen(
-                BookDetailsDialog(
-                    title=get_global_i18n().t("book_details.title"),
-                    details=details,
-                    theme_manager=self.theme_manager,
-                )
-            )
+            self.app.push_screen(dialog)
         except Exception as e:
             self.logger.error(f"打开书籍详情失败: {e}")
             self.notify(get_global_i18n().t("common.action_failed"), severity="error")
+
+    def _build_book_details_dialog(self, book_path: str):
+        """构建书籍详情弹窗（供详情入口与预览弹窗的「查看详情」复用）。"""
+        from src.ui.widgets.book_details_dialog import BookDetailsDialog
+        from src.utils.file_utils import FileUtils
+
+        book = self.bookshelf.get_book(book_path)
+        if book is None:
+            self.notify(get_global_i18n().t("common.book_not_found"), severity="warning")
+            return None
+
+        reading_info = self.bookshelf.get_book_reading_info(book.path)
+        progress = (reading_info.get("reading_progress", 0) or 0) * 100
+        source = self._get_book_source(book.path)
+
+        details = [
+            (get_global_i18n().t("common.book_name"), book.title),
+            (get_global_i18n().t("common.author"), book.author),
+            (get_global_i18n().t("book_details.source"), source),
+            (get_global_i18n().t("book_details.file_name"), book.file_name),
+            (get_global_i18n().t("common.file_path"), book.path),
+            (get_global_i18n().t("common.format"), book.format),
+            (get_global_i18n().t("common.size"), FileUtils.format_file_size(book.file_size) if book.file_size else "0"),
+            (get_global_i18n().t("book_details.file_status"),
+             get_global_i18n().t("book_details.file_missing") if book.file_not_found else get_global_i18n().t("book_details.file_normal")),
+            (get_global_i18n().t("common.tag"), book.tags or ""),
+            (get_global_i18n().t("book_details.add_date"), book.add_date or ""),
+            (get_global_i18n().t("common.progress"), f"{progress:.1f}%"),
+            (get_global_i18n().t("book_details.last_read"), reading_info.get("last_read_date") or ""),
+            (get_global_i18n().t("book_details.word_count"), str(reading_info.get("word_count", 0) or 0)),
+            (get_global_i18n().t("book_details.open_count"), str(getattr(book, "open_count", 0) or 0)),
+        ]
+
+        return BookDetailsDialog(
+            title=get_global_i18n().t("book_details.title"),
+            details=details,
+            theme_manager=self.theme_manager,
+            file_path=book.path,
+            preview_factory=lambda: self._build_book_preview_dialog(book.path),
+        )
 
     def _handle_column_filter(self, column_key: int, book) -> None:
         """处理列筛选功能
@@ -2994,42 +3003,52 @@ class BookshelfScreen(Screen[None]):
             if not os.path.exists(book_path):
                 self.notify(get_global_i18n().t('common.file_not_exist'), severity="warning")
                 return
-            
-            # 获取书籍信息
-            book = self.bookshelf.get_book(book_path)
-            if not book:
-                self.notify(get_global_i18n().t("common.book_not_found"), severity="error")
+
+            dialog = self._build_book_preview_dialog(book_path)
+            if dialog is None:
                 return
-            
-            # 读取文件前2000字，自动检测编码（支持 GBK/GB2312/Big5 等，避免乱码）
-            content = read_file_preview(book_path, max_chars=2000)
-            if not content.strip():
-                self.notify(get_global_i18n().t("crawler.preview_empty"), severity="information")
-                return
-            
-            # 弹出预览对话框
-            from src.ui.screens.crawler_management_screen import BookPreviewDialog
-            from src.themes.theme_manager import ThemeManager
-            theme_manager = getattr(self.app, 'theme_manager', None) if hasattr(self.app, 'theme_manager') else ThemeManager()
-            
-            self.app.push_screen(
-                BookPreviewDialog(
-                    theme_manager,
-                    book.title,
-                    content,
-                    metadata={
-                        "author": getattr(book, "author", ""),
-                        "format": getattr(book, "format", ""),
-                        "size": getattr(book, "size", 0),
-                        "tags": getattr(book, "tags", ""),
-                        "path": getattr(book, "path", ""),
-                    },
-                )
-            )
-            
+            self.app.push_screen(dialog)
+
         except Exception as e:
             self.logger.error(f"预览书籍失败: {e}")
             self.notify(f"{get_global_i18n().t('crawler.preview_failed')}: {str(e)}", severity="error")
+
+    def _build_book_preview_dialog(self, book_path: str):
+        """构建书籍预览弹窗（供预览入口与详情弹窗的「预览」复用）。"""
+        if not os.path.exists(book_path):
+            self.notify(get_global_i18n().t('common.file_not_exist'), severity="warning")
+            return None
+
+        # 获取书籍信息
+        book = self.bookshelf.get_book(book_path)
+        if not book:
+            self.notify(get_global_i18n().t("common.book_not_found"), severity="error")
+            return None
+
+        # 读取文件前2000字，自动检测编码（支持 GBK/GB2312/Big5 等，避免乱码）
+        content = read_file_preview(book_path, max_chars=2000)
+        if not content.strip():
+            self.notify(get_global_i18n().t("crawler.preview_empty"), severity="information")
+            return None
+
+        # 弹出预览对话框
+        from src.ui.screens.crawler_management_screen import BookPreviewDialog
+        from src.themes.theme_manager import ThemeManager
+        theme_manager = getattr(self.app, 'theme_manager', None) if hasattr(self.app, 'theme_manager') else ThemeManager()
+
+        return BookPreviewDialog(
+            theme_manager,
+            book.title,
+            content,
+            metadata={
+                "author": getattr(book, "author", ""),
+                "format": getattr(book, "format", ""),
+                "size": getattr(book, "size", 0),
+                "tags": getattr(book, "tags", ""),
+                "path": getattr(book, "path", ""),
+            },
+            details_factory=lambda: self._build_book_details_dialog(book_path),
+        )
 
     # 分页导航方法
     def _recompute_total_pages(self) -> None:

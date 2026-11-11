@@ -9,7 +9,7 @@ import platform
 import asyncio
 import re
 from send2trash import send2trash
-from typing import Dict, Any, Optional, List, ClassVar, Set
+from typing import Dict, Any, Optional, List, Callable, ClassVar, Set
 from urllib.parse import unquote
 from textual.screen import Screen
 
@@ -446,6 +446,9 @@ class BookPreviewDialog(ModalScreen):
         ("j", "scroll_down", get_global_i18n().t('common.scroll_down')),
         ("k", "scroll_up", get_global_i18n().t('common.scroll_up')),
         ("V", "toggle_preview", get_global_i18n().t('crawler.preview_toggle')),
+        # 与书库/爬取管理页保持一致：F 查看文件、i 查看详情
+        ("F", "view_file", get_global_i18n().t('common.view_file')),
+        ("i", "view_details", get_global_i18n().t('book_details.view_details')),
     ]
 
     def action_close(self) -> None:
@@ -462,8 +465,17 @@ class BookPreviewDialog(ModalScreen):
         """V 键 —— 在「预览全部 / 预览(前2000字)」之间切换"""
         self._toggle_preview()
 
+    def action_view_file(self) -> None:
+        """F 键 —— 查看文件（在文件管理器中定位）"""
+        self._view_file_location()
+
+    def action_view_details(self) -> None:
+        """i 键 —— 打开书籍详情弹窗（替换当前预览弹窗）"""
+        self._open_details_dialog()
+
     def __init__(self, theme_manager: ThemeManager, title: str, content: str,
-                 metadata: Optional[Dict[str, Any]] = None):
+                 metadata: Optional[Dict[str, Any]] = None,
+                 details_factory: Optional[Callable[[], Any]] = None):
         super().__init__()
         self.theme_manager = theme_manager
         self.title = title
@@ -471,6 +483,8 @@ class BookPreviewDialog(ModalScreen):
         self.metadata = metadata or {}
         # 用于「预览全部」：从元数据中取出文件路径（兼容 file_path / path 两种键名）
         self.file_path = self.metadata.get("file_path") or self.metadata.get("path")
+        # 可选：详情弹窗工厂（延迟构建），用于「查看详情」按钮；未提供则隐藏该按钮
+        self.details_factory = details_factory
         # 记录进入弹窗时的原始截断内容，便于在「预览全部 / 预览」之间切换
         self.original_content = content
         self._is_full = False
@@ -505,6 +519,8 @@ class BookPreviewDialog(ModalScreen):
                 ),
                 Horizontal(
                     Button(get_global_i18n().t('crawler.preview_full'), id="preview-full-btn", variant="default"),
+                    Button(get_global_i18n().t('common.view_file'), id="preview-view-file-btn", variant="default"),
+                    Button(get_global_i18n().t('book_details.view_details'), id="preview-details-btn", variant="default"),
                     Button(get_global_i18n().t('common.close'), id="preview-close-btn", variant="primary"),
                     id="preview-buttons",
                     classes="btn-row",
@@ -551,6 +567,20 @@ class BookPreviewDialog(ModalScreen):
         if not self.file_path:
             try:
                 self.query_one("#preview-full-btn", Button).disabled = True
+            except Exception:
+                pass
+
+        # 无文件路径时禁用「查看文件」按钮
+        if not self.file_path:
+            try:
+                self.query_one("#preview-view-file-btn", Button).disabled = True
+            except Exception:
+                pass
+
+        # 未提供详情弹窗工厂时禁用「查看详情」按钮
+        if self.details_factory is None:
+            try:
+                self.query_one("#preview-details-btn", Button).disabled = True
             except Exception:
                 pass
 
@@ -659,6 +689,47 @@ class BookPreviewDialog(ModalScreen):
             self._toggle_preview()
         elif event.button.id == "preview-close-btn":
             self.dismiss()
+        elif event.button.id == "preview-view-file-btn":
+            self._view_file_location()
+        elif event.button.id == "preview-details-btn":
+            self._open_details_dialog()
+
+    def _view_file_location(self) -> None:
+        """「查看文件」按钮：在系统文件管理器中定位预览的文件"""
+        try:
+            from src.utils.file_helpers import reveal_in_file_manager
+
+            if not self.file_path or not os.path.exists(self.file_path):
+                self.notify(get_global_i18n().t("common.file_not_exist"), severity="warning")
+                return
+            if reveal_in_file_manager(self.file_path):
+                self.notify(get_global_i18n().t("bookshelf.opened_in_file_explorer"), severity="information")
+            else:
+                self.notify(get_global_i18n().t("bookshelf.view_file_failed"), severity="error")
+        except Exception as e:
+            logger.error(f"预览弹窗打开文件位置失败: {e}")
+            self.notify(get_global_i18n().t("common.action_failed"), severity="error")
+
+    def _open_details_dialog(self) -> None:
+        """「查看详情」按钮：用详情弹窗替换当前预览弹窗（不叠加屏幕栈）。"""
+        try:
+            if self.details_factory is None:
+                return
+            details_screen = self.details_factory()
+            if details_screen is None:
+                return
+            # switch_screen 会关闭当前栈顶弹窗并换上新的，保证「预览 ↔ 详情」
+            # 反复跳转时屏幕上始终只有一个弹窗，不会堆叠出多层。
+            switch = getattr(self.app, "switch_screen", None)
+            if callable(switch):
+                switch(details_screen)
+            else:
+                # 兼容旧版 Textual（无 switch_screen）：先关闭自身再压入新弹窗
+                self.dismiss()
+                self.app.push_screen(details_screen)
+        except Exception as e:
+            logger.error(f"预览弹窗打开详情失败: {e}")
+            self.notify(get_global_i18n().t("common.action_failed"), severity="error")
 
     def _toggle_preview(self) -> None:
         """在「预览全部 / 预览(前2000字)」之间切换
@@ -3746,48 +3817,60 @@ class CrawlerManagementScreen(Screen[None]):
         """构建当前爬取记录的详情并弹出可复用的 BookDetailsDialog。"""
         try:
             from src.ui.widgets.book_details_dialog import BookDetailsDialog
-            from src.utils.file_utils import FileUtils
 
-            history_item = self._find_history_by_row_key(row_key)
-            if not history_item:
-                self._update_status(get_global_i18n().t('common.unknown_book'), "warning")
+            dialog = self._build_book_details_dialog(row_key)
+            if dialog is None:
                 return
-
-            # 来源：当前站点名称
-            source = self.novel_site.get("name", get_global_i18n().t('book_details.local_import'))
-            file_path = history_item.get("file_path", "") or ""
-            size_display = ""
-            if history_item.get("file_size"):
-                try:
-                    size_display = FileUtils.format_file_size(history_item.get("file_size"))
-                except Exception:
-                    size_display = str(history_item.get("file_size"))
-
-            details = [
-                (get_global_i18n().t("common.book_title"), history_item.get("novel_title", "")),
-                (get_global_i18n().t("book_details.source"), source),
-                (get_global_i18n().t("book_details.novel_id"), unquote(history_item.get("novel_id", "")) if history_item.get("novel_id") else ""),
-                (get_global_i18n().t("book_details.book_type"), history_item.get("book_type", "")),
-                (get_global_i18n().t("book_details.chapter_count"), str(history_item.get("chapter_count", 0) or 0)),
-                (get_global_i18n().t("book_details.serial_mode"), "是" if history_item.get("serial_mode") else "否"),
-                (get_global_i18n().t("common.file_path"), file_path),
-                (get_global_i18n().t("common.size"), size_display or ""),
-                (get_global_i18n().t("book_details.status"), history_item.get("status", "")),
-                (get_global_i18n().t("book_details.crawl_time"), history_item.get("crawl_time", "")),
-                (get_global_i18n().t("book_details.last_update_time"), history_item.get("last_update_time", "")),
-                (get_global_i18n().t("book_details.error_message"), history_item.get("error_message", "") or ""),
-            ]
-
-            self.app.push_screen(
-                BookDetailsDialog(
-                    title=get_global_i18n().t("book_details.title"),
-                    details=details,
-                    theme_manager=self.theme_manager,
-                )
-            )
+            self.app.push_screen(dialog)
         except Exception as e:
             logger.error(f"打开详情失败: {e}")
             self._update_status(get_global_i18n().t('common.action_failed'), "error")
+
+    def _build_book_details_dialog(self, row_key: str):
+        """构建爬取记录详情弹窗（供详情入口与预览弹窗的「查看详情」复用）。"""
+        from src.ui.widgets.book_details_dialog import BookDetailsDialog
+        from src.utils.file_utils import FileUtils
+
+        history_item = self._find_history_by_row_key(row_key)
+        if not history_item:
+            self._update_status(get_global_i18n().t('common.unknown_book'), "warning")
+            return None
+
+        # 来源：当前站点名称
+        source = self.novel_site.get("name", get_global_i18n().t('book_details.local_import'))
+        file_path = history_item.get("file_path", "") or ""
+        size_display = ""
+        if history_item.get("file_size"):
+            try:
+                size_display = FileUtils.format_file_size(history_item.get("file_size"))
+            except Exception:
+                size_display = str(history_item.get("file_size"))
+
+        details = [
+            (get_global_i18n().t("common.book_title"), history_item.get("novel_title", "")),
+            (get_global_i18n().t("book_details.source"), source),
+            (get_global_i18n().t("book_details.novel_id"), unquote(history_item.get("novel_id", "")) if history_item.get("novel_id") else ""),
+            (get_global_i18n().t("book_details.book_type"), history_item.get("book_type", "")),
+            (get_global_i18n().t("book_details.chapter_count"), str(history_item.get("chapter_count", 0) or 0)),
+            (get_global_i18n().t("book_details.serial_mode"), "是" if history_item.get("serial_mode") else "否"),
+            (get_global_i18n().t("common.file_path"), file_path),
+            (get_global_i18n().t("common.size"), size_display or ""),
+            (get_global_i18n().t("book_details.status"), history_item.get("status", "")),
+            (get_global_i18n().t("book_details.crawl_time"), history_item.get("crawl_time", "")),
+            (get_global_i18n().t("book_details.last_update_time"), history_item.get("last_update_time", "")),
+            (get_global_i18n().t("book_details.error_message"), history_item.get("error_message", "") or ""),
+        ]
+
+        # 仅当存在有效文件路径时启用「查看文件」按钮
+        valid_file_path = file_path if file_path and file_path != 'already_exists' else None
+
+        return BookDetailsDialog(
+            title=get_global_i18n().t("book_details.title"),
+            details=details,
+            theme_manager=self.theme_manager,
+            file_path=valid_file_path,
+            preview_factory=lambda: self._build_book_preview_dialog(history_item),
+        )
 
     def _toggle_serial_mode(self, row_key: str) -> None:
         """切换连载模式"""
@@ -6343,55 +6426,61 @@ class CrawlerManagementScreen(Screen[None]):
     def _preview_book(self, history_item: Dict[str, Any]) -> None:
         """预览书籍内容（显示前200字）"""
         try:
-            file_path = history_item.get('file_path')
-            
-            # 如果文件路径为空或为"already_exists"，尝试从数据库中重新获取
-            if not file_path or file_path == 'already_exists':
-                site_id = self.novel_site.get('id')
-                novel_id = history_item.get('novel_id')
-                if site_id and novel_id:
-                    crawl_history = self.db_manager.get_crawl_history_by_novel_id(site_id, novel_id)
-                    if crawl_history:
-                        for record in crawl_history:
-                            if record.get('status') == 'success' and record.get('file_path') and record.get('file_path') != 'already_exists':
-                                file_path = record.get('file_path')
-                                break
-            
-            if not file_path or file_path == 'already_exists':
-                self._update_status(get_global_i18n().t('crawler.no_file_path'), "warning")
+            dialog = self._build_book_preview_dialog(history_item)
+            if dialog is None:
                 return
-            
-            if not os.path.exists(file_path):
-                self._update_status(get_global_i18n().t('common.file_not_exist'), "warning")
-                return
-            
-            # 读取文件前2000字，自动检测编码（支持 GBK/GB2312/Big5 等，避免乱码）
-            content = read_file_preview(file_path, max_chars=2000)
-            if not content.strip():
-                self._update_status(get_global_i18n().t('crawler.preview_empty'), "information")
-                return
-            
-            # 弹出预览对话框（附带元数据，用于左侧信息面板展示）
-            self.app.push_screen(
-                BookPreviewDialog(
-                    self.theme_manager,
-                    history_item.get('novel_title', ''),
-                    content,
-                    metadata={
-                        "book_type": history_item.get('book_type'),
-                        "novel_id": history_item.get('novel_id'),
-                        "status": history_item.get('status'),
-                        "chapter_count": history_item.get('chapter_count', 0),
-                        "last_chapter_title": history_item.get('last_chapter_title'),
-                        "crawl_time": history_item.get('crawl_time'),
-                        "file_path": file_path,
-                    },
-                )
-            )
-            
+            self.app.push_screen(dialog)
+
         except Exception as e:
             logger.error(f"预览书籍失败: {e}")
             self._update_status(f"{get_global_i18n().t('crawler.preview_failed')}: {str(e)}", "error")
+
+    def _build_book_preview_dialog(self, history_item: Dict[str, Any]):
+        """构建爬取记录预览弹窗（供预览入口与详情弹窗的「预览」复用）。"""
+        file_path = history_item.get('file_path')
+
+        # 如果文件路径为空或为"already_exists"，尝试从数据库中重新获取
+        if not file_path or file_path == 'already_exists':
+            site_id = self.novel_site.get('id')
+            novel_id = history_item.get('novel_id')
+            if site_id and novel_id:
+                crawl_history = self.db_manager.get_crawl_history_by_novel_id(site_id, novel_id)
+                if crawl_history:
+                    for record in crawl_history:
+                        if record.get('status') == 'success' and record.get('file_path') and record.get('file_path') != 'already_exists':
+                            file_path = record.get('file_path')
+                            break
+
+        if not file_path or file_path == 'already_exists':
+            self._update_status(get_global_i18n().t('crawler.no_file_path'), "warning")
+            return None
+
+        if not os.path.exists(file_path):
+            self._update_status(get_global_i18n().t('common.file_not_exist'), "warning")
+            return None
+
+        # 读取文件前2000字，自动检测编码（支持 GBK/GB2312/Big5 等，避免乱码）
+        content = read_file_preview(file_path, max_chars=2000)
+        if not content.strip():
+            self._update_status(get_global_i18n().t('crawler.preview_empty'), "information")
+            return None
+
+        # 弹出预览对话框（附带元数据，用于左侧信息面板展示）
+        return BookPreviewDialog(
+            self.theme_manager,
+            history_item.get('novel_title', ''),
+            content,
+            metadata={
+                "book_type": history_item.get('book_type'),
+                "novel_id": history_item.get('novel_id'),
+                "status": history_item.get('status'),
+                "chapter_count": history_item.get('chapter_count', 0),
+                "last_chapter_title": history_item.get('last_chapter_title'),
+                "crawl_time": history_item.get('crawl_time'),
+                "file_path": file_path,
+            },
+            details_factory=lambda: self._build_book_details_dialog(str(history_item.get("id"))),
+        )
 
     def _fill_missing(self, history_item: Dict[str, Any]) -> None:
         """打开补足缺失章节弹窗，对指定书籍进行补足缺失章节操作"""

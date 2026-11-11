@@ -5,6 +5,21 @@
    - 稳定的滚动条槽（scrollbar-gutter: stable，同 code_browser 的 #tree-view）
 */
 
+/* app 级 common.tcss 的 ScrollableContainer { height: 100%; width: 100%; }
+   会命中 Footer（Textual 8.x 中 Footer 继承自 ScrollableContainer），
+   把底栏撑满整个内容区。此处显式锁定顶栏/底栏为 1 行。 */
+BookPreviewDialog Header {
+    width: 100%;
+    height: 1;
+    dock: top;
+}
+
+BookPreviewDialog Footer {
+    width: 100%;
+    height: 1;
+    dock: bottom;
+}
+
 #preview-window {
     align: center middle;
     width: 92%;

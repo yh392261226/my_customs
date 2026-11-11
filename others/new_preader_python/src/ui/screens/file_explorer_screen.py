@@ -1035,6 +1035,7 @@ class FileExplorerScreen(ScreenStyleMixin, Screen[Optional[Union[str, List[str]]
                     title=i18n.t("file_explorer.detail_title"),
                     details=details,
                     theme_manager=self.theme_manager,
+                    file_path=path,
                 )
             )
         except Exception as e:
