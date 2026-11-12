@@ -12,16 +12,14 @@ import os
 from copy import deepcopy
 from typing import Dict, Any, List, Optional, ClassVar, Tuple, Set
 
-from send2trash import send2trash
 from textual.screen import ModalScreen
 from textual.app import ComposeResult
 from textual.containers import Container, Vertical, Horizontal, VerticalScroll
-from textual.widgets import Header, Footer, Button, Label, DataTable, Input, Static, Select, RichLog
+from textual.widgets import Header, Footer, Button, Label, DataTable, Input, Static, Select
 from textual import on
 
 from src.locales.i18n_manager import get_global_i18n
 from src.utils.file_utils import FileUtils
-from src.utils.file_helpers import read_file_preview
 from src.themes.theme_manager import ThemeManager
 from src.core.database_manager import DatabaseManager
 from src.ui.dialogs.crawler_merge_mode_dialog import BookGroup
@@ -37,273 +35,8 @@ from src.utils.logger import get_logger
 logger = get_logger(__name__)
 
 
-class _MergePreviewDialog(ModalScreen[None]):
-    """合并详情弹窗内部使用的书籍预览弹窗（避免循环导入）
-    布局与样式参考 Textual 官方 code_browser 示例（侧栏信息面板 + 内容阅读区）"""
-
-    CSS_PATH = "../styles/crawler_management_bookpreview_dialog_overrides.tcss"
-    BINDINGS: ClassVar[list[tuple[str, str, str]]] = [
-        ("escape", "close", get_global_i18n().t('common.close')),
-        ("j", "scroll_down", get_global_i18n().t('common.scroll_down')),
-        ("k", "scroll_up", get_global_i18n().t('common.scroll_up')),
-        ("V", "toggle_preview", get_global_i18n().t('crawler.preview_toggle')),
-    ]
-
-    def action_close(self) -> None:
-        self.dismiss()
-
-    def action_scroll_down(self) -> None:
-        self.query_one("#preview-content", RichLog).scroll_down()
-
-    def action_scroll_up(self) -> None:
-        self.query_one("#preview-content", RichLog).scroll_up()
-
-    def action_toggle_preview(self) -> None:
-        """V 键 —— 在「预览全部 / 预览(前2000字)」之间切换"""
-        self._toggle_preview()
-
-    def __init__(self, theme_manager: ThemeManager, title: str, content: str,
-                 metadata: Optional[Dict[str, Any]] = None):
-        super().__init__()
-        self.theme_manager = theme_manager
-        self.title = title
-        self.content = content
-        self.metadata = metadata or {}
-        self.i18n = get_global_i18n()
-        # 用于「预览全部」：从元数据中取出文件路径（兼容 file_path / path 两种键名）
-        self.file_path = self.metadata.get("file_path") or self.metadata.get("path")
-        # 记录进入弹窗时的原始截断内容，便于在「预览全部 / 预览」之间切换
-        self.original_content = content
-        self._is_full = False
-
-    def compose(self) -> ComposeResult:
-        yield Header()
-        yield Container(
-            Vertical(
-                Static(
-                    f"📖 {self.i18n.t('crawler.preview_title')}",
-                    id="preview-header",
-                    classes="preview-header",
-                ),
-                Horizontal(
-                    VerticalScroll(
-                        Static(id="preview-info", classes="preview-info"),
-                        id="preview-sidebar",
-                        classes="preview-sidebar",
-                    ),
-                    RichLog(
-                        id="preview-content",
-                        classes="preview-text",
-                        wrap=True,
-                        markup=False,
-                        auto_scroll=False,
-                    ),
-                    id="preview-body",
-                ),
-                Horizontal(
-                    Button(self.i18n.t('crawler.preview_full'), id="preview-full-btn", variant="default"),
-                    Button(self.i18n.t('common.close'), id="preview-close-btn", variant="primary"),
-                    id="preview-buttons",
-                    classes="btn-row",
-                ),
-                id="preview-dialog",
-            ),
-            id="preview-window",
-        )
-        yield Footer()
-
-    def on_mount(self) -> None:
-        self.theme_manager.apply_theme_to_screen(self)
-        self.query_one("#preview-info", Static).update(self._build_info_text())
-        preview_content = self.query_one("#preview-content", RichLog)
-        preview_content.border_title = self.title
-        from rich.text import Text
-        try:
-            preview_content.write(Text(self.content))
-            note = Text()
-            note.append("\n\n" + "─" * 40 + "\n", style="dim")
-            note.append(self.i18n.t("crawler.preview_truncated"), style="italic dim")
-            preview_content.write(note)
-        except Exception as e:
-            logger.warning(f"写入预览内容失败: {e}")
-            preview_content.write(self.i18n.t("crawler.preview_failed", error=str(e)))
-
-        # 加载完内容后回到顶部，而不是停留在底部
-        try:
-            preview_content.scroll_home(animate=False)
-        except Exception:
-            pass
-
-        try:
-            self.query_one("#preview-close-btn", Button).focus()
-        except Exception:
-            pass
-
-        # 无文件路径时禁用「预览全部」按钮
-        if not self.file_path:
-            try:
-                self.query_one("#preview-full-btn", Button).disabled = True
-            except Exception:
-                pass
-
-    def _build_info_text(self) -> "Text":
-        from rich.text import Text
-
-        def _human_size(n: object) -> str:
-            try:
-                n = int(n)  # type: ignore[arg-type]
-            except (TypeError, ValueError):
-                return "-"
-            if n < 1024:
-                return f"{n} B"
-            if n < 1024 * 1024:
-                return f"{n / 1024:.1f} KB"
-            if n < 1024 * 1024 * 1024:
-                return f"{n / 1024 / 1024:.1f} MB"
-            return f"{n / 1024 / 1024 / 1024:.2f} GB"
-
-        T = self.i18n.t
-        meta = self.metadata
-        t = Text()
-
-        def field(label: str, value: str, value_style: str = "default") -> None:
-            t.append(f"{label}\n", style="dim")
-            t.append(f"{value}\n\n", style=value_style)
-
-        t.append("书籍信息\n", style="bold underline")
-        t.append("\n")
-
-        # 书名（始终显示）
-        field(T('crawler.preview_field_title'), self.title or "-", "bold")
-
-        # 作者（书库书籍）
-        author = meta.get("author")
-        if author:
-            field(T('crawler.preview_field_author'), str(author))
-
-        # 类型/格式：优先 book_type（爬取），否则文件格式 format
-        book_type = meta.get("book_type") or meta.get("format")
-        if book_type:
-            field(T('crawler.preview_field_type'), str(book_type))
-
-        # 状态（仅爬取记录）
-        status = meta.get("status", "")
-        if status:
-            if status == "success":
-                status_text = "✓ " + T('crawler.status_success')
-                status_style = "bold green"
-            elif status == "failed":
-                status_text = "✗ " + T('crawler.status_failed')
-                status_style = "bold red"
-            else:
-                status_text = str(status)
-                status_style = "default"
-            field(T('crawler.preview_field_status'), status_text, status_style)
-
-        # 章节数（爬取记录）
-        chapter_count = meta.get("chapter_count")
-        if chapter_count:
-            field(T('crawler.preview_field_chapters'), str(chapter_count))
-
-        # 最新章节（爬取记录）
-        last_chapter = meta.get("last_chapter_title")
-        if last_chapter:
-            field(T('crawler.preview_field_last_chapter'), str(last_chapter))
-
-        # 大小（书库书籍，字节）
-        size = meta.get("size")
-        if size:
-            field(T('crawler.preview_field_size'), _human_size(size))
-
-        # 标签（书库书籍）
-        tags = meta.get("tags")
-        if tags:
-            field(T('crawler.preview_field_tags'), str(tags))
-
-        # 预览字数（始终显示）
-        field(T('crawler.preview_field_preview_chars'), str(len(self.content)))
-
-        # 小说ID（爬取记录）
-        novel_id = meta.get("novel_id")
-        if novel_id:
-            field(T('crawler.preview_field_novel_id'), str(novel_id))
-
-        # 爬取时间（爬取记录）
-        crawl_time = meta.get("crawl_time")
-        if crawl_time:
-            field(T('crawler.preview_field_crawl_time'), str(crawl_time))
-
-        # 文件路径（始终显示，若存在）
-        file_path = meta.get("file_path") or meta.get("path")
-        if file_path:
-            field(T('crawler.preview_field_path'), str(file_path))
-
-        return t
-
-    def on_button_pressed(self, event: Button.Pressed) -> None:
-        if event.button.id == "preview-full-btn":
-            self._toggle_preview()
-        elif event.button.id == "preview-close-btn":
-            self.dismiss()
-
-    def _toggle_preview(self) -> None:
-        """在「预览全部 / 预览(前2000字)」之间切换
-
-        当前为截断预览时点击加载整本书；已为全文时点击回到前 2000 字预览。
-        按钮文案随之在「预览全部」与「预览」之间切换。
-        """
-        try:
-            preview_content = self.query_one("#preview-content", RichLog)
-            full_btn = self.query_one("#preview-full-btn", Button)
-        except Exception:
-            return
-
-        if not self._is_full:
-            # 截断预览 → 全文预览
-            if not self.file_path:
-                return
-            try:
-                from src.utils.file_helpers import read_file_full
-                content = read_file_full(self.file_path)
-            except Exception as e:
-                logger.error(f"加载全书内容失败: {e}")
-                self.notify(self.i18n.t("crawler.preview_failed", error=str(e)), severity="error", timeout=3)
-                return
-            if not content.strip():
-                self.notify(self.i18n.t("crawler.preview_empty"), severity="information", timeout=2)
-                return
-            self._render_preview_content(preview_content, content, "crawler.preview_full_note")
-            full_btn.label = self.i18n.t("common.preview")
-            self._is_full = True
-        else:
-            # 全文预览 → 回到前 2000 字截断预览
-            self._render_preview_content(preview_content, self.original_content, "crawler.preview_truncated")
-            full_btn.label = self.i18n.t("crawler.preview_full")
-            self._is_full = False
-
-    def _render_preview_content(self, preview_content: "RichLog", content: str, note_key: str) -> None:
-        """清空并重写预览内容区，刷新左侧字数并更新到顶部"""
-        from rich.text import Text
-        preview_content.clear()
-        preview_content.write(Text(content))
-
-        note = Text()
-        note.append("\n\n" + "─" * 40 + "\n", style="dim")
-        note.append(self.i18n.t(note_key), style="italic dim")
-        preview_content.write(note)
-
-        # 同步刷新左侧信息面板的「预览字数」
-        self.content = content
-        try:
-            self.query_one("#preview-info", Static).update(self._build_info_text())
-        except Exception:
-            pass
-
-        # 回到顶部，而不是停留在底部
-        try:
-            preview_content.scroll_home(animate=False)
-        except Exception:
-            pass
+# 合并详情内嵌的预览弹窗已统一到 src/ui/widgets/book_view_dialog.py，
+# 数据组装与打开逻辑统一走 src/ui/utils/book_view_utils.py。
 
 
 class CrawlerMergeDetailDialog(ModalScreen[Dict[str, Any]]):
@@ -1610,21 +1343,17 @@ class CrawlerMergeDetailDialog(ModalScreen[Dict[str, Any]]):
                 self.notify(self.i18n.t('common.file_not_exist'), severity="warning", timeout=2)
                 return
 
-            # 读取文件前 2000 字，自动检测编码（支持 GBK/GB2312/Big5 等，避免乱码）
-            content = read_file_preview(file_path, max_chars=2000)
-            if not content.strip():
+            # 统一书籍视图：详情 / 预览 / 预览全部 / 查看文件共用一个 widget
+            from src.ui.utils.book_view_utils import build_view_data, open_book_view
+            data = build_view_data(
+                file_path,
+                title=book.get('novel_title', ''),
+                metadata=dict(book),
+            )
+            if not data.content.strip():
                 self.notify(self.i18n.t('crawler.preview_empty'), timeout=2)
                 return
-
-            # 使用本弹窗内部定义的预览弹窗（避免循环导入）
-            self.app.push_screen(
-                _MergePreviewDialog(
-                    self.theme_manager,
-                    book.get('novel_title', ''),
-                    content,
-                    metadata=book,
-                )
-            )
+            open_book_view(self.app, data, self.theme_manager, "preview")
         except Exception as e:
             logger.error(f"预览书籍失败: {e}")
             self.notify(
@@ -2783,32 +2512,10 @@ class CrawlerMergeDetailDialog(ModalScreen[Dict[str, Any]]):
             self._view_file(book)
 
     def _view_file(self, book: Dict[str, Any]) -> None:
-        """在文件管理器中显示书籍文件"""
-        try:
-            file_path = book.get('file_path', '')
-
-            if not file_path or file_path == 'already_exists':
-                self.notify(self.i18n.t('crawler.no_file_path'), severity="warning", timeout=2)
-                return
-
-            if not os.path.exists(file_path):
-                self.notify(self.i18n.t('common.file_not_exist'), severity="warning", timeout=2)
-                return
-
-            import platform
-            system = platform.system()
-
-            if system == "Darwin":  # macOS
-                os.system(f'open -R "{file_path}"')
-            elif system == "Windows":
-                os.system(f'explorer /select,"{file_path}"')
-            elif system == "Linux":
-                os.system(f'xdg-open "{os.path.dirname(file_path)}"')
-
-            self.notify(self.i18n.t('crawler.file_opened'), timeout=2)
-        except Exception as e:
-            logger.error(f"查看文件失败: {e}")
-            self.notify(
-                f"{self.i18n.t('common.open_file_failed')}: {e}",
-                severity="error", timeout=3,
-            )
+        """在文件管理器中显示书籍文件（统一走 book_view_utils）。"""
+        from src.ui.utils.book_view_utils import reveal_book_file
+        file_path = book.get('file_path', '')
+        if not file_path or file_path == 'already_exists':
+            self.notify(self.i18n.t('crawler.no_file_path'), severity="warning", timeout=2)
+            return
+        reveal_book_file(self, file_path)

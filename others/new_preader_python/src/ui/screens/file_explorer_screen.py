@@ -959,7 +959,7 @@ class FileExplorerScreen(ScreenStyleMixin, Screen[Optional[Union[str, List[str]]
     def action_view_file_details(self) -> None:
         """i 键 - 显示/隐藏当前选中文件（或目录）的详情弹窗。
 
-        弹窗内再次按 i 会由 BookDetailsDialog 自身关闭，从而形成开关效果。
+        弹窗内再次按 i 会由统一书籍视图自身关闭，从而形成开关效果。
         """
         if self.selected_file_index is None or not self.file_items:
             self.notify(get_global_i18n().t("file_explorer.detail_no_selection"), severity="warning")
@@ -973,10 +973,8 @@ class FileExplorerScreen(ScreenStyleMixin, Screen[Optional[Union[str, List[str]]
             self.notify(get_global_i18n().t("common.action_failed"), severity="error")
 
     def _view_file_details(self, item: Dict[str, str]) -> None:
-        """构建指定文件/目录的详情并弹出可复用的 BookDetailsDialog。"""
+        """构建指定文件/目录的详情并打开统一书籍视图（可预览 / 查看文件）。"""
         try:
-            from src.ui.widgets.book_details_dialog import BookDetailsDialog
-
             i18n = get_global_i18n()
             path = item.get("path", "")
             item_type = item.get("type", "file")
@@ -1030,14 +1028,14 @@ class FileExplorerScreen(ScreenStyleMixin, Screen[Optional[Union[str, List[str]]
                 except (PermissionError, OSError):
                     details.append((i18n.t("file_explorer.detail_modified"), "-"))
 
-            self.app.push_screen(
-                BookDetailsDialog(
-                    title=i18n.t("file_explorer.detail_title"),
-                    details=details,
-                    theme_manager=self.theme_manager,
-                    file_path=path,
-                )
+            from src.ui.utils.book_view_utils import build_view_data, open_book_view
+            data = build_view_data(
+                path,
+                title=i18n.t("file_explorer.detail_title"),
+                details=details,
+                metadata={"file_path": path},
             )
+            open_book_view(self.app, data, self.theme_manager, "details")
         except Exception as e:
             self.logger.error(f"构建文件详情失败: {e}")
             self.notify(get_global_i18n().t("common.action_failed"), severity="error")

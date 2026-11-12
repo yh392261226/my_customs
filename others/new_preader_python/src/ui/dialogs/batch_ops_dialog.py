@@ -27,9 +27,7 @@ from src.config.default_config import SUPPORTED_FORMATS
 from src.utils.book_duplicate_detector_optimized import OptimizedBookDuplicateDetector, DuplicateGroup
 from src.utils.book_duplicate_detector_ultra import UltraBookDuplicateDetector  # 新增：超高性能检测器
 from src.utils.logger import get_logger
-from src.utils.logger import get_recent_memory_logs, is_file_logging_enabled
-from src.utils.file_helpers import read_file_preview
-from src.config.config_manager import ConfigManager
+from src.utils.logger import get_recent_memory_logs
 
 logger = get_logger(__name__)
 
@@ -480,7 +478,7 @@ class BatchOpsDialog(ModalScreen[Dict[str, Any]]):
         # ("d", "find_duplicates", get_global_i18n().t('common.batch_dedupe')),
         ("x", "clear_search_params", get_global_i18n().t('common.clear_search')),
         ("j", "jump_to", get_global_i18n().t('bookshelf.jump_to')),
-        ("l", "view_logs", get_global_i18n().t('common.view_log')),
+        ("L", "view_logs", get_global_i18n().t('common.view_log')),
         ("escape", "cancel", get_global_i18n().t('common.cancel')),
         ("a", "toggle_select_all", get_global_i18n().t('common.toggle_select_all')),
         ("C", "merge_selected", get_global_i18n().t('batch_ops.shortcut_C')),
@@ -494,6 +492,8 @@ class BatchOpsDialog(ModalScreen[Dict[str, Any]]):
         ("R", "remove_missing", get_global_i18n().t('batch_ops.shortcut_R')),
         ("v", "preview_book", get_global_i18n().t('common.preview_book')),
         ("z", "merge_mode", get_global_i18n().t('batch_ops.shortcut_z')),
+        ("U", "undo_last_operation", get_global_i18n().t('recycle_bin.undo_last')),
+        ("H", "open_recycle_bin", get_global_i18n().t('recycle_bin.open')),
     ]
     # 支持的书籍文件扩展名（从配置文件读取）
     SUPPORTED_EXTENSIONS = set(SUPPORTED_FORMATS)
@@ -527,6 +527,9 @@ class BatchOpsDialog(ModalScreen[Dict[str, Any]]):
         self._sorted_books: List[str] = []  # 存储排序后的书籍路径顺序
         self._sort_column: Optional[str] = None  # 当前排序的列
         self._sort_reverse: bool = True  # 排序方向，True表示倒序
+
+        # 最近一次删除/合并所属的回收站批次，用于一键撤销误操作
+        self._last_recycle_batch_id: Optional[str] = None
     
     def compose(self) -> ComposeResult:
         """组合对话框界面"""
@@ -567,6 +570,7 @@ class BatchOpsDialog(ModalScreen[Dict[str, Any]]):
                     Button(get_global_i18n().t("common.clean_invalid_short"), id="remove-missing-btn", variant="error"),
                     Button(get_global_i18n().t("common.export"), id="export-btn"),
                     Button(get_global_i18n().t('common.view_log'), id="view-logs-btn", variant="success"),
+                    Button(get_global_i18n().t("recycle_bin.open"), id="recycle-bin-btn", variant="primary"),
                     Button(get_global_i18n().t("common.cancel"), id="cancel-btn"),
                     id="batch-ops-buttons", classes="btn-row"
                 ),
@@ -1357,39 +1361,10 @@ class BatchOpsDialog(ModalScreen[Dict[str, Any]]):
                 )
     
     def _view_file(self, book_path: str) -> None:
-        """查看书籍文件"""
-        try:
-            import os
-            import subprocess
-            import platform
-            
-            # 检查文件是否存在
-            if not os.path.exists(book_path):
-                self.notify(f"{get_global_i18n().t('common.file_not_exist')}: {book_path}", severity="error")
-                return
-            
-            # 根据操作系统打开文件管理器
-            system = platform.system()
-            if system == "Darwin":  # macOS
-                subprocess.run(["open", "-R", book_path], check=False)
-            elif system == "Windows":
-                subprocess.run(["explorer", "/select,", book_path], check=False)
-            elif system == "Linux":
-                subprocess.run(["xdg-open", os.path.dirname(book_path)], check=False)
-            else:
-                # 通用方法：打开文件所在目录
-                folder_path = os.path.dirname(book_path)
-                if os.path.exists(folder_path):
-                    subprocess.run(["open", folder_path], check=False)
-                else:
-                    self.notify(get_global_i18n().t("bookshelf.open_directory_failed"), severity="warning")
-                    return
-            
-            self.notify(f"{get_global_i18n().t('bookshelf.opened_in_file_explorer')}: {os.path.basename(book_path)}", severity="information")
-            
-        except Exception as e:
-            self.notify(f"{get_global_i18n().t('bookshelf.view_file_failed')}: {e}", severity="error")
-        
+        """查看书籍文件（统一走 book_view_utils 的文件定位逻辑）。"""
+        from src.ui.utils.book_view_utils import reveal_book_file
+        reveal_book_file(self, book_path)
+
         # 更新分页按钮状态
         try:
             page_label = self.query_one("#page-info", Label)
@@ -1410,42 +1385,22 @@ class BatchOpsDialog(ModalScreen[Dict[str, Any]]):
             logger.error(f"更新分页按钮状态失败: {e}")
 
     def _preview_book(self, book_path: str) -> None:
-        """预览书籍内容（显示前2000字，复用统一预览弹窗）"""
+        """预览书籍内容（统一书籍视图，兼具详情 / 查看文件 / 预览全部）。"""
+        from src.ui.utils.book_view_utils import build_view_data, open_book_view
+
         try:
             if not os.path.exists(book_path):
                 self.notify(get_global_i18n().t('common.file_not_exist'), severity="warning")
                 return
-
-            # 获取书籍信息
-            book = self.bookshelf.get_book(book_path)
-            if not book:
+            if self.bookshelf.get_book(book_path) is None:
                 self.notify(get_global_i18n().t("common.book_not_found"), severity="error")
                 return
 
-            # 读取文件前2000字，自动检测编码（支持 GBK/GB2312/Big5 等，避免乱码）
-            content = read_file_preview(book_path, max_chars=2000)
-            if not content.strip():
+            data = build_view_data(book_path, bookshelf=self.bookshelf)
+            if not data.content.strip():
                 self.notify(get_global_i18n().t("crawler.preview_empty"), severity="information")
                 return
-
-            # 弹出预览对话框（附带书籍元数据，用于左侧信息面板展示）
-            from src.ui.screens.crawler_management_screen import BookPreviewDialog
-            theme_manager = getattr(self.app, 'theme_manager', None) if hasattr(self.app, 'theme_manager') else ThemeManager()
-
-            self.app.push_screen(
-                BookPreviewDialog(
-                    theme_manager,
-                    book.title,
-                    content,
-                    metadata={
-                        "author": getattr(book, "author", ""),
-                        "format": getattr(book, "format", ""),
-                        "size": getattr(book, "size", 0),
-                        "tags": getattr(book, "tags", ""),
-                        "path": getattr(book, "path", ""),
-                    },
-                )
-            )
+            open_book_view(self.app, data, self.theme_manager, "preview")
         except Exception as e:
             logger.error(f"预览书籍失败: {e}")
             self.notify(f"{get_global_i18n().t('crawler.preview_failed')}: {str(e)}", severity="error")
@@ -1753,8 +1708,17 @@ class BatchOpsDialog(ModalScreen[Dict[str, Any]]):
         merged_groups: List[Dict[str, Any]],
         pending_deletes: List[Dict[str, Any]],
     ) -> None:
-        """在后台线程执行书库合并与延迟删除，避免 UI 卡顿"""
+        """在后台线程执行书库合并与延迟删除，避免 UI 卡顿。
+
+        整批合并共用一个回收站批次：源书的记录/关联数据/文件都会被快照，
+        新生成的合并文件也登记在该批次，误操作后可按 U 或到回收站整体撤销。
+        """
         app = self.app
+        from src.core.recycle_bin import OP_BATCH_MERGE, get_recycle_bin
+
+        batch_id = get_recycle_bin(self.bookshelf.db_manager).create_batch(
+            OP_BATCH_MERGE, "批量合并"
+        )
 
         def _worker() -> None:
             total_merged = 0
@@ -1775,7 +1739,10 @@ class BatchOpsDialog(ModalScreen[Dict[str, Any]]):
                     author = first.get('author', '') or ""
                     tags = first.get('tags', '') or ""
                     try:
-                        new_book = self.bookshelf.merge_books(file_paths, new_title, author, tags)
+                        new_book = self.bookshelf.merge_books(
+                            file_paths, new_title, author, tags,
+                            batch_id=batch_id, operation=OP_BATCH_MERGE,
+                        )
                         if new_book:
                             total_merged += 1
                             app.call_from_thread(
@@ -1805,11 +1772,15 @@ class BatchOpsDialog(ModalScreen[Dict[str, Any]]):
                 for book in pending_deletes:
                     try:
                         fp = book.get('file_path')
-                        if fp and self.bookshelf.remove_book(fp, delete_file=True):
+                        if fp and self.bookshelf.remove_book(
+                            fp, delete_file=True, operation=OP_BATCH_MERGE,
+                            reason="批量合并待删除", batch_id=batch_id,
+                        ):
                             total_deleted += 1
                     except Exception as ex:
                         logger.error(f"书库合并删除失败 {book.get('novel_title', '')}: {ex}")
 
+                self._last_recycle_batch_id = batch_id if (total_merged or total_deleted) else None
                 parts = []
                 if total_merged or total_failed:
                     parts.append(get_global_i18n().t('merge_mode.result', merged=total_merged, failed=total_failed))
@@ -1817,6 +1788,12 @@ class BatchOpsDialog(ModalScreen[Dict[str, Any]]):
                     parts.append(get_global_i18n().t('merge_mode.deleted_info', count=total_deleted))
                 if parts:
                     app.call_from_thread(self.notify, "".join(parts), timeout=4)
+                if total_merged or total_deleted:
+                    app.call_from_thread(
+                        self.notify,
+                        get_global_i18n().t("recycle_bin.undo_hint"),
+                        timeout=6,
+                    )
             finally:
                 app.call_from_thread(self._load_books)
                 app.call_from_thread(self.dismiss, {"refresh": True})
@@ -1919,6 +1896,8 @@ class BatchOpsDialog(ModalScreen[Dict[str, Any]]):
             self._show_jump_dialog()
         elif event.button.id == "view-logs-btn":
             self._open_log_viewer()
+        elif event.button.id == "recycle-bin-btn":
+            self.action_open_recycle_bin()
         elif event.button.id == "cancel-btn":
             self.dismiss({"refresh": False})
     
@@ -1997,27 +1976,91 @@ class BatchOpsDialog(ModalScreen[Dict[str, Any]]):
         self._update_status()
     
     def _delete_selected_books(self) -> None:
-        """删除选中的书籍"""
+        """删除选中的书籍（整批进回收站，可按批次撤销）"""
         if not self.selected_books:
             self.notify(get_global_i18n().t("common.no_book_selected"), severity="warning")
             return
-        
-        # 这里实现删除逻辑（同时删除物理文件）
-        for book_id in self.selected_books:
-            self.bookshelf.remove_book(book_id, delete_file=True)
-        
+
+        from src.core.recycle_bin import OP_DELETE, get_recycle_bin
+
+        batch_id = get_recycle_bin(self.bookshelf.db_manager).create_batch(
+            OP_DELETE, "批量删除"
+        )
+        deleted = 0
+        for book_id in list(self.selected_books):
+            if self.bookshelf.remove_book(
+                book_id, delete_file=True, operation=OP_DELETE,
+                reason="批量删除", batch_id=batch_id,
+            ):
+                deleted += 1
+        self._last_recycle_batch_id = batch_id if deleted else None
+
         self.notify(
-            get_global_i18n().t("batch_ops.books_deleted", count=len(self.selected_books)),
+            get_global_i18n().t("batch_ops.books_deleted", count=deleted),
             severity="information"
         )
-        
+        if deleted:
+            self.notify(get_global_i18n().t("recycle_bin.undo_hint"),
+                        severity="information", timeout=6)
+
         # 重新加载书籍列表
         self._load_books()
         self.selected_books.clear()
         self._update_status()
-        
+
         # 设置返回结果为需要刷新
         self.dismiss({"refresh": True})
+
+    def action_undo_last_operation(self) -> None:
+        """U 键 - 撤销最近一次批量删除 / 合并（整批恢复）。"""
+        from src.core.recycle_bin import get_recycle_bin
+
+        t = get_global_i18n().t
+        batch_id = self._last_recycle_batch_id
+        if not batch_id:
+            self.notify(t("recycle_bin.no_undo"), severity="warning")
+            return
+
+        from src.ui.dialogs.confirm_dialog import ConfirmDialog
+
+        def on_confirm(confirmed: Optional[bool]) -> None:
+            if not confirmed:
+                return
+            result = get_recycle_bin(self.bookshelf.db_manager).restore_batch(batch_id)
+            self._last_recycle_batch_id = None
+            try:
+                from src.ui.messages import RefreshBookshelfMessage
+                self.bookshelf._load_books()
+                self.app.post_message(RefreshBookshelfMessage())
+            except Exception:
+                pass
+            self.notify(t("recycle_bin.undo_success", count=result.get("ok", 0)),
+                        severity="information")
+            self._load_books()
+            self.dismiss({"refresh": True})
+
+        self.app.push_screen(
+            ConfirmDialog(
+                self.theme_manager,
+                t("recycle_bin.undo_confirm"),
+                t("recycle_bin.undo_confirm_message"),
+            ),
+            on_confirm,
+        )
+
+    def action_open_recycle_bin(self) -> None:
+        """B 键 - 打开回收站。"""
+        from src.ui.dialogs.recycle_bin_dialog import RecycleBinDialog
+
+        def on_close(result: Optional[Dict[str, Any]]) -> None:
+            if result and result.get("refresh"):
+                self.bookshelf._load_books()
+                self._load_books()
+                self.dismiss({"refresh": True})
+
+        self.app.push_screen(
+            RecycleBinDialog(self.theme_manager, self.bookshelf), on_close
+        )
     
     async def _compare_read_selected_books(self) -> None:
         """对比阅读选中的书籍"""
@@ -2891,19 +2934,30 @@ class BatchOpsDialog(ModalScreen[Dict[str, Any]]):
             def on_author_input(new_author: Optional[str]) -> None:
                 # 弹出输入对话框获取新书籍标签
                 def on_tags_input(new_tags: Optional[str]) -> None:
-                    # 执行合并操作
+                    # 执行合并操作（登记回收站批次，便于整体撤销）
                     try:
+                        from src.core.recycle_bin import OP_MERGE, get_recycle_bin
+                        batch_id = get_recycle_bin(self.bookshelf.db_manager).create_batch(
+                            OP_MERGE, f"合并为 {new_title}"
+                        )
                         new_book = self.bookshelf.merge_books(
                             books_to_merge,
                             new_title.strip(),
                             new_author.strip() if new_author else "",
-                            new_tags.strip() if new_tags else ""
+                            new_tags.strip() if new_tags else "",
+                            batch_id=batch_id,
+                            operation=OP_MERGE,
                         )
                         
                         if new_book:
+                            self._last_recycle_batch_id = batch_id
                             self.notify(
                                 get_global_i18n().t("batch_ops.merge_success", title=new_title),
                                 severity="information"
+                            )
+                            self.notify(
+                                get_global_i18n().t("recycle_bin.undo_hint"),
+                                severity="information", timeout=6,
                             )
                             
                             # 重新加载书籍列表
@@ -3442,80 +3496,16 @@ class BatchOpsDialog(ModalScreen[Dict[str, Any]]):
         except Exception as e:
             logger.error(f"显示重复结果失败: {e}")
 
-    def _get_log_file_path(self) -> str:
-        """
-        获取当前日志文件路径
-
-        Returns:
-            str: 日志文件路径
-        """
-        try:
-            # 获取配置管理器
-            config_manager = ConfigManager.get_instance()
-
-            # 获取日志目录
-            log_dir = os.path.join(os.path.expanduser("~"), ".config", "new_preader", "logs")
-
-            # 根据调试模式确定日志文件名
-            if config_manager.get_debug_mode():
-                # 开发模式使用带日期的日志文件
-                log_file = os.path.join(log_dir, f'application_{date.today()}.log')
-            else:
-                # 生产模式使用应用主日志文件
-                log_file = os.path.join(log_dir, 'application.log')
-
-            # 如果主日志文件不存在，尝试查找最新的日志文件
-            if not os.path.exists(log_file):
-                if os.path.exists(log_dir):
-                    # 查找目录下最新的.log文件
-                    log_files = [f for f in os.listdir(log_dir) if f.endswith('.log')]
-                    if log_files:
-                        log_files.sort(key=lambda x: os.path.getmtime(os.path.join(log_dir, x)), reverse=True)
-                        log_file = os.path.join(log_dir, log_files[0])
-
-            return log_file
-
-        except Exception as e:
-            logger.error(f"获取日志文件路径失败: {e}")
-            # 返回默认路径
-            return os.path.join(os.path.expanduser("~"), ".config", "new_preader", "logs", "application.log")
-
     def _open_log_viewer(self) -> None:
-        """打开日志查看器弹窗"""
-        try:
-            # 非文件日志模式（内存模式）：直接展示内存中的日志，避免“日志文件不存在”
-            if not is_file_logging_enabled():
-                existing_screens = self.app.screen_stack
-                log_viewer_exists = any(isinstance(screen, LogViewerPopup) for screen in existing_screens)
-                if log_viewer_exists:
-                    return
-                log_viewer = LogViewerPopup("内存日志", memory_mode=True)
-                self.app.push_screen(log_viewer)
-                self.notify(f"📋 {get_global_i18n().t('crawler.log_viewer_opened')}")
-                return
+        """打开日志查看器弹窗（复用全局日志查看逻辑）。"""
+        from src.ui.utils.log_viewer_utils import open_log_viewer
 
-            log_file_path = self._get_log_file_path()
-
-            # 检查日志文件是否存在
-            if not os.path.exists(log_file_path):
-                self.notify("Log file not found", severity="warning")
-                return
-
-            # 检查是否已经有日志查看器弹窗存在
-            existing_screens = self.app.screen_stack
-            log_viewer_exists = any(isinstance(screen, LogViewerPopup) for screen in existing_screens)
-
-            if log_viewer_exists:
-                # 如果弹窗已存在，不重复显示消息
-                return
-
-            # 创建并显示日志查看器弹窗
-            log_viewer = LogViewerPopup(log_file_path)
-            self.app.push_screen(log_viewer)
-
-            self.notify(f"📋 {get_global_i18n().t('crawler.log_viewer_opened')}")
-
-        except Exception as e:
-            logger.error(f"打开日志查看器失败: {e}")
-            self.notify(f"❌ {get_global_i18n().t('crawler.open_log_viewer_failed')}: {e}")
+        status = open_log_viewer(self.app)
+        t = get_global_i18n().t
+        if status in ("memory", "file"):
+            self.notify(f"📋 {t('crawler.log_viewer_opened')}")
+        elif status == "missing":
+            self.notify("Log file not found", severity="warning")
+        elif status == "error":
+            self.notify(f"❌ {t('crawler.open_log_viewer_failed')}")
 

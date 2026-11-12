@@ -51,10 +51,11 @@ Footer {
     height: 1;
 }
 
-/* 顶部工具栏按钮居中 */
+/* 顶部工具栏按钮居中；按钮较多（含回收站/筛选）时允许横向滚动 */
 .bookshelf-screen #bookshelf-toolbar {
     /* 使用 .btn-row 控制对齐 */
     background: transparent;
+    overflow-x: auto;
 }
 
 /* 搜索栏样式 */

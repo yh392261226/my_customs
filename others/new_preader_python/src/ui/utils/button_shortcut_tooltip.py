@@ -80,16 +80,42 @@ BUTTON_ACTION_OVERRIDES: Dict[str, Dict[str, str]] = {
     "LogViewerPopup": {
         "close-log-btn": "close",
     },
-    # 书籍预览弹窗：全屏预览(V)、查看文件(F)、查看详情(i)、关闭(esc)
-    "BookPreviewDialog": {
-        "preview-full-btn": "toggle_preview",
-        "preview-view-file-btn": "view_file",
-        "preview-details-btn": "view_details",
-        "preview-close-btn": "close",
+    # 统一书籍视图（详情 / 预览 / 查看文件三合一）
+    "BookViewDialog": {
+        "bv-details-btn": "show_details",
+        "bv-preview-btn": "show_preview",
+        "bv-full-btn": "toggle_preview",
+        "bv-view-file-btn": "view_file",
+        "bv-close-btn": "close",
     },
-    "_MergePreviewDialog": {
-        "preview-full-btn": "toggle_preview",
-        "preview-close-btn": "close",
+    # 兼容类名（BookDetailsDialog / BookPreviewDialog 继承自 BookViewDialog）
+    "BookDetailsDialog": {
+        "bv-details-btn": "show_details",
+        "bv-preview-btn": "show_preview",
+        "bv-full-btn": "toggle_preview",
+        "bv-view-file-btn": "view_file",
+        "bv-close-btn": "close",
+    },
+    "BookPreviewDialog": {
+        "bv-details-btn": "show_details",
+        "bv-preview-btn": "show_preview",
+        "bv-full-btn": "toggle_preview",
+        "bv-view-file-btn": "view_file",
+        "bv-close-btn": "close",
+    },
+    # 回收站
+    "RecycleBinDialog": {
+        "rb-restore-btn": "restore_selected",
+        "rb-undo-btn": "undo_batch",
+        "rb-purge-btn": "purge_selected",
+        "rb-empty-btn": "empty_bin",
+        "rb-refresh-btn": "reload",
+        "rb-close-btn": "close",
+    },
+    "LibraryFilterDialog": {
+        "lf-apply-btn": "apply",
+        "lf-clear-btn": "clear",
+        "lf-cancel-btn": "cancel",
     },
     # 文本编辑器：保存、自动换行、关闭
     "TextEditorModal": {

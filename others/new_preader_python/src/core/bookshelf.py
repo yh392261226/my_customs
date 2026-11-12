@@ -5,13 +5,18 @@
 import os
 
 import json
-from send2trash import send2trash
 from typing import Dict, List, Any, Optional, Set, Tuple
 from datetime import datetime
 from pathlib import Path
 
 from src.core.book import Book
 from src.core.database_manager import DatabaseManager
+from src.core.recycle_bin import (
+    OP_DELETE,
+    OP_MERGE,
+    OP_MISSING,
+    get_recycle_bin,
+)
 from src.config.default_config import SUPPORTED_FORMATS
 from src.utils.logger import LoggerSetup
 
@@ -243,45 +248,63 @@ class Bookshelf:
         return title
 
     @debug_logged
-    def remove_book(self, path: str, delete_file: bool = False) -> bool:
+    def remove_book(self, path: str, delete_file: bool = False, *,
+                    operation: str = OP_DELETE, reason: str = "",
+                    batch_id: Optional[str] = None,
+                    recycle: bool = True) -> bool:
         """
-        移除书籍
+        移除书籍（统一进入回收站）。
+
+        数据库记录、关联数据（阅读历史 / 书签 / 标签 / 元数据 / 用户归属 /
+        合并溯源 / 全文索引登记）会被完整快照；``delete_file=True`` 时物理文件
+        也会移入应用回收站目录，可在「回收站」中一键恢复。
 
         Args:
             path: 书籍文件路径
-            delete_file: 是否同时删除物理文件（移动到回收站，便于恢复），默认 False。
-                仅当调用方明确希望删除书籍时传 True；内部清理（如合并、清理缺失文件）
-                由调用方自行处理文件，保持默认 False 以免重复删除。
+            delete_file: 是否同时把物理文件移入回收站，默认 False（只删记录）
+            operation: 操作类型，用于回收站展示与按批次撤销
+            reason: 附加说明，例如「重复组推荐删除」
+            batch_id: 一次批量操作共用的批次 id，便于整体撤销
+            recycle: 是否写入回收站（内部维护等特殊场景才传 False）
 
         Returns:
             bool: 是否成功移除
         """
         abs_path = os.path.abspath(path)
-        if abs_path in self.books:
-            del self.books[abs_path]
-
-            # 从数据库中删除书籍
-            self.db_manager.delete_book(abs_path)
-
-            # 从阅读历史中移除相关记录
-            self.reading_history = [record for record in self.reading_history if record.get("path") != abs_path and record.get("book_path") != abs_path]
-
-            # 如需同时删除物理文件（移动到回收站，便于恢复）
-            if delete_file:
-                try:
-                    if os.path.exists(abs_path):
-                        send2trash(abs_path)
-                        logger.info(f"书籍文件已移至回收站: {abs_path}")
-                    else:
-                        logger.warning(f"书籍文件不存在，仅删除记录: {abs_path}")
-                except Exception as e:
-                    logger.error(f"删除书籍文件失败（记录已删除）: {abs_path}: {e}")
-
-            logger.info(f"已从数据库中移除书籍: {abs_path}")
-            return True
-        else:
+        in_memory = abs_path in self.books
+        # 内存字典可能尚未刷新，仍以数据库记录为准
+        db_book = None
+        if not in_memory:
+            try:
+                db_book = self.db_manager.get_book(abs_path)
+            except Exception:
+                db_book = None
+        if not in_memory and db_book is None and not os.path.exists(abs_path):
             logger.warning(f"书籍不存在于书架中: {abs_path}")
             return False
+
+        # 删除记录（含回收站快照）与文件，全部由统一的回收站服务处理
+        ok = self.db_manager.delete_book(
+            abs_path,
+            recycle=recycle,
+            recycle_file=delete_file,
+            operation=operation,
+            reason=reason,
+            batch_id=batch_id,
+        )
+
+        # 同步内存状态（键可能是原始路径的其它写法，一并清理）
+        for key in [k for k in self.books if os.path.abspath(k) == abs_path]:
+            del self.books[key]
+        self.books.pop(abs_path, None)
+        self._reading_info_cache.pop(abs_path, None)
+        self.reading_history = [
+            record for record in self.reading_history
+            if record.get("path") != abs_path and record.get("book_path") != abs_path
+        ]
+
+        logger.info(f"已从数据库中移除书籍（已进回收站）: {abs_path}")
+        return ok
     
     @debug_logged
     def get_book(self, path: str) -> Optional[Book]:
@@ -994,22 +1017,30 @@ class Bookshelf:
     
 
     
-    def batch_delete_books(self, book_paths: List[str]) -> int:
+    def batch_delete_books(self, book_paths: List[str], *,
+                           operation: str = OP_DELETE,
+                           batch_id: Optional[str] = None) -> int:
         """
-        批量删除书籍
-        
+        批量删除书籍（整批共用同一个回收站批次，可一次性撤销）。
+
         Args:
             book_paths: 书籍路径列表
-            
+            operation: 操作类型
+            batch_id: 外部指定的批次 id（例如与合并共用一个批次）
+
         Returns:
             int: 成功删除的书籍数量
         """
         success_count = 0
-        
+        real_batch = batch_id or get_recycle_bin(self.db_manager).create_batch(
+            operation, "批量删除"
+        )
+
         for path in book_paths:
-            if self.remove_book(path):
+            if self.remove_book(path, delete_file=True, operation=operation,
+                                reason="批量删除", batch_id=real_batch):
                 success_count += 1
-        
+
         return success_count
     
     def batch_clear_history(self, book_paths: List[str]) -> int:
@@ -1246,14 +1277,18 @@ class Bookshelf:
         """
         removed_count = 0
         removed_books = []
-        
+        batch_id = get_recycle_bin(self.db_manager).create_batch(
+            OP_MISSING, "清理文件已缺失的书籍"
+        )
+
         # 获取所有书籍
         all_books = self.get_all_books()
         
         for book in all_books:
             if not os.path.exists(book.path):
-                # 书籍文件不存在，删除该书籍
-                if self.remove_book(book.path):
+                # 书籍文件不存在，删除该书籍（记录进回收站，可恢复元数据）
+                if self.remove_book(book.path, operation=OP_MISSING,
+                                    reason="文件已不存在", batch_id=batch_id):
                     removed_count += 1
                     removed_books.append(book.path)
                     logger.info(f"删除不存在书籍: {book.title} ({book.path})")
@@ -1261,16 +1296,24 @@ class Bookshelf:
         logger.info(f"验证完成: 删除了 {removed_count} 本不存在的书籍")
         return removed_count, removed_books
 
-    def merge_books(self, book_paths: List[str], new_title: str, new_author: str = "", new_tags: str = "") -> Optional[Book]:
+    def merge_books(self, book_paths: List[str], new_title: str, new_author: str = "",
+                    new_tags: str = "", *, batch_id: Optional[str] = None,
+                    operation: str = OP_MERGE) -> Optional[Book]:
         """
-        合并多本书籍为一个新文件
-        
+        合并多本书籍为一个新文件。
+
+        源书籍不会真正删除，而是连同新生成的合并文件一起登记到同一个回收站
+        批次；误操作后可在回收站「撤销本次操作」，源书与全部关联数据会恢复，
+        本次生成的新书则被移除。
+
         Args:
             book_paths: 要合并的书籍路径列表（按顺序）
             new_title: 新书籍的标题
             new_author: 新书籍的作者（可选）
             new_tags: 新书籍的标签（可选）
-            
+            batch_id: 外部批次 id（批量合并时整批共用一个 id）
+            operation: 操作类型（merge / batch_merge）
+
         Returns:
             Optional[Book]: 合并后的新书籍对象，如果合并失败则返回None
         """
@@ -1281,6 +1324,9 @@ class Bookshelf:
         if len(book_paths) < 2:
             logger.error("至少需要选择2本书籍进行合并")
             return None
+
+        recycle_bin = get_recycle_bin(self.db_manager)
+        real_batch = batch_id or recycle_bin.create_batch(operation, f"合并为 {new_title}")
         
         try:
             # 获取要合并的书籍对象
@@ -1377,26 +1423,31 @@ class Bookshelf:
                     # 溯源失败不阻断合并本身
                     logger.error(f"登记合并溯源失败: {e}")
 
-                # 删除原书籍（文件和数据库记录）
+                # 登记本次生成的新文件：撤销该批次时会移除它，完整回到合并前
+                try:
+                    recycle_bin.add_created_paths(real_batch, [new_filepath])
+                except Exception as e:
+                    logger.error(f"登记合并产物失败: {e}")
+
+                # 删除原书籍（记录 + 文件统一进入回收站，可按批次整体恢复）
                 deleted_count = 0
                 for book in books_to_merge:
-                    if self.remove_book(book.path):
-                        # 删除物理文件
-                        try:
-                            send2trash(book.path)
-                            logger.info(f"原文件已移至回收站: {book.path}")
-                            deleted_count += 1
-                        except Exception as e:
-                            logger.warning(f"删除原文件失败 {book.path}: {e}")
-                
+                    if self.remove_book(
+                        book.path,
+                        delete_file=True,
+                        operation=operation,
+                        reason=f"合并为 {new_title} 的源文件",
+                        batch_id=real_batch,
+                    ):
+                        deleted_count += 1
+
                 logger.info(f"成功合并 {len(books_to_merge)} 本书籍为 {new_title}，删除了 {deleted_count} 本原书籍")
                 return new_book
             else:
-                # 如果添加新书籍失败，删除合并的文件
+                # 如果添加新书籍失败，删除合并的文件（失败回滚，无需进回收站）
                 try:
-                    send2trash(new_filepath)
-                    logger.info(f"临时合并文件已移至回收站: {new_filepath}")
-                except Exception:
+                    os.remove(new_filepath)
+                except OSError:
                     pass
                 logger.error("添加合并后的书籍到书架失败")
                 return None

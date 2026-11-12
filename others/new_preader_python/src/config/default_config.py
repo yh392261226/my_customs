@@ -53,6 +53,7 @@ DEFAULT_CONFIG = {
         "password_enabled": False,  # 是否启用启动密码
         "password": "",  # 启动密码（明文存储）
         "auto_vacuum_enabled": True,  # 是否启用数据库自动清理
+        "recycle_bin_auto_clear_days": 10,  # 回收站自动清空周期（天），0 表示永不自动清空
     },
     
     # 翻译设置

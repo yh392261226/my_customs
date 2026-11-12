@@ -544,6 +544,17 @@ def create_advanced_settings() -> SettingSection:
         description="自动清理数据库中的空闲空间，避免数据库文件变得臃肿",
         category="advanced"
     ))
+
+    # 回收站自动清空周期
+    section.add_setting(IntegerSetting(
+        key="advanced.recycle_bin_auto_clear_days",
+        default_value=10,
+        display_name="回收站自动清空周期",
+        description="回收站中超过该天数的书籍会被自动彻底删除（默认 10 天，0 表示永不自动清空）",
+        min_value=0,
+        max_value=365,
+        category="advanced"
+    ))
     
     return section
 

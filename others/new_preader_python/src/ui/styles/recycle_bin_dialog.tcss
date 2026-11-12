@@ -1,0 +1,121 @@
+/* 回收站弹窗样式（与详情/预览弹窗保持一致的窗口 + 顶栏/底栏结构） */
+RecycleBinDialog {
+    align: center middle;
+}
+
+RecycleBinDialog Header {
+    width: 100%;
+    height: 1;
+    dock: top;
+}
+
+RecycleBinDialog Footer {
+    width: 100%;
+    height: 1;
+    dock: bottom;
+}
+
+#recycle-bin-window {
+    width: 90%;
+    height: 90%;
+    background: $surface;
+    border: thick $accent;
+    padding: 1 2;
+    overflow-y: auto;
+}
+
+#recycle-bin-title {
+    width: 100%;
+    height: 1;
+    background: $accent;
+    color: $text;
+    text-style: bold;
+    content-align: center middle;
+    margin-bottom: 1;
+}
+
+#recycle-bin-summary {
+    width: 100%;
+    height: 2;
+    color: $text-muted;
+}
+
+/* 搜索行：输入框占满剩余宽度，右侧为「搜索 / 清空」按钮 */
+#recycle-bin-window .search-row {
+    width: 100%;
+    height: 3;
+    align: center middle;
+    margin: 0;
+}
+
+#recycle-bin-window .recycle-bin-search {
+    width: 40%;
+    height: 3;
+    margin: 0;
+}
+
+#recycle-bin-window .search-row Button {
+    min-width: 10;
+    height: 3;
+    margin: 0 0 0 1;
+}
+
+#recycle-bin-table {
+    width: 100%;
+    height: 1fr;
+    border: round $panel;
+    background: $background;
+}
+
+/* 分页栏样式（与爬取管理保持一致） */
+#recycle-bin-window .pagination-bar {
+    height: 4;
+    width: 100%;
+    align: center middle;
+    background: $surface;
+    border-top: solid $primary;
+    content-align: center middle;
+}
+
+#recycle-bin-window .pagination-btn {
+    height: 1;
+    border: none;
+    padding: 0 1 0 1;
+    min-width: 10;
+    content-align: center middle;
+    align: center middle;
+    color: $text;
+    background: $primary;
+    margin: 0 1;
+}
+
+#recycle-bin-window .pagination-btn:hover {
+    background: $primary-darken-1;
+}
+
+#recycle-bin-window .pagination-btn:disabled {
+    background: $surface-darken-1;
+    color: $text-muted;
+}
+
+#recycle-bin-window .page-info {
+    color: $text;
+    width: 10%;
+    min-width: 40;
+    height: 1;
+    margin: 0 2 0 2;
+    text-style: bold;
+    content-align: center middle;
+}
+
+#recycle-bin-buttons {
+    width: 100%;
+    height: 3;
+    align: center middle;
+    margin-top: 1;
+}
+
+#recycle-bin-buttons Button {
+    min-width: 12;
+    margin: 0 1;
+}

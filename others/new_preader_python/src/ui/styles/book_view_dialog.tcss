@@ -1,0 +1,111 @@
+/* 统一书籍视图（详情 / 预览 / 查看文件）样式
+   放在 CSS_PATH 而非 DEFAULT_CSS：app 级 common.tcss 中
+   Container / ScrollableContainer { width: 100%; height: 100% } 会覆盖
+   Screen 默认样式，只有 CSS_PATH 的规则能稳定锁定窗口与 Header/Footer。 */
+BookViewDialog {
+    align: center middle;
+}
+
+BookViewDialog Header {
+    width: 100%;
+    height: 1;
+    dock: top;
+}
+
+BookViewDialog Footer {
+    width: 100%;
+    height: 1;
+    dock: bottom;
+}
+
+#bv-window {
+    width: 92%;
+    height: 86%;
+    background: $surface;
+    border: thick $accent;
+    padding: 1 2;
+    overflow-y: hidden;
+}
+
+#bv-title {
+    width: 100%;
+    height: 1;
+    background: $accent;
+    color: $text;
+    text-style: bold;
+    content-align: center middle;
+    margin-bottom: 1;
+}
+
+#bv-body {
+    width: 100%;
+    height: 1fr;
+}
+
+#bv-details-view {
+    width: 100%;
+    height: 100%;
+    background: $background;
+    border: round $panel;
+    padding: 1 2;
+}
+
+.bv-details-text {
+    width: 100%;
+    height: auto;
+}
+
+.bv-details-content {
+    width: 100%;
+    height: 12;
+    margin-top: 1;
+    border: round $border;
+    background: $background;
+    padding: 0 1;
+}
+
+#bv-preview-view {
+    width: 100%;
+    height: 100%;
+}
+
+#bv-sidebar {
+    width: 30%;
+    height: 100%;
+    background: $panel;
+    hatch: right $panel-darken-1;
+    padding: 1 2;
+    scrollbar-gutter: stable;
+    overflow-y: auto;
+}
+
+.bv-info-text {
+    width: 100%;
+    height: auto;
+    content-align: left top;
+}
+
+.bv-preview-text {
+    width: 1fr;
+    height: 100%;
+    background: $surface;
+    border: round $panel;
+    padding: 1 2;
+    scrollbar-gutter: stable;
+    overflow-y: auto;
+    border-title-align: center;
+    border-title-color: $text;
+    border-title-style: bold;
+}
+
+#bv-buttons {
+    width: 100%;
+    height: 3;
+    align: center middle;
+    margin-top: 1;
+}
+
+#bv-buttons Button {
+    min-width: 12;
+    margin: 0 1;
+}

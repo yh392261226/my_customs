@@ -1212,17 +1212,47 @@ class DatabaseManager:
             logger.error(f"更新书籍信息失败: {e}")
             return False
     
-    def delete_book(self, book_path: str, cleanup_associated: bool = True) -> bool:
+    def delete_book(self, book_path: str, cleanup_associated: bool = True,
+                    *, recycle: bool = True, recycle_file: bool = True,
+                    operation: str = "delete", reason: str = "",
+                    batch_id: Optional[str] = None) -> bool:
         """
-        删除书籍（含关联数据清理）
-        
+        删除书籍（含关联数据清理）。
+
+        默认经由统一的 :class:`src.core.recycle_bin.RecycleBin` 处理：删除前会
+        完整快照书籍行与关联数据、把物理文件移入应用回收站目录，之后可在
+        「回收站」中恢复或按批次撤销。这样任何调用方（书库、批量操作、去重、
+        合并、爬取管理、Web API）删除的书籍都不会被真正抹掉。
+
         Args:
             book_path: 书籍路径
             cleanup_associated: 是否同时清理关联表（user_books等），默认True
-            
+            recycle: 是否写入回收站；仅在底层维护等特殊场景传 False
+            recycle_file: 是否把物理文件一并移入应用回收站目录
+            operation: 操作类型（delete / deduplicate / merge / batch_merge / missing）
+            reason: 附加说明
+            batch_id: 所属操作批次，批量操作共用一个 id 时可整体撤销
+
         Returns:
             bool: 删除是否成功
         """
+        if recycle:
+            try:
+                from src.core.recycle_bin import get_recycle_bin
+                trashed = get_recycle_bin(self).trash_book(
+                    book_path,
+                    delete_file=recycle_file,
+                    operation=operation,
+                    reason=reason,
+                    batch_id=batch_id,
+                    cleanup_associated=cleanup_associated,
+                )
+                if trashed:
+                    return True
+                # 库中无记录且文件已不存在：继续走原有逻辑保证幂等
+            except Exception as e:
+                logger.error(f"写入回收站失败，回退为直接删除: {book_path}: {e}")
+
         try:
             with sqlite3.connect(self.db_path) as conn:
                 cursor = conn.cursor()

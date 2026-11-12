@@ -1,0 +1,116 @@
+/* 书库高级筛选弹窗 */
+LibraryFilterDialog {
+    align: center middle;
+}
+
+LibraryFilterDialog Header {
+    width: 100%;
+    height: 1;
+    dock: top;
+}
+
+LibraryFilterDialog Footer {
+    width: 100%;
+    height: 1;
+    dock: bottom;
+}
+
+#library-filter-window {
+    width: 64%;
+    height: 76%;
+    min-width: 50;
+    background: $surface;
+    border: thick $accent;
+    padding: 1 2;
+}
+
+#library-filter-title {
+    width: 100%;
+    height: 1;
+    background: $accent;
+    color: $text;
+    text-style: bold;
+    content-align: center middle;
+    margin-bottom: 1;
+}
+
+#library-filter-desc {
+    width: 100%;
+    height: 2;
+    color: $text-muted;
+}
+
+#library-filter-body {
+    width: 100%;
+    height: 1fr;
+    border: round $panel;
+    background: $background;
+    padding: 1;
+}
+
+.library-filter-row {
+    width: 100%;
+    height: 3;
+    align: left middle;
+}
+
+.library-filter-label {
+    width: 1fr;
+    height: 3;
+    content-align: left middle;
+}
+
+.library-filter-row RadioSet {
+    layout: horizontal;
+    height: 3;
+    border: none;
+    background: transparent;
+    padding: 0;
+}
+
+.library-filter-row RadioSet RadioButton {
+    width: auto;
+    height: 3;
+    margin-right: 2;
+}
+
+.library-filter-cat {
+    width: 100%;
+    height: 1;
+    margin-top: 1;
+    text-style: bold;
+    color: $accent;
+}
+
+.library-filter-range {
+    width: 100%;
+    height: 3;
+    align: left middle;
+}
+
+.library-filter-input {
+    width: 18;
+}
+
+.library-filter-dash {
+    width: 3;
+    content-align: center middle;
+}
+
+.library-filter-unit {
+    width: auto;
+    color: $text-muted;
+    padding-left: 1;
+}
+
+#library-filter-buttons {
+    width: 100%;
+    height: 3;
+    align: center middle;
+    margin-top: 1;
+}
+
+#library-filter-buttons Button {
+    min-width: 12;
+    margin: 0 1;
+}

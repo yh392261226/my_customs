@@ -189,14 +189,25 @@ class BookManager:
         target = os.path.join(canon_dir, os.path.basename(abs_src))
         import_new, target = self._resolve_import_name_conflict(abs_src, target)
         if not import_new:
-            # 同名且新文件不大于现有文件：保留现有大文件，删除临时区的小文件
-            # （仅删除未在书架登记的文件，避免误删已入库书籍的源文件）
+            # 同名且新文件不大于现有文件：保留现有大文件，把较小的新文件移入回收站
+            # （而非真正删除），以便用户在回收站中恢复。仅针对未在书架登记的文件。
             if not existing_book:
                 try:
-                    os.remove(abs_src)
-                    logger.info(f"同名书籍现有文件更大，已丢弃较小的新文件: {abs_src}")
-                except OSError as e:
-                    logger.warning(f"丢弃较小的新文件失败（忽略）: {abs_src}: {e}")
+                    from src.core.recycle_bin import get_recycle_bin
+                    rb = get_recycle_bin(self.bookshelf.db_manager)
+                    moved = rb.trash_file(
+                        abs_src, operation="import_dedup",
+                        reason="导入去重：新文件不大于已存在同名文件",
+                    )
+                except Exception as rb_err:
+                    moved = False
+                    logger.warning(f"导入去重移入回收站失败，回退为真删: {abs_src}: {rb_err}")
+                if not moved:
+                    try:
+                        os.remove(abs_src)
+                        logger.info(f"同名书籍现有文件更大，已丢弃较小的新文件: {abs_src}")
+                    except OSError as e:
+                        logger.warning(f"丢弃较小的新文件失败（忽略）: {abs_src}: {e}")
             return self._SKIP_IMPORT
         try:
             shutil.move(abs_src, target)
@@ -239,10 +250,32 @@ class BookManager:
             )
             return False, None
         try:
-            os.remove(target)
-        except OSError as e:
-            logger.error(f"删除同名旧文件失败，放弃导入: {target}: {e}")
-            return False, None
+            from src.core.recycle_bin import get_recycle_bin
+            rb = get_recycle_bin(self.bookshelf.db_manager)
+            # 旧文件若已在书架登记，走 trash_book（会一并快照其关联数据）；
+            # 否则仅作为未登记文件移入回收站。两者都保留物理文件以便恢复。
+            old_book = self.bookshelf.db_manager.get_book(target)
+            if old_book is not None:
+                moved = rb.trash_book(
+                    target, delete_file=True, operation="import_replace",
+                    reason="导入替换：新文件更大，旧文件入回收站",
+                    rename_in_place=True,
+                )
+            else:
+                moved = rb.trash_file(
+                    target, operation="import_replace",
+                    reason="导入替换：新文件更大，旧文件入回收站",
+                    rename_in_place=True,
+                )
+        except Exception as rb_err:
+            moved = False
+            logger.warning(f"导入替换移入回收站失败，回退为真删: {target}: {rb_err}")
+        if not moved:
+            try:
+                os.remove(target)
+            except OSError as e:
+                logger.error(f"删除同名旧文件失败，放弃导入: {target}: {e}")
+                return False, None
         logger.info(
             f"目标位置已存在同名文件但新文件更大，覆盖旧文件: "
             f"{abs_src} ({new_size}B) -> {target} ({old_size}B)"

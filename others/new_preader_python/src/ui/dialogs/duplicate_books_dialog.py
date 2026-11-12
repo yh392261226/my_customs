@@ -3,7 +3,6 @@
 """
 
 import os
-import shutil
 from typing import List, Dict, Any, Optional
 from textual.screen import ModalScreen
 from textual.app import ComposeResult
@@ -19,7 +18,6 @@ from src.ui.dialogs.confirm_dialog import ConfirmDialog
 from src.ui.dialogs.book_comparison_dialog import BookComparisonDialog
 from src.ui.messages import UpdateDuplicateGroupsMessage
 from src.utils.logger import get_logger
-from src.utils.file_helpers import read_file_preview
 
 logger = get_logger(__name__)
 
@@ -41,6 +39,7 @@ class DuplicateBooksDialog(ModalScreen[Dict[str, Any]]):
         ("F", "view_file_current", get_global_i18n().t('duplicate_books.view_file_current')),
         ("D", "select_current_group_recommended", get_global_i18n().t('duplicate_books.select_current_group_recommended')),
         ("y", "copy_current_title", get_global_i18n().t('common.copy_title')),
+        ("u", "undo_last_delete", get_global_i18n().t('recycle_bin.undo_last')),
     ]
     
     def __init__(self, theme_manager: ThemeManager, duplicate_groups: List[DuplicateGroup],
@@ -71,13 +70,25 @@ class DuplicateBooksDialog(ModalScreen[Dict[str, Any]]):
         
         # 【新增】实例级取消标志 - 用于通知后台线程停止
         self._is_cancelled = False
-        
-        # 预先推荐选中所有组中推荐的删除书籍
+
+        # 记录所有组中推荐的删除书籍（供「选中推荐」按钮使用）
         for group in duplicate_groups:
             for book in group.recommended_to_delete:
                 self.recommended_selected_books.add(book.path)
-        
-        self.selected_books = self.recommended_selected_books.copy()
+
+        # 【误操作防护】不再默认勾选「所有组」的推荐删除项。
+        # 过去初始化时直接全选，用户只处理了当前组就点删除，会把后面
+        # 大量尚未查看的组按推荐一并删掉。现在只预选打开时看到的第 1 组，
+        # 其余组需要用户主动查看并用 D / 「选中推荐」确认。
+        self.selected_books = set()
+        self._viewed_groups: set[frozenset] = set()
+        if duplicate_groups:
+            for book in duplicate_groups[0].recommended_to_delete:
+                self.selected_books.add(book.path)
+            self._viewed_groups.add(self._group_key(duplicate_groups[0]))
+
+        # 最近一次删除所属的回收站批次（用于一键撤销）
+        self._last_recycle_batch_id: Optional[str] = None
     
     def compose(self) -> ComposeResult:
         """组合对话框界面"""
@@ -112,6 +123,7 @@ class DuplicateBooksDialog(ModalScreen[Dict[str, Any]]):
                     Button(get_global_i18n().t("duplicate_books.next_group"), id="next-group-btn"),
                     Button(get_global_i18n().t("duplicate_books.prev_group"), id="prev-group-btn"),
                     Button(get_global_i18n().t("common.skip_group"), id="skip-group-btn", variant="warning"),
+                    Button(get_global_i18n().t("recycle_bin.undo_last"), id="undo-delete-btn"),
                     Button(get_global_i18n().t("common.cancel"), id="cancel-btn")
                 ),
                 
@@ -200,6 +212,8 @@ class DuplicateBooksDialog(ModalScreen[Dict[str, Any]]):
         
         self.current_group_index = group_index
         group = self.duplicate_groups[group_index]
+        # 标记为「已查看」，删除确认中会提示尚未查看组的选中项
+        self._viewed_groups.add(self._group_key(group))
         
         # 更新组信息
         group_info_label = self.query_one("#duplicate-group-info", Label)
@@ -823,14 +837,22 @@ class DuplicateBooksDialog(ModalScreen[Dict[str, Any]]):
             self.notify(get_global_i18n().t("duplicate_books.no_books_selected"), severity="warning")
             return
         
-        # 显示确认对话框
+        # 删除确认：显式提示「尚未查看的组」以及回收站可撤销，避免误删
+        t = get_global_i18n().t
+        selected_for_delete = [p for p in self.selected_books if not self._is_path_skipped(p)]
+        unreviewed = [
+            p for p in selected_for_delete
+            if not any(p in key for key in self._viewed_groups)
+        ]
+        message = t("duplicate_books.delete_confirm_message", count=len(selected_for_delete))
+        if unreviewed:
+            message += "\n" + t("recycle_bin.delete_unreviewed_warning", count=len(unreviewed))
+        message += "\n" + t("recycle_bin.undo_hint")
+
         confirm_dialog = ConfirmDialog(
             self.theme_manager,
-            get_global_i18n().t("duplicate_books.delete_confirm"),
-            get_global_i18n().t(
-                "duplicate_books.delete_confirm_message",
-                count=len(self.selected_books)
-            )
+            t("duplicate_books.delete_confirm"),
+            message,
         )
         
         def on_confirm(confirmed: bool) -> None:
@@ -839,11 +861,52 @@ class DuplicateBooksDialog(ModalScreen[Dict[str, Any]]):
                 self._delete_selected_books()
         
         self.app.push_screen(confirm_dialog, on_confirm)
-    
+
+    def action_undo_last_delete(self) -> None:
+        """u 键 - 撤销最近一次批量去重删除（整批恢复）。"""
+        t = get_global_i18n().t
+        batch_id = self._last_recycle_batch_id
+        if not batch_id:
+            self.notify(t("recycle_bin.no_undo"), severity="warning")
+            return
+
+        def on_confirm(confirmed: Optional[bool]) -> None:
+            if not confirmed:
+                return
+            from src.core.recycle_bin import get_recycle_bin
+            from src.ui.messages import RefreshBookshelfMessage
+
+            bookshelf = getattr(self.app, "bookshelf", None)
+            result = get_recycle_bin(
+                getattr(bookshelf, "db_manager", None) if bookshelf is not None else None
+            ).restore_batch(batch_id)
+            self._last_recycle_batch_id = None
+            try:
+                self.app.bookshelf._load_books()
+                self.app.post_message(RefreshBookshelfMessage())
+            except Exception:
+                pass
+            self.notify(t("recycle_bin.undo_success", count=result.get("ok", 0)),
+                        severity="information")
+            # 恢复后原有重复组缓存已失效，关闭对话框让用户重新检测
+            self.dismiss({"refresh": True, "reopen_deduplicate": True})
+
+        self.app.push_screen(
+            ConfirmDialog(
+                self.theme_manager,
+                t("recycle_bin.undo_confirm"),
+                t("recycle_bin.undo_confirm_message"),
+            ),
+            on_confirm,
+        )
+
+    @on(Button.Pressed, "#undo-delete-btn")
+    def on_undo_delete_pressed(self) -> None:
+        self.action_undo_last_delete()
+
     def _delete_selected_books(self) -> None:
-        """删除选中的书籍"""
+        """删除选中的书籍（整批进回收站，可一键撤销）"""
         try:
-            import shutil
             deleted_count = 0
             failed_count = 0
             
@@ -853,7 +916,13 @@ class DuplicateBooksDialog(ModalScreen[Dict[str, Any]]):
                 logger.error("无法获取书库对象")
                 self.notify("无法获取书库对象", severity="error")
                 return
-            
+
+            # 整次删除共用一个回收站批次，可整体恢复
+            from src.core.recycle_bin import OP_DEDUPLICATE, get_recycle_bin
+            batch_id = get_recycle_bin(bookshelf.db_manager).create_batch(
+                OP_DEDUPLICATE, "批量去重删除"
+            )
+
             # 记录被删除的书籍路径
             deleted_book_paths = set()
 
@@ -862,21 +931,24 @@ class DuplicateBooksDialog(ModalScreen[Dict[str, Any]]):
 
             for book_path in selected_for_delete:
                 try:
-                    if os.path.exists(book_path):
-                        # 移动到回收站（根据操作系统）
-                        trash_path = os.path.join(os.path.expanduser("~"), ".Trash", os.path.basename(book_path))
-                        if not os.path.exists(os.path.dirname(trash_path)):
-                            os.makedirs(os.path.dirname(trash_path), exist_ok=True)
-                        
-                        shutil.move(book_path, trash_path)
+                    # 文件与数据库记录统一交给回收站处理；
+                    # 文件已不存在时也能删掉书库里的残留记录。
+                    if bookshelf.remove_book(
+                        book_path,
+                        delete_file=True,
+                        operation=OP_DEDUPLICATE,
+                        reason="重复组推荐删除",
+                        batch_id=batch_id,
+                    ):
                         deleted_count += 1
                         deleted_book_paths.add(book_path)
-                        
-                        # 从书库中删除书籍（文件已在上一步移入回收站）
-                        bookshelf.remove_book(book_path, delete_file=True)
+                    else:
+                        failed_count += 1
                 except Exception as e:
                     logger.error(f"删除书籍失败: {book_path}, 错误: {e}")
                     failed_count += 1
+
+            self._last_recycle_batch_id = batch_id if deleted_count else None
             
             # 从选中集合中移除已删除的书籍
             for book_path in deleted_book_paths:
@@ -909,7 +981,11 @@ class DuplicateBooksDialog(ModalScreen[Dict[str, Any]]):
             self.duplicate_groups = valid_groups
             
             logger.info(f"删除完成 | 删除:{deleted_count} 失败:{failed_count} | 剩余重复组:{len(self.duplicate_groups)}")
-            
+
+            if deleted_count:
+                self.notify(get_global_i18n().t("recycle_bin.undo_hint"),
+                            severity="information", timeout=6)
+
             # 显示结果
             if failed_count == 0:
                 self.notify(
@@ -1049,133 +1125,38 @@ class DuplicateBooksDialog(ModalScreen[Dict[str, Any]]):
             logger.error(f"处理单元格选择失败: {e}")
     
     def _view_file(self, book_path: str) -> None:
-        """查看书籍文件"""
-        try:
-            # 导入需要的模块
-            import platform
-            import subprocess
-            
-            # 检查文件是否存在
-            if not os.path.exists(book_path):
-                self.notify(f"{get_global_i18n().t('common.file_not_exist')}: {book_path}", severity="error")
-                return
-            
-            # 根据操作系统打开文件管理器
-            system = platform.system()
-            if system == "Darwin":  # macOS
-                subprocess.run(["open", "-R", book_path], check=False)
-            elif system == "Windows":
-                subprocess.run(["explorer", "/select,", book_path], check=False)
-            elif system == "Linux":
-                subprocess.run(["xdg-open", os.path.dirname(book_path)], check=False)
-            else:
-                # 通用方法：打开文件所在目录
-                folder_path = os.path.dirname(book_path)
-                if os.path.exists(folder_path):
-                    subprocess.run(["open", folder_path], check=False)
-                else:
-                    self.notify(get_global_i18n().t("bookshelf.open_directory_failed"), severity="warning")
-                    return
-            
-            self.notify(f"{get_global_i18n().t('bookshelf.opened_in_file_explorer')}: {os.path.basename(book_path)}", severity="information")
-            
-        except Exception as e:
-            self.notify(f"{get_global_i18n().t('bookshelf.view_file_failed')}: {e}", severity="error")
+        """查看书籍文件（统一走 book_view_utils 的文件定位逻辑）。"""
+        from src.ui.utils.book_view_utils import reveal_book_file
+        reveal_book_file(self, book_path)
     
     def _preview_book(self, book: Book) -> None:
-        """预览书籍内容（显示前2000字，支持多种编码）"""
+        """预览书籍内容（统一书籍视图，兼具详情 / 查看文件 / 预览全部）。"""
+        from src.ui.utils.book_view_utils import build_view_data, open_book_view
+
         try:
             file_path = book.path
-            
             if not file_path:
                 self.notify(get_global_i18n().t("crawler.no_file_path"), severity="warning")
                 return
-            
             if not os.path.exists(file_path):
                 self.notify(f"{get_global_i18n().t('common.file_not_exist')}: {file_path}", severity="warning")
                 return
-            
-            # 读取文件前2000字，自动检测编码（charset-normalizer 优先，
-            # 支持 GBK/GB2312/Big5 等，避免乱码）
-            content = read_file_preview(file_path, max_chars=2000)
-            
-            if not content.strip():
-                self.notify(get_global_i18n().t("crawler.preview_empty"), severity="information")
-                return
-            
-            # 清理内容：全面移除不安全的字符，确保可以安全显示在 Textual 中
-            import unicodedata
-            def clean_text_for_display(text: str) -> str:
-                """清理文本，移除所有可能引起显示或解析问题的字符"""
-                cleaned_chars = []
-                for char in text:
-                    category = unicodedata.category(char)
-                    
-                    # 允许的字符类别：
-                    # L*: 字母 (Lu, Ll, Lt, Lm, Lo)
-                    # N*: 数字 (Nd, Nl, No)
-                    # P*: 标点符号 (Pc, Pd, Ps, Pe, Pi, Pf, Po)
-                    # S*: 符号 (Sm, Sc, Sk, So)
-                    # Z*: 分隔符 (Zs - 空格, Zl - 行分隔符, Zp - 段分隔符)
-                    # Cc: 控制字符（仅允许 \n 和 \t）
-                    if category.startswith(('L', 'N', 'P', 'S')):
-                        cleaned_chars.append(char)
-                    elif category == 'Zs' or category in ('Zl', 'Zp'):
-                        cleaned_chars.append(char)
-                    elif category == 'Cc':
-                        # 仅保留换行符和制表符
-                        if char in ('\n', '\r', '\t'):
-                            cleaned_chars.append(char)
-                        # 其他控制字符全部丢弃
-                    elif category == 'Cf':
-                        # 格式化字符（如 BOM、零宽空格等）- 全部丢弃
-                        pass
-                    elif category == 'Co':
-                        # 私有使用区字符 - 尝试保留，但替换为占位符
-                        cleaned_chars.append('□')
-                    elif category == 'Cn':
-                        # 未分配字符 - 跳过
-                        pass
-                    else:
-                        # 其他未知类别 - 安全起见跳过
-                        pass
-                
-                return ''.join(cleaned_chars)
-            
-            content = clean_text_for_display(content)
-            
-            # 额外处理：移除可能残留的孤立字节标记和乱码模式
-            import re
-            # 替换常见的二进制文件特征为省略号
-            content = re.sub(r'[ÿþ]{2,}', '... ', content)
-            content = re.sub(r'[«»]{3,}', '...', content)
-            # 清理多余的空白行（超过2个连续换行合并为2个）
-            content = re.sub(r'\n{3,}', '\n\n', content)
-            # 清理行首行尾空白
-            content = '\n'.join(line.rstrip() for line in content.split('\n'))
-            
-            # 确保内容不为空
-            if not content.strip():
-                self.notify(get_global_i18n().t("crawler.preview_empty"), severity="information")
-                return
-            
-            # 导入并使用预览弹窗
-            from src.ui.screens.crawler_management_screen import BookPreviewDialog
-            self.app.push_screen(
-                BookPreviewDialog(
-                    self.theme_manager,
-                    book.title,
-                    content,
-                    metadata={
-                        "author": getattr(book, "author", ""),
-                        "format": getattr(book, "format", ""),
-                        "size": getattr(book, "size", 0),
-                        "tags": getattr(book, "tags", ""),
-                        "path": getattr(book, "path", ""),
-                    },
-                )
+
+            data = build_view_data(
+                file_path,
+                title=book.title,
+                metadata={
+                    "author": getattr(book, "author", ""),
+                    "format": getattr(book, "format", ""),
+                    "size": getattr(book, "size", 0),
+                    "tags": getattr(book, "tags", ""),
+                    "path": getattr(book, "path", ""),
+                },
             )
-            
+            if not data.content.strip():
+                self.notify(get_global_i18n().t("crawler.preview_empty"), severity="information")
+                return
+            open_book_view(self.app, data, self.theme_manager, "preview")
         except Exception as e:
             logger.error(f"预览书籍失败: {e}")
             self.notify(f"{get_global_i18n().t('crawler.preview_failed')}: {str(e)}", severity="error")

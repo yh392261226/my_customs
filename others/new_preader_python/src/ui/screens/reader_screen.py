@@ -3562,36 +3562,6 @@ class ReaderScreen(ScreenStyleMixin, Screen[None]):
             logger.error(f"更新阅读提醒设置失败: {e}")
 
     def _view_file(self, book_path: str) -> None:
-        """查看书籍文件"""
-        try:
-            import os
-            import subprocess
-            import platform
-            
-            # 检查文件是否存在
-            if not os.path.exists(book_path):
-                self.notify(f"{get_global_i18n().t("common.file_not_exist")}: {book_path}", severity="error")
-                return
-            
-            # 根据操作系统打开文件管理器
-            system = platform.system()
-            if system == "Darwin":  # macOS
-                subprocess.run(["open", "-R", book_path], check=False)
-            elif system == "Windows":
-                subprocess.run(["explorer", "/select,", book_path], check=False)
-            elif system == "Linux":
-                subprocess.run(["xdg-open", os.path.dirname(book_path)], check=False)
-            else:
-                # 通用方法：打开文件所在目录
-                folder_path = os.path.dirname(book_path)
-                if os.path.exists(folder_path):
-                    subprocess.run(["open", folder_path], check=False)
-                else:
-                    self.notify(get_global_i18n().t("bookshelf.open_directory_failed"), severity="warning")
-                    return
-            
-            self.notify(f"{get_global_i18n().t("bookshelf.opened_in_file_explorer")}: {os.path.basename(book_path)}", severity="information")
-            
-        except Exception as e:
-            self.logger.error(f"查看文件失败: {e}")
-            self.notify(f"{get_global_i18n().t("bookshelf.view_file_failed")}: {e}", severity="error")
+        """查看书籍文件（统一走 book_view_utils 的文件定位逻辑）。"""
+        from src.ui.utils.book_view_utils import reveal_book_file
+        reveal_book_file(self, book_path)

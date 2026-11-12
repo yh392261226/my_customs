@@ -2197,9 +2197,17 @@ class FillMissingDialog(ModalScreen[Dict[str, Any]]):
                     try: self.db_manager.delete_book(file_path, cleanup_associated=True)
                     except Exception: pass
 
+                # delete_book 已把文件与记录移入应用回收站；这里兜底处理
+                # 没有书库记录的源文件，避免真删除后无法恢复
                 if file_path and os.path.exists(file_path):
-                    try: os.remove(file_path)
-                    except Exception: pass
+                    try:
+                        from src.core.recycle_bin import recycle_book
+                        recycle_book(
+                            self.db_manager, file_path, delete_file=True,
+                            operation="delete", reason="补足缺失后清理源文件",
+                        )
+                    except Exception:
+                        pass
 
                 if record_id:
                     try: self.db_manager.delete_crawl_history(record_id)
@@ -2494,8 +2502,8 @@ class FillMissingDialog(ModalScreen[Dict[str, Any]]):
     def _preview_current_book(self) -> None:
         """预览左侧「新爬取的书籍」列表中当前光标所在行的书籍。
 
-        与书库/爬取管理页的预览一致：读取文件前 2000 字，弹出
-        BookPreviewDialog；metadata 带上文件路径以启用「预览全部 / 查看文件」。
+        与书库/爬取管理页一致：统一走 book_view_utils + BookViewDialog，
+        metadata 带上文件路径以启用「预览全部 / 查看文件」。
         """
         try:
             table = self.query_one("#fm-books-table", DataTable)
@@ -2510,27 +2518,22 @@ class FillMissingDialog(ModalScreen[Dict[str, Any]]):
                 self.notify(self.i18n.t('common.file_not_exist'), severity="warning", timeout=2)
                 return
 
-            # 局部导入：避免与爬取管理屏幕形成模块级循环依赖
-            from src.utils.file_helpers import read_file_preview
-            from src.ui.screens.crawler_management_screen import BookPreviewDialog
+            # 统一书籍视图：详情 / 预览 / 预览全部 / 查看文件共用一个 widget
+            from src.ui.utils.book_view_utils import build_view_data, open_book_view
 
-            content = read_file_preview(file_path, max_chars=2000)
-            if not content.strip():
+            data = build_view_data(
+                file_path,
+                title=book.get('title') or book.get('novel_title') or '',
+                metadata={
+                    "novel_id": book.get('novel_id'),
+                    "crawl_time": book.get('crawl_time'),
+                    "file_path": file_path,
+                },
+            )
+            if not data.content.strip():
                 self.notify(self.i18n.t('crawler.preview_empty'), severity="information", timeout=2)
                 return
-
-            self.app.push_screen(
-                BookPreviewDialog(
-                    self.theme_manager,
-                    book.get('title') or book.get('novel_title') or '',
-                    content,
-                    metadata={
-                        "novel_id": book.get('novel_id'),
-                        "crawl_time": book.get('crawl_time'),
-                        "file_path": file_path,
-                    },
-                )
-            )
+            open_book_view(self.app, data, self.theme_manager, "preview")
         except Exception as e:
             logger.error(f"预览当前书籍失败: {e}")
             self.notify(self.i18n.t('common.action_failed'), severity="error", timeout=2)

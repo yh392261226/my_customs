@@ -24,6 +24,7 @@ from src.locales.i18n_manager import get_global_i18n
 from src.themes.theme_manager import ThemeManager
 from src.core.bookshelf import Bookshelf
 from src.core.book_manager import BookManager
+from src.core.library_filter import LibraryFilter, matches_book
 from src.core.statistics_direct import StatisticsManagerDirect
 
 from src.ui.dialogs.crawler_merge_mode_dialog import normalize_book_title
@@ -36,7 +37,6 @@ from src.ui.dialogs.file_chooser_dialog import FileChooserDialog
 from src.ui.messages import RefreshBookshelfMessage
 from src.ui.styles.style_manager import apply_style_isolation
 from src.config.default_config import SUPPORTED_FORMATS
-from src.utils.file_helpers import read_file_preview
 from src.utils.logger import get_logger
 
 logger = get_logger(__name__)
@@ -66,6 +66,7 @@ class BookshelfScreen(Screen[None]):
         ("y", "copy_title", get_global_i18n().t('common.copy_title')),
         ("b", "open_in_browser", get_global_i18n().t('common.browser_read')),
         ("i", "view_book_details", get_global_i18n().t('book_details.shortcut_i')),
+        ("f", "open_library_filter", get_global_i18n().t('library_filter.button')),
     ]
     # 支持的书籍文件扩展名（从配置文件读取）
     SUPPORTED_EXTENSIONS = set(SUPPORTED_FORMATS)
@@ -160,6 +161,8 @@ class BookshelfScreen(Screen[None]):
         self._normalized_search_keyword = ""  # 规范化后的搜索关键词（用于实际搜索）
         self._search_format = "all"
         self._search_author = "all"
+        # 数据完整性 / 阅读状态等高级筛选条件（无作者、无标签、无文件…）
+        self._library_filter: Optional[LibraryFilter] = None
         
         # 搜索历史（存储最近10个搜索关键词）
         self._search_history: List[str] = []
@@ -225,6 +228,7 @@ class BookshelfScreen(Screen[None]):
                         Button(get_global_i18n().t("common.search"), id="search-btn", classes="btn"),
                         Button(get_global_i18n().t("common.sort"), id="sort-btn", classes="btn"),
                         Button(get_global_i18n().t("common.batch_ops"), id="batch-ops-btn", classes="btn"),
+                        Button(get_global_i18n().t("recycle_bin.open"), id="recycle-bin-btn", classes="btn"),
                         Button(get_global_i18n().t("common.get_books"), id="get-books-btn", classes="btn"),
                         Button(get_global_i18n().t("common.refresh"), id="refresh-btn", classes="btn"),
                         Button(get_global_i18n().t("common.back"), id="back-btn", classes="btn"),
@@ -269,6 +273,7 @@ class BookshelfScreen(Screen[None]):
                             prompt=get_global_i18n().t("bookshelf.select_source"),
                             classes="bookshelf-source-select"
                         ),
+                        Button(get_global_i18n().t("library_filter.button"), id="filter-btn", classes="btn bookshelf-search-btn"),
                         id="bookshelf-search-bar",
                         classes="bookshelf-search-bar"
                     ),
@@ -462,7 +467,10 @@ class BookshelfScreen(Screen[None]):
         table = self.query_one("#books-table", DataTable)
         
         # 性能优化：检查是否只需要更新当前页数据（分页切换时）
-        current_search_params = f"{search_keyword}_{search_format}_{search_author}"
+        current_search_params = (
+            f"{search_keyword}_{search_format}_{search_author}_"
+            f"{self._filter_signature()}"
+        )
         page_change_only = False
 
         # 如果搜索条件未改变且书籍数据已存在，只需更新分页
@@ -651,8 +659,15 @@ class BookshelfScreen(Screen[None]):
                     # 确保search_author是字符串类型
                     actual_search_author = str(search_author) if search_author else "all"
             
+            # 数据完整性 / 阅读状态筛选（无作者、无标签、无文件等）
+            library_condition = getattr(self, "_library_filter", None)
+            has_library_condition = bool(
+                library_condition and not library_condition.is_empty()
+            )
+
             # 性能优化：批量处理书籍筛选
-            if actual_search_format == "all" and actual_search_author == "all" and not keywords:
+            if (actual_search_format == "all" and actual_search_author == "all"
+                    and not keywords and not has_library_condition):
                 # 没有搜索条件时，直接使用所有书籍
                 filtered_books = all_books
                 # 更新进度：筛选完成
@@ -716,7 +731,15 @@ class BookshelfScreen(Screen[None]):
                             # 没有关键词时，只按格式和作者筛选
                             keyword_match = True
                     
-                    if keyword_match and author_match and format_match:
+                    condition_match = True
+                    if has_library_condition and keyword_match and author_match and format_match:
+                        condition_match = matches_book(
+                            book,
+                            library_condition,
+                            reading_info_getter=self.bookshelf.get_book_reading_info,
+                        )
+
+                    if keyword_match and author_match and format_match and condition_match:
                         filtered_books.append(book)
             
             # 更新进度：排序开始
@@ -1056,7 +1079,10 @@ class BookshelfScreen(Screen[None]):
         else:
             # 确保author_value是字符串类型
             self._search_author = str(author_value) if author_value else "all"
-        
+
+        # 高级筛选条件（self._library_filter）仅由「筛选」对话框设置，
+        # 此处不再受下拉框影响，直接沿用上次确定的值。
+
         # 重置到第一页
         self._current_page = 1
         
@@ -1073,7 +1099,18 @@ class BookshelfScreen(Screen[None]):
             search_conditions.append(f"格式: {self._search_format.upper()}")
         if self._search_author != "all":
             search_conditions.append(f"作者: {self._search_author}")
-        
+        if self._library_filter and not self._library_filter.is_empty():
+            search_conditions.append(f"筛选: {self._library_filter.describe()}")
+            self.notify(
+                get_global_i18n().t(
+                    "library_filter.active", name=self._library_filter.describe()
+                ),
+                severity="information",
+            )
+            if not self._all_books:
+                self.notify(get_global_i18n().t("library_filter.no_result"),
+                            severity="warning")
+
         # if search_conditions:
         #     condition_text = "，".join(search_conditions)
         #     self.notify(
@@ -1165,6 +1202,10 @@ class BookshelfScreen(Screen[None]):
                 self._show_batch_ops_menu()
             else:
                 self.notify(get_global_i18n().t("bookshelf.np_opts"), severity="warning")
+        elif event.button.id == "recycle-bin-btn":
+            self._show_recycle_bin()
+        elif event.button.id == "filter-btn":
+            self._show_library_filter()
         elif event.button.id == "refresh-btn":
             if getattr(self.app, "has_permission", lambda k: True)("bookshelf.read"):
                 self._refresh_bookshelf()
@@ -1785,57 +1826,34 @@ class BookshelfScreen(Screen[None]):
             pass
         return get_global_i18n().t("book_details.local_import")
 
-    def _view_book_details(self, book_path: str) -> None:
-        """构建当前书籍详情并弹出可复用的 BookDetailsDialog。"""
-        try:
-            from src.ui.widgets.book_details_dialog import BookDetailsDialog
+    def _build_book_view_data(self, book_path: str):
+        """组装书库书籍的统一视图数据（详情 / 预览 / 查看文件共用）。"""
+        from src.ui.utils.book_view_utils import build_view_data
+        return build_view_data(
+            book_path,
+            bookshelf=self.bookshelf,
+            source_getter=self._get_book_source,
+        )
 
+    def _view_book_details(self, book_path: str) -> None:
+        """打开统一书籍视图的详情（弹窗内可直接预览 / 查看文件）。"""
+        try:
             dialog = self._build_book_details_dialog(book_path)
-            if dialog is None:
-                return
-            self.app.push_screen(dialog)
+            if dialog is not None:
+                self.app.push_screen(dialog)
         except Exception as e:
             self.logger.error(f"打开书籍详情失败: {e}")
             self.notify(get_global_i18n().t("common.action_failed"), severity="error")
 
     def _build_book_details_dialog(self, book_path: str):
-        """构建书籍详情弹窗（供详情入口与预览弹窗的「查看详情」复用）。"""
-        from src.ui.widgets.book_details_dialog import BookDetailsDialog
-        from src.utils.file_utils import FileUtils
+        """构建书籍详情视图（保留方法名以兼容既有调用）。"""
+        from src.ui.utils.book_view_utils import make_book_view_dialog
 
-        book = self.bookshelf.get_book(book_path)
-        if book is None:
+        if self.bookshelf.get_book(book_path) is None:
             self.notify(get_global_i18n().t("common.book_not_found"), severity="warning")
             return None
-
-        reading_info = self.bookshelf.get_book_reading_info(book.path)
-        progress = (reading_info.get("reading_progress", 0) or 0) * 100
-        source = self._get_book_source(book.path)
-
-        details = [
-            (get_global_i18n().t("common.book_name"), book.title),
-            (get_global_i18n().t("common.author"), book.author),
-            (get_global_i18n().t("book_details.source"), source),
-            (get_global_i18n().t("book_details.file_name"), book.file_name),
-            (get_global_i18n().t("common.file_path"), book.path),
-            (get_global_i18n().t("common.format"), book.format),
-            (get_global_i18n().t("common.size"), FileUtils.format_file_size(book.file_size) if book.file_size else "0"),
-            (get_global_i18n().t("book_details.file_status"),
-             get_global_i18n().t("book_details.file_missing") if book.file_not_found else get_global_i18n().t("book_details.file_normal")),
-            (get_global_i18n().t("common.tag"), book.tags or ""),
-            (get_global_i18n().t("book_details.add_date"), book.add_date or ""),
-            (get_global_i18n().t("common.progress"), f"{progress:.1f}%"),
-            (get_global_i18n().t("book_details.last_read"), reading_info.get("last_read_date") or ""),
-            (get_global_i18n().t("book_details.word_count"), str(reading_info.get("word_count", 0) or 0)),
-            (get_global_i18n().t("book_details.open_count"), str(getattr(book, "open_count", 0) or 0)),
-        ]
-
-        return BookDetailsDialog(
-            title=get_global_i18n().t("book_details.title"),
-            details=details,
-            theme_manager=self.theme_manager,
-            file_path=book.path,
-            preview_factory=lambda: self._build_book_preview_dialog(book.path),
+        return make_book_view_dialog(
+            self._build_book_view_data(book_path), self.theme_manager, "details"
         )
 
     def _handle_column_filter(self, column_key: int, book) -> None:
@@ -1964,39 +1982,9 @@ class BookshelfScreen(Screen[None]):
             self.notify(f"{get_global_i18n().t("common.open_book_failed")}: {e}", severity="error")
     
     def _view_file(self, book_path: str) -> None:
-        """查看书籍文件"""
-        try:
-            import os
-            import subprocess
-            import platform
-            
-            # 检查文件是否存在
-            if not os.path.exists(book_path):
-                self.notify(f"{get_global_i18n().t("common.file_not_exist")}: {book_path}", severity="error")
-                return
-            
-            # 根据操作系统打开文件管理器
-            system = platform.system()
-            if system == "Darwin":  # macOS
-                subprocess.run(["open", "-R", book_path], check=False)
-            elif system == "Windows":
-                subprocess.run(["explorer", "/select,", book_path], check=False)
-            elif system == "Linux":
-                subprocess.run(["xdg-open", os.path.dirname(book_path)], check=False)
-            else:
-                # 通用方法：打开文件所在目录
-                folder_path = os.path.dirname(book_path)
-                if os.path.exists(folder_path):
-                    subprocess.run(["open", folder_path], check=False)
-                else:
-                    self.notify(get_global_i18n().t("bookshelf.open_directory_failed"), severity="warning")
-                    return
-            
-            self.notify(f"{get_global_i18n().t("bookshelf.opened_in_file_explorer")}: {os.path.basename(book_path)}", severity="information")
-            
-        except Exception as e:
-            self.logger.error(f"查看文件失败: {e}")
-            self.notify(f"{get_global_i18n().t("bookshelf.view_file_failed")}: {e}", severity="error")
+        """查看书籍文件（统一走 book_view_utils 的文件定位逻辑）。"""
+        from src.ui.utils.book_view_utils import reveal_book_file
+        reveal_book_file(self, book_path)
     
     def _open_book_in_browser(self, book_path: str) -> None:
         """使用浏览器打开书籍"""
@@ -2187,7 +2175,11 @@ class BookshelfScreen(Screen[None]):
                         # 从书架中删除书籍（同时删除物理文件）
                         success = self.bookshelf.remove_book(book_path, delete_file=True)
                         if success:
-                            self.notify(get_global_i18n().t("bookshelf.delete_book_success"), severity="information")
+                            self.notify(
+                                get_global_i18n().t("bookshelf.delete_book_success") +
+                                " · " + get_global_i18n().t("recycle_bin.deleted_tip"),
+                                severity="information",
+                            )
                             # 清空缓存以强制重新加载
                             self.clear_cache()
                             # 设置一个特殊的搜索参数，强制_load_books认为搜索条件已改变
@@ -2857,6 +2849,7 @@ class BookshelfScreen(Screen[None]):
         self._search_keyword = ""
         self._search_format = "all"
         self._search_author = "all"
+        self._library_filter = None
         self.query_one("#sort-key-radio", Select).value = "last_read"
         self.query_one("#sort-order-radio", Select).value = "desc"
         self.query_one("#bookshelf-search-input", Input).value = ""
@@ -2868,6 +2861,56 @@ class BookshelfScreen(Screen[None]):
 
     def action_jump_to(self) -> None:
         self._show_jump_dialog()
+
+    def action_open_recycle_bin(self) -> None:
+        """H键 - 打开回收站"""
+        self._show_recycle_bin()
+
+    def action_open_library_filter(self) -> None:
+        """f键 - 打开书库高级筛选"""
+        self._show_library_filter()
+
+    def _show_recycle_bin(self) -> None:
+        """打开回收站；关闭后若有恢复操作则强制刷新书库。"""
+        from src.ui.dialogs.recycle_bin_dialog import RecycleBinDialog
+
+        def on_close(result: Optional[Dict[str, Any]]) -> None:
+            if result and result.get("refresh"):
+                try:
+                    self.clear_cache()
+                except Exception:
+                    pass
+                self._last_search_params = "__force_reload__"
+                self._current_page = 1
+                self._load_books(
+                    self._search_keyword, self._search_format, self._search_author
+                )
+
+        self.app.push_screen(
+            RecycleBinDialog(self.theme_manager, self.bookshelf), on_close
+        )
+
+    def _show_library_filter(self) -> None:
+        """打开高级筛选；确定后把条件应用到书库列表。"""
+        from src.ui.dialogs.library_filter_dialog import LibraryFilterDialog
+
+        def on_close(result: Optional[Dict[str, Any]]) -> None:
+            if result is None:
+                return
+            condition_data = result.get("filter")
+            self._library_filter = (
+                LibraryFilter.from_dict(condition_data) if condition_data else None
+            )
+            self.clear_cache()
+            self._last_search_params = "__force_reload__"
+            self._current_page = 1
+            self._load_books(
+                self._search_keyword, self._search_format, self._search_author
+            )
+
+        self.app.push_screen(
+            LibraryFilterDialog(self.theme_manager, self._library_filter), on_close
+        )
 
     def action_add_book(self) -> None:
         """a键 - 添加书籍"""
@@ -2998,57 +3041,32 @@ class BookshelfScreen(Screen[None]):
             logger.error(f"切换智能搜索开关失败: {e}")
 
     def _preview_book(self, book_path: str) -> None:
-        """预览书籍内容（显示前1000字）"""
+        """预览书籍内容（统一书籍视图的预览页，可切详情 / 查看文件）。"""
         try:
-            if not os.path.exists(book_path):
-                self.notify(get_global_i18n().t('common.file_not_exist'), severity="warning")
-                return
-
             dialog = self._build_book_preview_dialog(book_path)
             if dialog is None:
                 return
             self.app.push_screen(dialog)
-
         except Exception as e:
             self.logger.error(f"预览书籍失败: {e}")
             self.notify(f"{get_global_i18n().t('crawler.preview_failed')}: {str(e)}", severity="error")
 
     def _build_book_preview_dialog(self, book_path: str):
-        """构建书籍预览弹窗（供预览入口与详情弹窗的「预览」复用）。"""
+        """构建书籍预览视图（保留方法名以兼容既有调用）。"""
+        from src.ui.utils.book_view_utils import make_book_view_dialog
+
         if not os.path.exists(book_path):
             self.notify(get_global_i18n().t('common.file_not_exist'), severity="warning")
             return None
-
-        # 获取书籍信息
-        book = self.bookshelf.get_book(book_path)
-        if not book:
+        if self.bookshelf.get_book(book_path) is None:
             self.notify(get_global_i18n().t("common.book_not_found"), severity="error")
             return None
 
-        # 读取文件前2000字，自动检测编码（支持 GBK/GB2312/Big5 等，避免乱码）
-        content = read_file_preview(book_path, max_chars=2000)
-        if not content.strip():
+        data = self._build_book_view_data(book_path)
+        if not data.content.strip():
             self.notify(get_global_i18n().t("crawler.preview_empty"), severity="information")
             return None
-
-        # 弹出预览对话框
-        from src.ui.screens.crawler_management_screen import BookPreviewDialog
-        from src.themes.theme_manager import ThemeManager
-        theme_manager = getattr(self.app, 'theme_manager', None) if hasattr(self.app, 'theme_manager') else ThemeManager()
-
-        return BookPreviewDialog(
-            theme_manager,
-            book.title,
-            content,
-            metadata={
-                "author": getattr(book, "author", ""),
-                "format": getattr(book, "format", ""),
-                "size": getattr(book, "size", 0),
-                "tags": getattr(book, "tags", ""),
-                "path": getattr(book, "path", ""),
-            },
-            details_factory=lambda: self._build_book_details_dialog(book_path),
-        )
+        return make_book_view_dialog(data, self.theme_manager, "preview")
 
     # 分页导航方法
     def _recompute_total_pages(self) -> None:
@@ -3173,9 +3191,17 @@ class BookshelfScreen(Screen[None]):
         except Exception as e:
             self.logger.error(f"更新分页按钮状态失败: {e}")
 
+    def _filter_signature(self) -> str:
+        """当前高级筛选条件的签名（参与搜索参数与缓存键，避免条件切换后命中旧缓存）"""
+        condition = getattr(self, "_library_filter", None)
+        if not condition or condition.is_empty():
+            return "all"
+        return "|".join(condition.active_keys())
+
     def _get_cache_key(self) -> str:
         """生成缓存键"""
-        return f"{self._search_keyword}_{self._search_format}_{self._search_author}"
+        return (f"{self._search_keyword}_{self._search_format}_{self._search_author}_"
+                f"{self._filter_signature()}")
 
     def _invalidate_books_cache(self) -> None:
         """清除书籍缓存并重置搜索参数，强制下次 _load_books 完全重新加载"""

@@ -228,6 +228,8 @@ class NewReaderApp(App[None]):
         Binding("escape", "back", get_global_i18n().t('app.bindings.back')),
         Binding("ctrl+a", "toggle_focus", get_global_i18n().t('common.focus_mode'), priority=True),
         Binding("V", "toggle_view", "表格⇄看板"),
+        Binding("H", "open_recycle_bin", get_global_i18n().t('recycle_bin.open')),
+        Binding("L", "view_logs", get_global_i18n().t('common.view_log')),
     ]
     
     def __init__(self, config_manager: ConfigManager, book_file: Optional[str] = None, cli_password: Optional[str] = None):
@@ -423,6 +425,13 @@ class NewReaderApp(App[None]):
             _shutdown.install_daemon_default_executor()
         except Exception:
             pass
+
+        # 启动时按配置自动清空过期回收站条目（默认 10 天）
+        try:
+            from src.core.recycle_bin import get_recycle_bin
+            get_recycle_bin(self.db_manager).auto_purge_from_config()
+        except Exception as e:
+            logger.debug(f"回收站自动清空跳过: {e}")
         
         # 启动浏览器阅读器服务器
         try:
@@ -695,6 +704,35 @@ class NewReaderApp(App[None]):
     def action_show_help(self) -> None:
         """显示帮助屏幕"""
         self.push_screen(HelpScreen())
+
+    def action_open_recycle_bin(self) -> None:
+        """H 键 - 全局打开回收站，任何界面均可唤起。"""
+        from src.ui.dialogs.recycle_bin_dialog import RecycleBinDialog
+
+        def on_close(result: Optional[Dict[str, Any]]) -> None:
+            # 若回收站内做过恢复/清空，刷新书库内存状态
+            if result and result.get("refresh") and getattr(self, "bookshelf", None):
+                try:
+                    self.bookshelf._load_books()
+                except Exception:
+                    pass
+
+        self.push_screen(
+            RecycleBinDialog(self.theme_manager, self.bookshelf), on_close
+        )
+
+    def action_view_logs(self) -> None:
+        """L 键 - 全局打开日志查看器，任何界面均可唤起。"""
+        from src.ui.utils.log_viewer_utils import open_log_viewer
+
+        status = open_log_viewer(self)
+        t = get_global_i18n().t
+        if status in ("memory", "file"):
+            self.notify(f"📋 {t('crawler.log_viewer_opened')}")
+        elif status == "missing":
+            self.notify("Log file not found", severity="warning")
+        elif status == "error":
+            self.notify(f"❌ {t('crawler.open_log_viewer_failed')}")
     
     def action_show_bookshelf(self) -> None:
         """显示书架屏幕（按权限）"""

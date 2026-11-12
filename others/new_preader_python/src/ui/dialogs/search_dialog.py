@@ -251,46 +251,20 @@ class SearchDialog(ModalScreen[Optional[SearchResult]]):
                 self.dismiss(self.results[selected_index])
 
     def _view_file(self, book_path: str) -> None:
-        """查看书籍文件"""
-        try:
-            import os
-            import subprocess
-            import platform
-            
-            # 检查文件是否存在
-            if not os.path.exists(book_path):
-                self.notify(f"{get_global_i18n().t('common.file_not_exist')}: {book_path}", severity="error")
-                return
-            
-            # 根据操作系统打开文件管理器
-            system = platform.system()
-            if system == "Darwin":  # macOS
-                subprocess.run(["open", "-R", book_path], check=False)
-            elif system == "Windows":
-                subprocess.run(["explorer", "/select,", book_path], check=False)
-            elif system == "Linux":
-                subprocess.run(["xdg-open", os.path.dirname(book_path)], check=False)
-            else:
-                # 通用方法：打开文件所在目录
-                folder_path = os.path.dirname(book_path)
-                if os.path.exists(folder_path):
-                    subprocess.run(["open", folder_path], check=False)
-                else:
-                    self.notify(get_global_i18n().t("bookshelf.open_directory_failed"), severity="warning")
-                    return
-            
-            self.notify(f"{get_global_i18n().t('bookshelf.opened_in_file_explorer')}: {os.path.basename(book_path)}", severity="information")
-            
-        except Exception as e:
-            self.notify(f"{get_global_i18n().t('bookshelf.view_file_failed')}: {e}", severity="error")
+        """查看书籍文件（统一走 book_view_utils 的文件定位逻辑）。"""
+        from src.ui.utils.book_view_utils import reveal_book_file
+        reveal_book_file(self, book_path)
     
     def _delete_book(self, book_path: str) -> None:
         """删除书籍"""
         try:
-            from src.core.bookshelf import Bookshelf
-            
+            # 复用应用级书库实例，避免新建实例导致内存状态不同步
+            bookshelf = getattr(self.app, "bookshelf", None) or self.bookshelf
+            if bookshelf is None:
+                from src.core.bookshelf import Bookshelf
+                bookshelf = Bookshelf(app=self.app)
+
             # 获取书籍信息用于确认对话框
-            bookshelf = Bookshelf(app=self.app)
             book = bookshelf.get_book(book_path)
             
             if not book:
@@ -305,12 +279,18 @@ class SearchDialog(ModalScreen[Optional[SearchResult]]):
                 if result:
                     # 确认删除
                     try:
-                        # 从书架中删除书籍（同时删除物理文件）
+                        # 从书架中删除书籍（记录 + 文件一起进回收站，可恢复）
                         success = bookshelf.remove_book(book_path, delete_file=True)
                         if success:
-                            self.notify(get_global_i18n().t("bookshelf.delete_book_success"), severity="information")
-                            # 重新执行搜索以刷新列表
-                            self._perform_search()
+                            self.notify(
+                                get_global_i18n().t("bookshelf.delete_book_success") + " · "
+                                + get_global_i18n().t("recycle_bin.deleted_tip"),
+                                severity="information",
+                            )
+                            # 重新执行搜索以刷新列表（_perform_search 为协程）
+                            self.run_worker(self._perform_search())
+                            from src.ui.messages import RefreshBookshelfMessage
+                            self.app.post_message(RefreshBookshelfMessage())
                         else:
                             self.notify(get_global_i18n().t("bookshelf.delete_book_failed"), severity="error")
                     except Exception as e:
