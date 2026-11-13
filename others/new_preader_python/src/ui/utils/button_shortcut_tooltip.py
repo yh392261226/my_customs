@@ -28,7 +28,7 @@
 from __future__ import annotations
 
 import re
-from typing import Dict, List, Optional, Tuple
+from typing import Any, Dict, List, Optional, Tuple
 
 from textual.binding import Binding
 from textual.widget import Widget
@@ -148,14 +148,44 @@ BUTTON_ACTION_OVERRIDES: Dict[str, Dict[str, str]] = {
     },
 }
 
-#: 表格列级显式映射：{屏幕/对话框类名: {列 key: action 名}}
+#: 表格列级显式映射：{屏幕/对话框类名: {列 key 或列索引: action 名}}
 #: 用于「快捷键作用于当前光标行、但表格里没有真实 Button」的场景。
-#: 例如批量操作页按 y 复制书名、按 F 打开书籍文件：悬停到对应列时，
+#: 例如各页面按 y 复制书名、按 F 打开书籍文件：悬停到对应列时，
 #: 把快捷键写进 DataTable 的 tooltip（列 key 与语言无关，比按中文标签匹配更稳）。
-TABLE_COLUMN_ACTION_OVERRIDES: Dict[str, Dict[str, str]] = {
+#: 键优先用 add_column(key=...) 的字符串；个别表格加列时没传 key，只能写列索引（int）。
+TABLE_COLUMN_ACTION_OVERRIDES: Dict[str, Dict[Any, str]] = {
+    # 批量操作：书名列(y)、查看文件列(F)
     "BatchOpsDialog": {
         "title": "copy_title",
         "view_action": "view_current_file",
+    },
+    # 书库：书名列(y)、查看文件列(F)
+    "BookshelfScreen": {
+        "title": "copy_title",
+        "view_action": "view_current_file",
+    },
+    # 爬取管理：书名列叫 novel_title，查看文件列叫 view_file
+    "CrawlerManagementScreen": {
+        "novel_title": "copy_title",
+        "view_file": "view_current_file",
+    },
+    # 重复书籍：action 名与别处不同
+    "DuplicateBooksDialog": {
+        "title": "copy_current_title",
+        "view_action": "view_file_current",
+    },
+    # 合并详情：书名列 title、文件列 file
+    "CrawlerMergeDetailDialog": {
+        "title": "copy_title",
+        "file": "view_current_file",
+    },
+    # 合并模式：add_column 全部未传 key，第 2 列（索引 1）是书名/组名
+    "CrawlerMergeModeDialog": {
+        1: "copy_title",
+    },
+    # 补足缺失章节：书名列 title（无 F 绑定）
+    "FillMissingDialog": {
+        "title": "copy_title",
     },
 }
 
@@ -492,7 +522,8 @@ def _column_key_at(table, column_index: Optional[int]) -> Optional[str]:
             columns = list(getattr(table, "columns", {}).values())
         col = columns[column_index]
         key = getattr(col, "key", None)
-        value = getattr(key, "value", None) or key
+        # add_column 未传 key 时 value 为 None，此时返回 None 让调用方按列索引回退
+        value = getattr(key, "value", None)
         return str(value) if value else None
     except Exception:
         return None
@@ -537,8 +568,10 @@ def update_hovered_cell_tooltip(table, coordinate) -> None:
     # 借表格 tooltip 在悬停对应列时给出提示（与文字按钮提示合并、去重）。
     column_actions = TABLE_COLUMN_ACTION_OVERRIDES.get(type(screen).__name__, {})
     if column_actions:
-        col_key = _column_key_at(table, getattr(coordinate, "column", -1))
-        action = column_actions.get(col_key or "")
+        column_index = getattr(coordinate, "column", -1)
+        col_key = _column_key_at(table, column_index)
+        # 优先按列 key；表格 add_column 未传 key 时按列索引回退
+        action = column_actions.get(col_key or "") or column_actions.get(column_index)
         if action:
             entry = index.get(action)
             if entry:
