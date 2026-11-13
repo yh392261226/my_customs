@@ -56,6 +56,7 @@ class WebReaderScreen(QuickIsolationMixin, Screen[None]):
         ("escape,q", "back", get_global_i18n().t('web_reader.back')),
         ("c", "check_status", get_global_i18n().t('web_reader.check_status')),
         ("o", "open_reader", get_global_i18n().t('web_reader.open_reader')),
+        ("m", "open_mobile_simulator", get_global_i18n().t('web_reader.open_mobile')),
         ("f", "browse_book_file", get_global_i18n().t('web_reader.browse_file')),
     ]
 
@@ -77,6 +78,7 @@ class WebReaderScreen(QuickIsolationMixin, Screen[None]):
             # 顶部按钮行（参考欢迎页）
             Horizontal(
                 Button(i18n.t('web_reader.open_reader'), id="wr-open-reader-btn", variant="primary"),
+                Button(i18n.t('web_reader.open_mobile'), id="wr-open-mobile-btn", variant="warning"),
                 Button(i18n.t('web_reader.check_status'), id="wr-check-btn", variant="success"),
                 Button(i18n.t('web_reader.toggle_server'), id="wr-toggle-btn"),
                 Button(i18n.t('web_reader.restart_server'), id="wr-restart-btn"),
@@ -125,6 +127,7 @@ class WebReaderScreen(QuickIsolationMixin, Screen[None]):
                 ("escape,q", "back", i18n.t('web_reader.back')),
                 ("c", "check_status", i18n.t('web_reader.check_status')),
                 ("o", "open_reader", i18n.t('web_reader.open_reader')),
+                ("m", "open_mobile_simulator", i18n.t('web_reader.open_mobile')),
             ]
         except Exception:
             pass
@@ -137,6 +140,8 @@ class WebReaderScreen(QuickIsolationMixin, Screen[None]):
         btn_id = event.button.id
         if btn_id == "wr-open-reader-btn":
             self.run_worker(self._open_reader)
+        elif btn_id == "wr-open-mobile-btn":
+            self.run_worker(self._open_mobile_simulator)
         elif btn_id == "wr-check-btn":
             self._start_diagnosis()
         elif btn_id == "wr-toggle-btn":
@@ -155,6 +160,9 @@ class WebReaderScreen(QuickIsolationMixin, Screen[None]):
 
     def action_open_reader(self) -> None:
         self.run_worker(self._open_reader)
+
+    def action_open_mobile_simulator(self) -> None:
+        self.run_worker(self._open_mobile_simulator)
 
     def action_check_status(self) -> None:
         self._start_diagnosis()
@@ -285,6 +293,23 @@ class WebReaderScreen(QuickIsolationMixin, Screen[None]):
         except Exception as e:
             logger.error(f"创建欢迎页临时文件失败: {e}")
             return False, str(e)
+
+    # ------------------------------------------------------------------ #
+    # 打开 HTML 手机模拟器
+    # ------------------------------------------------------------------ #
+    async def _open_mobile_simulator(self) -> None:
+        """启动本地手机模拟器服务，并在浏览器中打开带 ?url= 参数的模拟器页面。"""
+        i18n = get_global_i18n()
+        try:
+            from src.utils.mobile_simulator import open_mobile_simulator
+            success, message = await self._run_blocking(open_mobile_simulator)
+            if success:
+                self.notify(i18n.t('web_reader.mobile_opened', url=message), severity="information")
+            else:
+                self.notify(i18n.t('web_reader.mobile_open_failed', message=message), severity="error")
+        except Exception as e:
+            logger.error(f"打开手机模拟器失败: {e}")
+            self.notify(i18n.t('web_reader.mobile_open_failed', message=str(e)), severity="error")
 
     def _browse_local_book(self) -> None:
         """打开文件浏览器（文件资源管理器），选择本地书籍并在浏览器中打开"""

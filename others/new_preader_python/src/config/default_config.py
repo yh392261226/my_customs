@@ -153,6 +153,15 @@ DEFAULT_CONFIG = {
         "api_port": 54322,  # 已废弃：/api/* 数据接口现统一使用上方 port；仅作旧配置兼容保留
         "api_base_url": "",  # 浏览器阅读器连接的后端接口地址，留空则使用本机统一服务地址（port）
         "api_secret": "",  # 后端数据接口密钥：浏览器阅读器须使用相同密钥才能通信，留空则为开放模式
+    },
+
+    # HTML 手机模拟器设置（以移动端 UA 代理浏览网页）
+    "mobile_simulator": {
+        "host": "127.0.0.1",  # 仅监听本机，避免代理被外部利用
+        "port": 54323,  # 首选端口；被占用时自动顺延，仍失败则由系统分配
+        "start_url": "https://www.87nb.com",  # 点击「手机模拟器」按钮时默认打开的网址
+        "device": "iphone",  # 默认设备预设：iphone / android / wechat / ipad / desktop
+        "verify_ssl": False,  # 部分书籍站点证书异常，默认不校验
     }
 }
 def get_available_themes():

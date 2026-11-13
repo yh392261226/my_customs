@@ -449,6 +449,7 @@ class CrawlerManagementScreen(Screen[None]):
     # 统一快捷键绑定（含 ESC 返回）
     BINDINGS: ClassVar[list[tuple[str, str, str]]] = [
         ("o", "open_browser", get_global_i18n().t('crawler.shortcut_o')),
+        ("O", "open_mobile_simulator", get_global_i18n().t('crawler.shortcut_O')),
         ("R", "view_history", get_global_i18n().t('common.refresh_history')),
         ("B", "note", get_global_i18n().t('common.note')),
         ("L", "view_logs", get_global_i18n().t('common.view_log')),
@@ -487,6 +488,10 @@ class CrawlerManagementScreen(Screen[None]):
     def action_open_browser(self) -> None:
         self._open_browser()
         self._update_status(get_global_i18n().t('crawler.browser_opened'), "warning")
+
+    def action_open_mobile_simulator(self) -> None:
+        """大写 O：用 HTML 手机模拟器打开当前站点网址（通过 ?url= 参数传入）。"""
+        self._open_mobile_simulator()
 
     def action_view_history(self) -> None:
         self._view_history()
@@ -4025,6 +4030,27 @@ class CrawlerManagementScreen(Screen[None]):
                 logger.warning(f"BrowserManager失败，使用默认浏览器: {e}")
         except Exception as e:
             self._update_status(f"{get_global_i18n().t('crawler.open_browser_failed')}: {str(e)}", "error")
+
+    def _open_mobile_simulator(self) -> None:
+        """大写 O：把当前站点网址作为 ?url= 参数交给 HTML 手机模拟器打开。"""
+        i18n = get_global_i18n()
+        try:
+            url = str((self.novel_site or {}).get('url', '') or '')
+        except Exception:
+            url = ''
+        if not url:
+            self._update_status(i18n.t('crawler.mobile_simulator_no_url'), "warning")
+            return
+        try:
+            from src.utils.mobile_simulator import open_mobile_simulator
+            success, message = open_mobile_simulator(url)
+            if success:
+                self._update_status(i18n.t('crawler.mobile_simulator_opened', url=url), "information")
+            else:
+                self._update_status(f"{i18n.t('crawler.mobile_simulator_failed')}: {message}", "error")
+        except Exception as e:
+            logger.warning(f"打开手机模拟器失败: {e}")
+            self._update_status(f"{i18n.t('crawler.mobile_simulator_failed')}: {e}", "error")
     
     def _view_history(self) -> None:
         """查看爬取历史"""
