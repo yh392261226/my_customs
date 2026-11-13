@@ -32,7 +32,7 @@ import threading
 import time
 from collections import OrderedDict
 from typing import Any, Dict, Optional, Tuple
-from urllib.parse import parse_qs, quote, urlencode, urljoin, urlparse
+from urllib.parse import parse_qs, quote, unquote, urlencode, urljoin, urlparse
 
 import requests
 
@@ -257,7 +257,8 @@ _BRIDGE_JS = r"""
     var a = t && t.closest ? t.closest('a[href]') : null;
     if (!a) return;
     var target = (a.getAttribute('target') || '').toLowerCase();
-    if (target && target !== '_self') return;
+    /* download 链接即便 target=_blank 也交给外壳导航，避免浏览器把 /proxy 直接存成文件 */
+    if (target && target !== '_self' && !a.hasAttribute('download')) return;
     var raw = a.getAttribute('data-ms-original') || a.getAttribute('href') || '';
     if (raw.indexOf('/proxy?') === 0) {
       try { raw = decodeURIComponent((raw.split('url=')[1] || '').split('&')[0]); } catch (err) {}
@@ -851,6 +852,95 @@ def _decode_body(resp: requests.Response) -> str:
 
 
 # --------------------------------------------------------------------------- #
+# 下载类响应的识别与处理
+#
+# 部分书籍站点（WAP 站、反爬跳转、TXT/APK 下载页）会返回 application/octet-stream、
+# text/vnd.wap.wml，甚至不带 Content-Type。代理若把这类响应原样交给 iframe 导航，
+# 浏览器只能按 URL 路径把内容保存成名为 "proxy" 的文件 —— 这就是浏览时
+# "突然下载一个 proxy 文件" 的原因；源站 Content-Disposition 未转发也导致
+# 浏览器拿不到真实文件名。
+# --------------------------------------------------------------------------- #
+_DOWNLOAD_MIMES = frozenset({
+    "application/octet-stream", "application/octetstream", "binary/octet-stream",
+    "application/x-download", "application/force-download", "application/download",
+    "application/x-msdownload", "application/x-msdos-program",
+    "application/zip", "application/x-zip-compressed", "application/x-rar-compressed",
+    "application/x-7z-compressed", "application/gzip", "application/x-gzip",
+    "application/x-tar", "application/x-bzip2",
+    "application/vnd.android.package-archive", "application/epub+zip",
+    "application/pdf", "application/msword", "application/vnd.ms-excel",
+    "application/vnd.ms-powerpoint", "application/x-apple-diskimage",
+    "application/x-shockwave-flash", "application/x-executable",
+})
+
+_HTML_START_RE = re.compile(
+    rb"(?i)<(?:!doctype\s+html|html[\s/>]|head[\s/>]|body[\s/>]|meta[\s/>]|"
+    rb"title[\s/>]|wml[\s/>]|card[\s/>]|div[\s/>]|table[\s/>]|"
+    rb"script[\s/>]|link[\s/>]|style[\s/>]|center[\s/>]|font[\s/>]|p[\s/>])"
+)
+
+
+def _looks_like_html(data: bytes) -> bool:
+    """内容嗅探：不少小说站返回的 Content-Type 不可靠，但内容其实是 HTML/WML。"""
+    if not data or b"\x00" in data[:512]:
+        return False
+    head = re.sub(rb"(?is)^(?:<\?xml[^>]*\?>|<!--.*?-->|\s)+", b"", data[:4096])
+    return bool(_HTML_START_RE.match(head))
+
+
+def _is_download_mime(mime: str) -> bool:
+    mime = (mime or "").strip().lower()
+    return (not mime or mime in _DOWNLOAD_MIMES
+            or mime.startswith(("application/vnd.", "application/x-")))
+
+
+def _suggested_filename(url: str, disposition: str) -> str:
+    """从 Content-Disposition / URL 推断真实文件名，避免浏览器按 /proxy 命名。"""
+    name = ""
+    m = re.search(r"(?i)filename\*\s*=\s*UTF-8''([^;]+)", disposition or "")
+    if m:
+        name = unquote(m.group(1).strip().strip('"'))
+    if not name:
+        m = re.search(r"(?i)filename\s*=\s*(?:\"([^\"]+)\"|'([^']+)'|([^;]+))", disposition or "")
+        if m:
+            name = (m.group(1) or m.group(2) or m.group(3) or "").strip()
+    if not name:
+        name = (urlparse(url).path or "").rstrip("/").split("/")[-1]
+    return re.sub(r"[\r\n\"']", "", name).strip() or "download"
+
+
+def _download_notice_html(final_url: str, filename: str, ctype: str,
+                          size: int, elapsed: int, download_url: str) -> bytes:
+    """文档导航撞上下载类响应时返回页内提示，而不是让浏览器静默下载。"""
+    def esc(value: Any) -> str:
+        return html_lib.escape(str(value), quote=True)
+
+    cfg = json.dumps({"url": final_url, "status": 200, "elapsed": elapsed,
+                      "contentType": ctype, "title": "下载资源（未预览）"},
+                     ensure_ascii=False).replace("<", "\\u003c")
+    page = f"""<!DOCTYPE html><html lang="zh-CN"><head><meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1">
+<style>body{{font:14px/1.7 -apple-system,'PingFang SC',sans-serif;background:#fff;
+color:#24292f;padding:22px;margin:0}}h3{{margin:0 0 10px;font-size:16px}}
+.k{{background:#f6f8fa;border-radius:8px;padding:12px 14px;font-size:12px;
+word-break:break-all;margin:12px 0}}a{{display:inline-block;margin:4px 8px 4px 0;
+padding:7px 12px;border-radius:8px;background:#1a6ac7;color:#fff;text-decoration:none;
+font-size:12px}}a.sec{{background:#eef1f5;color:#24292f}}p{{color:#57606a;margin:8px 0}}</style>
+</head><body>
+<h3>该链接不是网页，已阻止自动下载</h3>
+<p>目标站点返回的是下载类内容。手机模拟器不会把它保存到「下载」目录，也不再生成名为 <code>proxy</code> 的文件。</p>
+<div class="k"><b>最终网址：</b>{esc(final_url)}<br>
+<b>类型：</b>{esc(ctype)}<br><b>大小：</b>{size} 字节 · <b>耗时：</b>{elapsed} ms<br>
+<b>源站文件名：</b>{esc(filename)}</div>
+<a href="{esc(download_url)}" target="_blank" rel="noopener">仍然下载（保留原文件名）</a>
+<a class="sec" href="{esc(final_url)}" target="_blank" rel="noopener">在系统浏览器打开原网址</a>
+<p>若这是站点自动跳转（反爬 / 广告脚本 / 移动端兼容跳转），可切换设备预设或自定义 UA 后刷新。</p>
+<script>parent.postMessage(Object.assign({{type:'ms-loaded'}},{cfg}),'*');</script>
+</body></html>"""
+    return page.encode("utf-8")
+
+
+# --------------------------------------------------------------------------- #
 # 主体
 # --------------------------------------------------------------------------- #
 class MobileSimulator:
@@ -1381,7 +1471,7 @@ class MobileSimulator:
                 # GET 表单提交：把附加字段合并进目标网址
                 if method == "GET":
                     extra = {k: v[-1] for k, v in query.items()
-                             if k not in ("url", "t", "d", "ua", "_")}
+                             if k not in ("url", "t", "d", "ua", "dl", "_")}
                     if extra:
                         sep = "&" if urlparse(url).query else "?"
                         url = url + sep + urlencode(extra)
@@ -1411,15 +1501,36 @@ class MobileSimulator:
                     return
 
                 elapsed = int((time.time() - started) * 1000)
-                ctype = resp.headers.get("Content-Type", "application/octet-stream")
+                ctype = resp.headers.get("Content-Type", "") or ""
                 try:
                     ctype.encode("latin-1")
                 except UnicodeEncodeError:
+                    ctype = ""
+                if not ctype.strip():
                     ctype = "application/octet-stream"
                 ctype_lower = ctype.lower()
+                mime = ctype_lower.split(";", 1)[0].strip()
+                disposition = resp.headers.get("Content-Disposition", "") or ""
+                raw = resp.content or b""
+                final_url = resp.url or url
+                filename = _suggested_filename(final_url, disposition)
+
+                # Sec-Fetch-Dest 由浏览器发出：只有文档/iframe 导航会把响应当"页面"，
+                # 图片、脚本等子资源即便缺少 Content-Type 也应原样透传。
+                dest = (self.headers.get("Sec-Fetch-Dest") or "").lower()
+                is_navigation = dest in ("", "document", "iframe", "frame")
+                allow_download = query.get("dl", [""])[0] == "1"
+                is_html_type = ("text/html" in ctype_lower
+                                or "application/xhtml+xml" in ctype_lower
+                                or "text/vnd.wap.wml" in ctype_lower)
+                is_css_type = "text/css" in ctype_lower
+                looks_html = _looks_like_html(raw)
+                is_download = (_is_download_mime(mime)
+                               or "attachment" in disposition.lower())
+
                 extra_headers = {
                     # header 只能是 latin-1，URL 里的非 ASCII 字符必须转义
-                    "X-MS-Final-Url": quote(resp.url or url, safe=""),
+                    "X-MS-Final-Url": quote(final_url, safe=""),
                     "X-MS-Status": str(resp.status_code),
                     "X-MS-Elapsed": str(elapsed),
                 }
@@ -1428,22 +1539,38 @@ class MobileSimulator:
                 except Exception:
                     set_cookies = []
 
-                if "text/html" in ctype_lower or "application/xhtml+xml" in ctype_lower:
+                if is_css_type:
+                    css = _decode_body(resp)
+                    data = sim._rewrite_css(css, final_url, sim.token,
+                                            device, custom_ua).encode("utf-8")
+                    out_type = "text/css; charset=utf-8"
+                elif is_html_type or looks_html:
+                    # 内容是 HTML/WML 就正常渲染，哪怕站点把 Content-Type 写错或没写。
                     text = _decode_body(resp)
                     sim._cache_raw(url, resp, text, elapsed)
                     meta = {"status": resp.status_code, "elapsed": elapsed, "content_type": ctype}
-                    out = sim._rewrite_html(text, resp.url or url, device, custom_ua,
+                    out = sim._rewrite_html(text, final_url, device, custom_ua,
                                             sim.token, meta)
                     data = out.encode("utf-8")
                     out_type = "text/html; charset=utf-8"
-                elif "text/css" in ctype_lower:
-                    css = _decode_body(resp)
-                    data = sim._rewrite_css(css, resp.url or url, sim.token,
-                                            device, custom_ua).encode("utf-8")
-                    out_type = "text/css; charset=utf-8"
+                elif is_download and is_navigation and not allow_download:
+                    logger.info(f"[手机模拟器] 已拦截文档导航的下载类响应: {final_url} "
+                                f"({ctype}, {len(raw)} bytes)")
+                    dl_url = sim._proxy_url(final_url, sim.token, device, custom_ua) + "&dl=1"
+                    data = _download_notice_html(final_url, filename, ctype,
+                                                 len(raw), elapsed, dl_url)
+                    out_type = "text/html; charset=utf-8"
                 else:
-                    data = resp.content or b""
+                    data = raw
                     out_type = ctype
+                    if is_download and allow_download:
+                        # 用户明确要求下载时，带回真实文件名，而不是让浏览器按 /proxy 命名。
+                        safe_name = re.sub(r'[\r\n"]', "", filename) or "download"
+                        ascii_name = safe_name.encode("ascii", "ignore").decode("ascii") or "download"
+                        extra_headers["Content-Disposition"] = (
+                            f'attachment; filename="{ascii_name}"; '
+                            f"filename*=UTF-8''{quote(safe_name, safe='')}"
+                        )
 
                 # 逐个发送 Set-Cookie（BaseHTTPRequestHandler 不支持同名多值合并）
                 self.send_response(200)
