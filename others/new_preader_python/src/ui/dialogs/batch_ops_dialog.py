@@ -493,6 +493,8 @@ class BatchOpsDialog(ModalScreen[Dict[str, Any]]):
         ("r", "delete_selected", get_global_i18n().t('common.delete_selected')),
         ("R", "remove_missing", get_global_i18n().t('batch_ops.shortcut_R')),
         ("v", "preview_book", get_global_i18n().t('common.preview_book')),
+        ("F", "view_current_file", get_global_i18n().t('common.view_file')),
+        ("y", "copy_title", get_global_i18n().t('common.copy_title')),
         ("z", "merge_mode", get_global_i18n().t('batch_ops.shortcut_z')),
         ("U", "undo_last_operation", get_global_i18n().t('recycle_bin.undo_last')),
         ("H", "open_recycle_bin", get_global_i18n().t('recycle_bin.open')),
@@ -1534,6 +1536,98 @@ class BatchOpsDialog(ModalScreen[Dict[str, Any]]):
         if not row_key or not getattr(row_key, "value", None):
             return
         self._preview_book(str(row_key.value))
+
+    def action_view_current_file(self) -> None:
+        """F 键 - 打开当前光标所在行的书籍文件（与爬取管理页 F 一致）"""
+        table = self.query_one("#batch-ops-table", DataTable)
+        row_index = getattr(table, 'cursor_row', None)
+        if row_index is None or row_index < 0 or row_index >= len(table.rows):
+            self.notify(get_global_i18n().t('batch_ops.preview_no_row'), severity="warning")
+            return
+        try:
+            row_key = list(table.rows.keys())[row_index]
+        except Exception as e:
+            logger.debug(f"获取当前光标行键失败: {e}")
+            return
+        book_path = str(getattr(row_key, 'value', None) or row_key)
+        if not book_path:
+            return
+        # _view_file 统一走 reveal_book_file，与爬取管理页 F 的最终行为一致
+        self._view_file(book_path)
+
+    def action_copy_title(self) -> None:
+        """y 键 - 复制当前光标所在行的书籍名（与爬取管理页 y 一致）"""
+        try:
+            table = self.query_one("#batch-ops-table", DataTable)
+            row_index = getattr(table, 'cursor_row', None)
+            if row_index is None or row_index < 0 or row_index >= len(table.rows):
+                self.notify(get_global_i18n().t('duplicate_books.copy_title_no_row'), severity="warning")
+                return
+
+            row_key = list(table.rows.keys())[row_index]
+            book_path = str(getattr(row_key, 'value', None) or row_key)
+
+            # 优先按行键（书籍路径）反查数据源：表格可排序，行序未必等于 _all_books 顺序
+            book = next((b for b in self._all_books if getattr(b, 'path', None) == book_path), None)
+            if book is None:
+                index = (self._current_page - 1) * self._books_per_page + row_index
+                if 0 <= index < len(self._all_books):
+                    candidate = self._all_books[index]
+                    # 表格可排序，行序未必与数据源一致；路径对不上时宁可走单元格兜底
+                    if getattr(candidate, 'path', None) == book_path:
+                        book = candidate
+
+            title = (getattr(book, 'title', '') or '') if book is not None else ''
+            if not title:
+                # 兜底：直接读取表格「书名」列
+                try:
+                    title = str(table.get_cell(row_key, 'title') or '')
+                except Exception:
+                    title = ''
+            if not title:
+                self.notify(get_global_i18n().t('duplicate_books.copy_title_empty'), severity="warning")
+                return
+
+            # 与书架页一致：去掉文件缺失标记前缀
+            # 注意 🈚 是单个 Unicode 码点，不能用硬编码的切片长度
+            for prefix in ("[🈚] ", "[书籍文件不存在] "):
+                if title.startswith(prefix):
+                    title = title[len(prefix):]
+                    break
+
+            self._copy_title_to_clipboard(title)
+        except Exception as e:
+            logger.error(f"复制当前行书籍名失败: {e}")
+            self.notify(f"复制标题失败: {e}", severity="error")
+
+    def _copy_title_to_clipboard(self, title: str) -> None:
+        """把书名写入系统剪贴板（pyperclip 优先，失败则回退到平台命令）"""
+        try:
+            try:
+                import pyperclip
+                pyperclip.copy(title)
+            except Exception:
+                # pyperclip 未安装，或当前环境没有可用的剪贴板后端
+                import subprocess
+                import platform
+                system = platform.system()
+                if system == 'Darwin':
+                    subprocess.run(['pbcopy'], input=title, text=True, check=True)
+                elif system == 'Windows':
+                    subprocess.run(['clip'], input=title, text=True, check=True, shell=True)
+                else:
+                    try:
+                        subprocess.run(['xclip', '-selection', 'clipboard'], input=title, text=True, check=True)
+                    except (subprocess.SubprocessError, FileNotFoundError):
+                        subprocess.run(['xsel', '--clipboard', '--input'], input=title, text=True, check=True)
+
+            self.notify(
+                get_global_i18n().t('duplicate_books.copy_title_success', title=title),
+                severity="information",
+            )
+        except Exception as copy_error:
+            logger.error(f"复制书名到剪贴板失败: {copy_error}")
+            self.notify(get_global_i18n().t('duplicate_books.copy_title_failed'), severity="error")
 
     # 通过 BINDINGS 触发的动作（保留 on_key 作为过渡）
     def action_toggle_row(self) -> None:

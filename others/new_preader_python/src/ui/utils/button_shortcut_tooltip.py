@@ -65,15 +65,19 @@ BUTTON_ACTION_OVERRIDES: Dict[str, Dict[str, str]] = {
         "search-btn": "",
     },
     # 批量操作：合并=合并选中(C)；查重=去重(u)；删除=删除选中(r)
+    #           复制书名=当前行书名(y)；查看文件=当前行书籍文件(F)
     "BatchOpsDialog": {
         "merge-btn": "merge_selected",
         "find-duplicates-btn": "deduplicate",
         "delete-btn": "delete_selected",
+        "copy-title-btn": "copy_title",
+        "view-file-btn": "view_current_file",
     },
-    # 网页阅读器：检查状态(c)、浏览书籍文件(f)；返回按钮(esc)
+    # 网页阅读器：检查状态(c)、浏览书籍文件(f)、手机模拟器(m)；返回按钮(esc)
     "WebReaderScreen": {
         "wr-check-btn": "check_status",
         "wr-browse-btn": "browse_book_file",
+        "wr-open-mobile-btn": "open_mobile_simulator",
         "wr-back-btn": "back",
     },
     # 日志查看弹窗（爬取管理与批量操作里同名）：关闭(esc)
@@ -141,6 +145,17 @@ BUTTON_ACTION_OVERRIDES: Dict[str, Dict[str, str]] = {
     # 解锁屏：回车提交
     "LockScreen": {
         "lock-submit-btn": "on_submit",
+    },
+}
+
+#: 表格列级显式映射：{屏幕/对话框类名: {列 key: action 名}}
+#: 用于「快捷键作用于当前光标行、但表格里没有真实 Button」的场景。
+#: 例如批量操作页按 y 复制书名、按 F 打开书籍文件：悬停到对应列时，
+#: 把快捷键写进 DataTable 的 tooltip（列 key 与语言无关，比按中文标签匹配更稳）。
+TABLE_COLUMN_ACTION_OVERRIDES: Dict[str, Dict[str, str]] = {
+    "BatchOpsDialog": {
+        "title": "copy_title",
+        "view_action": "view_current_file",
     },
 }
 
@@ -467,6 +482,22 @@ def _cell_text(value) -> str:
         return ""
 
 
+def _column_key_at(table, column_index: Optional[int]) -> Optional[str]:
+    """取 DataTable 第 N 列的 key（即 add_column(key=...) 传入的值）。"""
+    if column_index is None or column_index < 0:
+        return None
+    try:
+        columns = list(getattr(table, "ordered_columns", None) or [])
+        if not columns:
+            columns = list(getattr(table, "columns", {}).values())
+        col = columns[column_index]
+        key = getattr(col, "key", None)
+        value = getattr(key, "value", None) or key
+        return str(value) if value else None
+    except Exception:
+        return None
+
+
 def update_hovered_cell_tooltip(table, coordinate) -> None:
     """根据鼠标所在单元格更新表格自身的 tooltip。
 
@@ -501,6 +532,19 @@ def update_hovered_cell_tooltip(table, coordinate) -> None:
         tip = build_tooltip_text(key, description)
         if tip and tip not in tips:
             tips.append(tip)
+
+    # 列级显式映射：作用于「当前光标行」的快捷键没有真实按钮，
+    # 借表格 tooltip 在悬停对应列时给出提示（与文字按钮提示合并、去重）。
+    column_actions = TABLE_COLUMN_ACTION_OVERRIDES.get(type(screen).__name__, {})
+    if column_actions:
+        col_key = _column_key_at(table, getattr(coordinate, "column", -1))
+        action = column_actions.get(col_key or "")
+        if action:
+            entry = index.get(action)
+            if entry:
+                tip = build_tooltip_text(entry[0], entry[1])
+                if tip and tip not in tips:
+                    tips.append(tip)
 
     new_tip = " · ".join(tips) if tips else None
 
