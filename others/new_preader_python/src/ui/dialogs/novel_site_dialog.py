@@ -17,6 +17,7 @@ from src.utils.logger import get_logger
 from src.spiders import get_parser_options
 from src.ui.styles.universal_style_isolation import apply_universal_style_isolation, remove_universal_style_isolation
 from src.config.config_manager import ConfigManager
+from src.utils.crawl_headers import MODE_MOBILE, MODE_NORMAL, normalize_mode
 
 logger = get_logger(__name__)
 
@@ -255,6 +256,20 @@ class NovelSiteDialog(ModalScreen[Optional[Dict[str, Any]]]):
                             ),
                             id="parser-container", classes="form-row"
                         ),
+                        # 爬取头：普通 / 手机（仅影响爬取时的请求头）
+                        Horizontal(
+                            Label(get_global_i18n().t('novel_site_dialog.crawl_header'), id="crawl-header-label"),
+                            Select(
+                                options=[
+                                    (get_global_i18n().t('novel_site_dialog.crawl_header_normal'), MODE_NORMAL),
+                                    (get_global_i18n().t('novel_site_dialog.crawl_header_mobile'), MODE_MOBILE),
+                                ],
+                                id="crawl-header-mode-select",
+                                allow_blank=False
+                            ),
+                            id="crawl-header-container", classes="form-row"
+                        ),
+                        self._help_row(get_global_i18n().t('novel_site_dialog.crawl_header_help')),
                         id="parser-settings-container"
                     ),
 
@@ -363,6 +378,10 @@ class NovelSiteDialog(ModalScreen[Optional[Dict[str, Any]]]):
             parser_select.value = parser_value
         else:
             parser_select.clear()  # 清除选择
+
+        # 爬取头：普通 / 手机（旧数据缺列时默认普通）
+        crawl_header_select = self.query_one("#crawl-header-mode-select", Select)
+        crawl_header_select.value = normalize_mode(self.novel_site.get("crawl_header_mode"))
         
         # 代理设置
         proxy_checkbox = self.query_one("#enable-proxy", Switch)
@@ -517,6 +536,7 @@ class NovelSiteDialog(ModalScreen[Optional[Dict[str, Any]]]):
         proxy_checkbox = self.query_one("#enable-proxy", Switch)
         selectable_checkbox = self.query_one("#enable-selectable", Switch)
         rating_select = self.query_one("#rating-select", Select)
+        crawl_header_select = self.query_one("#crawl-header-mode-select", Select)
         
         # 验证必填字段
         if not name_input.value.strip():
@@ -568,7 +588,10 @@ class NovelSiteDialog(ModalScreen[Optional[Dict[str, Any]]]):
             "parser": parser_value,
             "proxy_enabled": proxy_checkbox.value,
             "selectable_enabled": selectable_checkbox.value,
-            "rating": rating_value
+            "rating": rating_value,
+            "crawl_header_mode": normalize_mode(
+                crawl_header_select.value if crawl_header_select.value != Select.BLANK else MODE_NORMAL
+            )
         }
         
         # 如果是编辑模式，保留原有的ID

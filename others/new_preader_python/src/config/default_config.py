@@ -161,6 +161,7 @@ DEFAULT_CONFIG = {
         "port": 54323,  # 首选端口；被占用时自动顺延，仍失败则由系统分配
         "start_url": "https://www.baidu.com",  # 点击「手机模拟器」按钮时默认打开的网址
         "device": "iphone",  # 默认设备预设：iphone / android / wechat / ipad / desktop
+                             # 站点「爬取头 = 手机」时也使用这里选的移动端 UA（desktop 会被忽略）
         "verify_ssl": False,  # 部分书籍站点证书异常，默认不校验
     }
 }

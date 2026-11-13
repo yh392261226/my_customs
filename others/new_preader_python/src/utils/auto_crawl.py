@@ -178,6 +178,7 @@ def fetch_page_html(site: Dict[str, Any], page_url: str,
                 proxy_config,
                 site.get('name'),
                 site.get('url'),
+                site=site,
             )
             html = parser._get_url_content(page_url)
             if html:
@@ -186,17 +187,26 @@ def fetch_page_html(site: Dict[str, Any], page_url: str,
         except Exception as e:
             logger.warning(f"使用解析器 {parser_name} 获取页面失败，回退到 requests: {e}")
 
-    return _fetch_with_requests(page_url, proxy_config)
+    return _fetch_with_requests(page_url, proxy_config, site)
 
 
 def _fetch_with_requests(page_url: str,
-                         proxy_config: Optional[Dict[str, Any]] = None) -> Optional[str]:
+                         proxy_config: Optional[Dict[str, Any]] = None,
+                         site: Optional[Dict[str, Any]] = None) -> Optional[str]:
     """使用 requests 抓取页面（解析器不可用时的回退方案）"""
     try:
         import requests
     except ImportError:
         logger.error("requests 未安装，无法抓取页面")
         return None
+
+    # 「手机」爬取头模式下，回退请求也必须带手机头，否则列表页会被站点拦掉
+    from src.utils.crawl_headers import build_crawl_headers, mode_from_site
+    site = site or {}
+    headers = dict(_REQUEST_HEADERS)
+    headers.update(build_crawl_headers(
+        mode_from_site(site), referer=str(site.get('url') or '')
+    ))
 
     proxies = None
     if proxy_config and proxy_config.get('enabled'):
@@ -207,7 +217,7 @@ def _fetch_with_requests(page_url: str,
     try:
         response = requests.get(
             page_url,
-            headers=_REQUEST_HEADERS,
+            headers=headers,
             timeout=(15, 30),
             proxies=proxies,
         )

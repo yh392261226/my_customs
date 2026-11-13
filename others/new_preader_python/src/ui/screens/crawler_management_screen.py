@@ -4606,7 +4606,7 @@ class CrawlerManagementScreen(Screen[None]):
             from src.spiders import create_parser
             
             # 创建解析器实例，传递数据库中的网站名称作为作者信息和网站URL
-            parser = create_parser(parser_name, proxy_config, self.novel_site.get('name'), self.novel_site.get('url'))
+            parser = create_parser(parser_name, proxy_config, self.novel_site.get('name'), self.novel_site.get('url'), site=self.novel_site)
             
             if not parser:
                 self.app.call_later(self._update_status, f"{get_global_i18n().t('crawler.parser_not_found')}: {parser_name}", "error")

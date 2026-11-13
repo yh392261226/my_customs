@@ -12,6 +12,12 @@ from typing import Dict, Any, List, Optional, Callable
 from urllib.parse import urljoin
 from src.utils.logger import get_logger
 from src.utils.traditional_simplified import convert_traditional_to_simplified
+from src.utils.crawl_headers import (
+    effective_user_agent,
+    effective_window_size_arg,
+    is_mobile_parser,
+    mobile_user_agent,
+)
 
 logger = get_logger(__name__)
 
@@ -137,6 +143,11 @@ class BaseParser:
                     'http': proxy_url,
                     'https': proxy_url
                 }
+
+        # 「手机」爬取头：在每次抓取前重新应用一次，防止个别子类在请求前把 UA 改回桌面
+        _crawl_headers = getattr(self, 'crawl_headers', None) or {}
+        if _crawl_headers:
+            self.session.headers.update(_crawl_headers)
 
         for attempt in range(max_retries):
             try:
@@ -281,8 +292,11 @@ class BaseParser:
         try:
             from .playwright_crawler import get_playwright_content
             
-            # 使用 Playwright 获取内容
-            return get_playwright_content(url, self.proxy_config, timeout=60, headless=True)
+            # 使用 Playwright 获取内容（「手机」爬取头模式下使用手机 UA / 视口）
+            return get_playwright_content(
+                url, self.proxy_config, timeout=60, headless=True,
+                mobile=is_mobile_parser(self),
+            )
             
         except ImportError:
             logger.warning("playwright 库未安装，无法使用 Playwright 爬虫")
@@ -356,25 +370,31 @@ class BaseParser:
             chrome_options.add_argument('--disable-webgl')
             chrome_options.add_argument('--disable-3d-apis')
 
-            # 随机化用户代理（模拟不同浏览器）
-            user_agents = [
-                'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/125.0.0.0 Safari/537.36',
-                'Mozilla/5.0 (Windows NT 10.0; Win64; x64; rv:126.0) Gecko/20100101 Firefox/126.0',
-                'Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/125.0.0.0 Safari/537.36',
-                'Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7) AppleWebKit/605.1.15 (KHTML, like Gecko) Version/17.4 Safari/605.1.15',
-                'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/124.0.0.0 Safari/537.36',
-                'Mozilla/5.0 (Windows NT 10.0; Win64; x64; rv:125.0) Gecko/20100101 Firefox/125.0',
-            ]
+            # 随机化用户代理（模拟不同浏览器）；「手机」爬取头固定使用手机 UA
+            if is_mobile_parser(self):
+                user_agents = [mobile_user_agent()]
+            else:
+                user_agents = [
+                    'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/125.0.0.0 Safari/537.36',
+                    'Mozilla/5.0 (Windows NT 10.0; Win64; x64; rv:126.0) Gecko/20100101 Firefox/126.0',
+                    'Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/125.0.0.0 Safari/537.36',
+                    'Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7) AppleWebKit/605.1.15 (KHTML, like Gecko) Version/17.4 Safari/605.1.15',
+                    'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/124.0.0.0 Safari/537.36',
+                    'Mozilla/5.0 (Windows NT 10.0; Win64; x64; rv:125.0) Gecko/20100101 Firefox/125.0',
+                ]
             chrome_options.add_argument(f'--user-agent={random.choice(user_agents)}')
 
-            # 设置窗口大小模拟真实浏览器（随机化）
-            resolutions = [
-                '--window-size=1920,1080',
-                '--window-size=1366,768',
-                '--window-size=1536,864',
-                '--window-size=1440,900',
-                '--window-size=1280,720',
-            ]
+            # 设置窗口大小模拟真实浏览器（随机化；「手机」爬取头使用手机分辨率）
+            if is_mobile_parser(self):
+                resolutions = [effective_window_size_arg(self)]
+            else:
+                resolutions = [
+                    '--window-size=1920,1080',
+                    '--window-size=1366,768',
+                    '--window-size=1536,864',
+                    '--window-size=1440,900',
+                    '--window-size=1280,720',
+                ]
             chrome_options.add_argument(random.choice(resolutions))
 
             # 设置代理
@@ -686,7 +706,7 @@ class BaseParser:
                 
                 # 设置更真实的请求头
                 scraper.headers.update({
-                    'User-Agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/125.0.0.0 Safari/537.36',
+                    'User-Agent': effective_user_agent(self),
                     'Accept': 'text/html,application/xhtml+xml,application/xml;q=0.9,image/webp,*/*;q=0.8',
                     'Accept-Language': 'zh-CN,zh;q=0.9,en;q=0.8',
                     'Accept-Encoding': 'gzip, deflate, br',
@@ -753,7 +773,7 @@ class BaseParser:
             
             # 设置请求头
             scraper.headers.update({
-                'User-Agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/125.0.0.0 Safari/537.36',
+                'User-Agent': effective_user_agent(self),
                 'Accept': 'text/html,application/xhtml+xml,application/xml;q=0.9,image/webp,*/*;q=0.8',
                 'Accept-Language': 'zh-CN,zh;q=0.9,en;q=0.8',
                 'Accept-Encoding': 'gzip, deflate, br',
@@ -800,7 +820,11 @@ class BaseParser:
             # 创建新的会话，使用不同的User-Agent
             fallback_session = requests.Session()
             fallback_session.headers.update({
-                'User-Agent': 'Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/125.0.0.0 Safari/537.36',
+                'User-Agent': effective_user_agent(
+                    self,
+                    'Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7) AppleWebKit/537.36 '
+                    '(KHTML, like Gecko) Chrome/125.0.0.0 Safari/537.36',
+                ),
                 'Accept': 'text/html,application/xhtml+xml,application/xml;q=0.9,*/*;q=0.8',
                 'Accept-Language': 'zh-CN,zh;q=0.9,en;q=0.8',
                 'Accept-Encoding': 'gzip, deflate',
@@ -881,11 +905,11 @@ class BaseParser:
             # 禁用图片加载以提高速度（但保持 JS 运行）
             chrome_options.add_argument('--disable-images')
             
-            # 设置用户代理
-            chrome_options.add_argument('--user-agent=Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/125.0.0.0 Safari/537.36')
+            # 设置用户代理（手机爬取头模式下使用手机 UA）
+            chrome_options.add_argument(f'--user-agent={effective_user_agent(self)}')
             
-            # 设置窗口大小模拟真实浏览器
-            chrome_options.add_argument('--window-size=1920,1080')
+            # 设置窗口大小模拟真实浏览器（手机爬取头模式下使用手机分辨率）
+            chrome_options.add_argument(effective_window_size_arg(self))
             
             # 设置代理
             if proxies:
@@ -1016,10 +1040,19 @@ class BaseParser:
             try:
                 logger.info(f"Scrapling Fetcher 尝试获取: {url}")
                 fetcher = Fetcher()
+                fetch_kwargs = {}
                 if scrapling_proxies:
-                    page = fetcher.get(url, proxies={'http': scrapling_proxies, 'https': scrapling_proxies})
+                    fetch_kwargs['proxies'] = {'http': scrapling_proxies, 'https': scrapling_proxies}
+                # 「手机」爬取头：给 Scrapling 兜底请求也带上移动端请求头；
+                # 部分 scrapling 版本不接受 headers 参数，此时退回原调用方式。
+                mobile_headers = getattr(self, 'crawl_headers', None) or {}
+                if mobile_headers:
+                    try:
+                        page = fetcher.get(url, headers=mobile_headers, **fetch_kwargs)
+                    except TypeError:
+                        page = fetcher.get(url, **fetch_kwargs)
                 else:
-                    page = fetcher.get(url)
+                    page = fetcher.get(url, **fetch_kwargs)
                 
                 if page:
                     content = page.text

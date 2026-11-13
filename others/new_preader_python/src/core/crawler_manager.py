@@ -204,7 +204,8 @@ class CrawlerManager:
                 return
             
             # 创建解析器
-            parser = create_parser(parser_name, task.proxy_config, novel_site.get('name'), novel_site.get('url'))
+            parser = create_parser(parser_name, task.proxy_config, novel_site.get('name'),
+                                  novel_site.get('url'), site=novel_site)
             if not parser:
                 task.status = CrawlStatus.FAILED
                 task.error_message = f"{get_global_i18n().t('crawler.parser_not_found')}: {parser_name}"

@@ -8,6 +8,7 @@ import time
 from typing import Dict, Any, List, Optional
 from urllib.parse import urlparse
 from src.utils.logger import get_logger
+from src.utils.crawl_headers import effective_user_agent, is_mobile_parser
 from .base_parser_v2 import BaseParser
 
 logger = get_logger(__name__)
@@ -448,6 +449,11 @@ class CmsT4Parser(BaseParser):
                     'http': proxy_url,
                     'https': proxy_url
                 }
+
+        # 「手机」爬取头：本类重写了抓取入口，需在此重新应用移动端请求头
+        _crawl_headers = getattr(self, 'crawl_headers', None) or {}
+        if _crawl_headers:
+            self.session.headers.update(_crawl_headers)
         
         for attempt in range(max_retries):
             try:
@@ -564,7 +570,8 @@ class CmsT4Parser(BaseParser):
                     browser={
                         'browser': 'chrome',
                         'platform': 'windows',
-                        'mobile': False
+                        # 站点「爬取头」设为手机时，cloudscraper 的浏览器指纹也切到手机
+                        'mobile': is_mobile_parser(self)
                     },
                     delay=2,
                     sess=custom_session  # 使用预配置的会话
@@ -663,9 +670,9 @@ class CmsT4Parser(BaseParser):
                 except Exception as ssl_error:
                     logger.debug(f"无法设置SSL上下文: {ssl_error}")
             
-            # 设置请求头
+            # 设置请求头（「手机」爬取头模式下使用手机 UA）
             scraper.headers.update({
-                'User-Agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/125.0.0.0 Safari/537.36',
+                'User-Agent': effective_user_agent(self),
                 'Accept': 'text/html,application/xhtml+xml,application/xml;q=0.9,image/webp,*/*;q=0.8',
                 'Accept-Language': 'zh-CN,zh;q=0.9,en;q=0.8',
                 'Accept-Charset': 'GBK,utf-8;q=0.7,*;q=0.3',

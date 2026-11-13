@@ -14,16 +14,19 @@ logger = get_logger(__name__)
 class PlaywrightCrawler:
     """Playwright 爬虫工具类"""
     
-    def __init__(self, proxy_config: Optional[dict] = None, headless: bool = True):
+    def __init__(self, proxy_config: Optional[dict] = None, headless: bool = True,
+                 mobile: bool = False):
         """
         初始化 Playwright 爬虫
         
         Args:
             proxy_config: 代理配置
             headless: 是否无头模式
+            mobile: 是否模拟手机（手机 UA / 视口 / 触摸），由站点「爬取头」设置传入
         """
         self.proxy_config = proxy_config or {'enabled': False, 'proxy_url': ''}
         self.headless = headless
+        self.mobile = bool(mobile)
         self.browser = None
         self.context = None
         self.page = None
@@ -62,11 +65,22 @@ class PlaywrightCrawler:
             
             self.browser = await self.playwright.chromium.launch(**browser_options)
             
-            # 创建上下文
-            self.context = await self.browser.new_context(
-                user_agent='Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/125.0.0.0 Safari/537.36',
-                viewport={'width': 1920, 'height': 1080}
-            )
+            # 创建上下文：站点「爬取头」设为手机时使用手机 UA / 视口 / 触摸能力
+            if self.mobile:
+                from src.utils.crawl_headers import mobile_user_agent, mobile_viewport
+                context_options = {
+                    'user_agent': mobile_user_agent(),
+                    'viewport': mobile_viewport(),
+                    'is_mobile': True,
+                    'has_touch': True,
+                    'device_scale_factor': 3,
+                }
+            else:
+                context_options = {
+                    'user_agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/125.0.0.0 Safari/537.36',
+                    'viewport': {'width': 1920, 'height': 1080}
+                }
+            self.context = await self.browser.new_context(**context_options)
             
             # 设置额外的请求头
             await self.context.add_init_script("""
@@ -427,7 +441,8 @@ def detect_cloudflare_turnstile_in_content(content: str) -> bool:
 
 
 async def get_playwright_content_async(url: str, proxy_config: Optional[Dict[str, Any]] = None, 
-                                       timeout: int = 60, headless: bool = True) -> Optional[str]:
+                                       timeout: int = 60, headless: bool = True,
+                                       mobile: bool = False) -> Optional[str]:
     """
     便捷函数：使用 Playwright 异步获取页面内容
     
@@ -440,7 +455,7 @@ async def get_playwright_content_async(url: str, proxy_config: Optional[Dict[str
     Returns:
         页面内容或None
     """
-    crawler = PlaywrightCrawler(proxy_config, headless)
+    crawler = PlaywrightCrawler(proxy_config, headless, mobile)
     
     try:
         async with crawler:
@@ -451,7 +466,8 @@ async def get_playwright_content_async(url: str, proxy_config: Optional[Dict[str
 
 
 def get_playwright_content(url: str, proxy_config: Optional[Dict[str, Any]] = None, 
-                          timeout: int = 60, headless: bool = True) -> Optional[str]:
+                          timeout: int = 60, headless: bool = True,
+                          mobile: bool = False) -> Optional[str]:
     """
     便捷函数：使用 Playwright 获取页面内容（同步版本）
     
@@ -465,7 +481,7 @@ def get_playwright_content(url: str, proxy_config: Optional[Dict[str, Any]] = No
         页面内容或None
     """
     try:
-        return asyncio.run(get_playwright_content_async(url, proxy_config, timeout, headless))
+        return asyncio.run(get_playwright_content_async(url, proxy_config, timeout, headless, mobile))
     except Exception as e:
         logger.error(f"获取页面内容失败: {url}, 错误: {e}")
         return None

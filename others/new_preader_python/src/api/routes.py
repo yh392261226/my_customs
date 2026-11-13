@@ -248,8 +248,10 @@ def _create_website(body: Dict[str, Any], handler) -> Optional[Dict[str, Any]]:
     if row:
         return {"success": True, "existed": True, "item": dict(row)}
     now = _now()
+    from src.utils.crawl_headers import normalize_mode
     data = {
         "name": name,
+        "crawl_header_mode": normalize_mode(body.get("crawl_header_mode")),
         "url": body.get("url", ""),
         "storage_folder": body.get("storage_folder", ""),
         "proxy_enabled": int(bool(body.get("proxy_enabled", 0))),

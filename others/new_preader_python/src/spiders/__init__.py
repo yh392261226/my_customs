@@ -57,7 +57,9 @@ def get_parser_options() -> List[tuple[str, str]]:
     # 如果没有任何解析器，返回空列表
     return options
 
-def create_parser(parser_name: str, proxy_config: Optional[Dict[str, Any]] = None, novel_site_name: Optional[str] = None, site_url: Optional[str] = None) -> BaseParser:
+def create_parser(parser_name: str, proxy_config: Optional[Dict[str, Any]] = None,
+                  novel_site_name: Optional[str] = None, site_url: Optional[str] = None,
+                  site: Optional[Dict[str, Any]] = None) -> BaseParser:
     """
     创建指定名称的解析器实例
     
@@ -66,6 +68,8 @@ def create_parser(parser_name: str, proxy_config: Optional[Dict[str, Any]] = Non
         proxy_config: 代理配置
         novel_site_name: 从数据库获取的网站名称，用于作者信息
         site_url: 网站URL，用于CMS解析器自动配置API地址
+        site: 完整的书籍网站配置字典；用于读取「爬取头」设置（normal/mobile）。
+              未传时按 site_url 回查数据库，仍查不到则按「普通」处理。
         
     Returns:
         解析器实例
@@ -113,9 +117,26 @@ def create_parser(parser_name: str, proxy_config: Optional[Dict[str, Any]] = Non
             import inspect
             init_signature = inspect.signature(parser_class.__init__)
             if 'site_url' in init_signature.parameters:
-                return parser_class(proxy_config=proxy_config, novel_site_name=novel_site_name, site_url=site_url)
+                parser = parser_class(proxy_config=proxy_config, novel_site_name=novel_site_name, site_url=site_url)
             else:
-                return parser_class(proxy_config=proxy_config, novel_site_name=novel_site_name)
+                parser = parser_class(proxy_config=proxy_config, novel_site_name=novel_site_name)
+
+            # 在解析器构造完成后注入「爬取头」：
+            # 很多子类（如 cms_t4_v2）会在 __init__ 里二次覆盖 session.headers，
+            # 因此必须放在实例化之后做最后一次覆盖。
+            try:
+                from src.utils.crawl_headers import apply_to_parser, resolve_site_mode_by_url
+                effective_site = site
+                if effective_site is None:
+                    effective_site = {
+                        "url": site_url or "",
+                        "crawl_header_mode": resolve_site_mode_by_url(site_url),
+                    }
+                apply_to_parser(parser, effective_site)
+            except Exception as e:
+                logger.warning(f"应用书籍网站爬取头设置失败，按普通模式继续: {e}")
+
+            return parser
         else:
             raise ValueError(f"解析器 {parser_name} 类不存在")
             

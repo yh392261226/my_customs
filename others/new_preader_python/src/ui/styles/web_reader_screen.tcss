@@ -103,7 +103,7 @@ Footer {
 }
 
 #wr-local-row #wr-path-input {
-    width: 70%;
+    width: 50%;
 }
 
 #wr-local-row Button {

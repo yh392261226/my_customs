@@ -56,6 +56,7 @@ Container {
 #site-url-container,
 #storage-folder-container,
 #parser-container,
+#crawl-header-container,
 #selectable-enable-container,
 #proxy-enable-container,
 #search-url-container,
@@ -75,6 +76,7 @@ Container {
 #site-url-label,
 #storage-folder-label,
 #parser-label,
+#crawl-header-label,
 #enable-proxy-label,
 #enable-selectable-label,
 #tags-label,
@@ -157,7 +159,7 @@ Container {
 }
 
 /* 选择框样式 */
-#parser-select, #rating-select, #auto-crawl-format-select {
+#parser-select, #crawl-header-select, #rating-select, #auto-crawl-format-select {
     width: 70%;
     min-width: 40;
     height: 3;

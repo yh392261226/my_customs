@@ -227,6 +227,9 @@ class NovelSitesManagementScreen(Screen[None]):
         table.add_column(get_global_i18n().t('common.book_id_sample'), key="book_id_example")
         table.add_column(get_global_i18n().t('novel_sites.change_status'), key="change_status")
         table.add_column(get_global_i18n().t('common.note'), key="note")
+        # 新列统一追加在末尾：单元格点击逻辑里存在按列索引判断按钮列的回退分支，
+        # 插入到中间会让「切换状态 / 备注」按钮列错位
+        table.add_column(get_global_i18n().t('common.crawl_header'), key="crawl_header")
         
         # 启用隔行变色效果
         table.zebra_stripes = True
@@ -357,6 +360,13 @@ class NovelSitesManagementScreen(Screen[None]):
             site_status = site.get("status", "正常")
             # 根据状态显示不同的emoji
             status_display = "✅ 正常" if site_status == "正常" else "❌ 异常"
+
+            # 爬取头：普通 / 手机
+            i18n = get_global_i18n()
+            if str(site.get("crawl_header_mode") or "normal").strip().lower() == "mobile":
+                crawl_header_display = "📱 " + i18n.t('novel_site_dialog.crawl_header_mobile')
+            else:
+                crawl_header_display = "🖥 " + i18n.t('novel_site_dialog.crawl_header_normal')
             
             row_data = {
                 "selected": selected,
@@ -366,6 +376,7 @@ class NovelSitesManagementScreen(Screen[None]):
                 "rating": rating_display,
                 "proxy_enabled": proxy_status,
                 "parser": site["parser"],
+                "crawl_header": crawl_header_display,
                 "book_id_example": decoded_book_id_example,
                 "change_status": "🔄 切换状态",
                 "_row_key": str(global_index),
@@ -386,7 +397,8 @@ class NovelSitesManagementScreen(Screen[None]):
                 row_data["parser"],
                 row_data["book_id_example"],
                 row_data["change_status"],
-                get_global_i18n().t('common.note')
+                get_global_i18n().t('common.note'),
+                row_data["crawl_header"]
             )
         
         # 更新分页信息
