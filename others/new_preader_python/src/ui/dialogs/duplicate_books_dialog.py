@@ -17,6 +17,7 @@ from src.core.book import Book
 from src.ui.dialogs.confirm_dialog import ConfirmDialog
 from src.ui.dialogs.book_comparison_dialog import BookComparisonDialog
 from src.ui.messages import UpdateDuplicateGroupsMessage
+from src.utils import dedup_staging
 from src.utils.logger import get_logger
 
 logger = get_logger(__name__)
@@ -40,11 +41,12 @@ class DuplicateBooksDialog(ModalScreen[Dict[str, Any]]):
         ("D", "select_current_group_recommended", get_global_i18n().t('duplicate_books.select_current_group_recommended')),
         ("y", "copy_current_title", get_global_i18n().t('common.copy_title')),
         ("u", "undo_last_delete", get_global_i18n().t('recycle_bin.undo_last')),
+        ("ctrl+s", "save_staging", get_global_i18n().t('duplicate_books.staging')),
     ]
     
     def __init__(self, theme_manager: ThemeManager, duplicate_groups: List[DuplicateGroup],
                  current_batch: int = 0, total_batches: int = 1, processing_remaining: bool = False,
-                 elapsed_seconds: float = None):
+                 elapsed_seconds: float = None, staging_state: Optional[Dict[str, Any]] = None):
         """
         初始化重复书籍对话框
 
@@ -55,6 +57,7 @@ class DuplicateBooksDialog(ModalScreen[Dict[str, Any]]):
             total_batches: 总批次数
             processing_remaining: 是否还有剩余批次需要处理
             elapsed_seconds: 对比/检测耗时（秒），为 None 时表示未知
+            staging_state: 从去重暂存恢复出来的进度（存在时自动恢复到上次位置）
         """
         super().__init__()
         self.theme_manager = theme_manager
@@ -89,7 +92,14 @@ class DuplicateBooksDialog(ModalScreen[Dict[str, Any]]):
 
         # 最近一次删除所属的回收站批次（用于一键撤销）
         self._last_recycle_batch_id: Optional[str] = None
-    
+
+        # 去重暂存：恢复信息（供 on_mount 提示）与检测是否完成的标记
+        self._staging_restored_count = 0
+        self._staging_complete = True
+        self._staging_saved_at = ""
+        if staging_state:
+            self._apply_staging_state(staging_state)
+
     def compose(self) -> ComposeResult:
         """组合对话框界面"""
         yield Header()
@@ -102,7 +112,8 @@ class DuplicateBooksDialog(ModalScreen[Dict[str, Any]]):
                         "duplicate_books.description", 
                         groups_count=len(self.duplicate_groups),
                         selected_count=len(self.selected_books)
-                    )
+                    ),
+                    id="duplicate-books-description"
                 ),
                 
                 # 重复组信息
@@ -114,8 +125,9 @@ class DuplicateBooksDialog(ModalScreen[Dict[str, Any]]):
                 # 书籍对比表格
                 DataTable(id="duplicate-books-table"),
                 
-                # 操作按钮
+                # 操作按钮：拆成两行，避免按钮过多时在窄终端里被挤出去
                 Horizontal(
+                    Button(get_global_i18n().t("duplicate_books.staging"), id="staging-btn", variant="success"),
                     Button(get_global_i18n().t("duplicate_books.compare_selected"), id="compare-btn", variant="primary"),
                     Button(get_global_i18n().t("duplicate_books.select_recommended"), id="select-recommended-btn", variant="primary"),
                     Button(get_global_i18n().t("common.deselect"), id="deselect-all-btn"),
@@ -123,8 +135,14 @@ class DuplicateBooksDialog(ModalScreen[Dict[str, Any]]):
                     Button(get_global_i18n().t("duplicate_books.next_group"), id="next-group-btn"),
                     Button(get_global_i18n().t("duplicate_books.prev_group"), id="prev-group-btn"),
                     Button(get_global_i18n().t("common.skip_group"), id="skip-group-btn", variant="warning"),
+                    Button(get_global_i18n().t("duplicate_books.deselect_before"), id="deselect-before-btn"),
+                    Button(get_global_i18n().t("duplicate_books.deselect_after"), id="deselect-after-btn"),
                     Button(get_global_i18n().t("recycle_bin.undo_last"), id="undo-delete-btn"),
-                    Button(get_global_i18n().t("common.cancel"), id="cancel-btn")
+                    Button(get_global_i18n().t("common.cancel"), id="cancel-btn"),
+                    id="duplicate-books-buttons"
+                ),
+                Horizontal(
+                    id="duplicate-books-buttons-nav"
                 ),
                 
                 # 状态信息
@@ -141,7 +159,127 @@ class DuplicateBooksDialog(ModalScreen[Dict[str, Any]]):
         
         # 延迟初始化数据表，确保DOM完全构建
         self.set_timer(0.5, self._initialize_table)
-    
+
+        t = get_global_i18n().t
+        if self._staging_restored_count:
+            self.notify(
+                t("duplicate_books.staging_restored",
+                  count=self._staging_restored_count,
+                  index=self.current_group_index + 1,
+                  saved_at=self._staging_saved_at),
+                timeout=5,
+            )
+        if not self._staging_complete:
+            self.notify(
+                t("duplicate_books.staging_incomplete", count=len(self.duplicate_groups)),
+                severity="warning",
+                timeout=6,
+            )
+
+    # ─── 去重暂存 ──────────────────────────────────────────
+
+    def _refresh_description(self) -> None:
+        """刷新顶部「找到 N 组 / 已选 N 本」说明"""
+        try:
+            self.query_one("#duplicate-books-description", Label).update(
+                get_global_i18n().t(
+                    "duplicate_books.description",
+                    groups_count=len(self.duplicate_groups),
+                    selected_count=len(self.selected_books),
+                )
+            )
+        except Exception as e:
+            logger.debug(f"刷新去重描述失败（可忽略）: {e}")
+
+    def _apply_staging_state(self, state: Dict[str, Any]) -> None:
+        """套用从暂存恢复的进度，并定位到上次的中断位置"""
+        self.selected_books = set(state.get("selected_books", set()))
+        self.recommended_selected_books = set(state.get("recommended_selected_books", set()))
+        self.skipped_groups = set(state.get("skipped_groups", set()))
+        self._viewed_groups = set(state.get("viewed_groups", set()))
+        self.current_batch = int(state.get("current_batch", 0) or 0)
+        self.total_batches = int(state.get("total_batches", 1) or 1)
+        self.elapsed_seconds = state.get("elapsed_seconds")
+        self._staging_restored_count = int(state.get("restored_count", len(self.duplicate_groups)) or 0)
+        self._staging_complete = bool(state.get("complete", True))
+        self._staging_saved_at = str(state.get("saved_at", ""))
+        # 恢复自磁盘，本会话不启动后台检测
+        self.processing_remaining = False
+
+        last_index = max(0, min(
+            int(state.get("current_group_index", 0) or 0),
+            max(len(self.duplicate_groups) - 1, 0),
+        ))
+        target = last_index
+        if self.duplicate_groups and self._group_key(self.duplicate_groups[last_index]) in self.skipped_groups:
+            # 上次停留的组已跳过：优先跳到第一个未跳过且未查看的组；
+            # 若都已查看过，则退回到第一个未跳过的组
+            unprocessed = [
+                i for i, g in enumerate(self.duplicate_groups)
+                if self._group_key(g) not in self.skipped_groups
+                and self._group_key(g) not in self._viewed_groups
+            ]
+            remaining = [
+                i for i, g in enumerate(self.duplicate_groups)
+                if self._group_key(g) not in self.skipped_groups
+            ]
+            target = (unprocessed or remaining or [last_index])[0]
+        self.current_group_index = target
+
+    def _staging_processed_count(self) -> int:
+        """已查看或已跳过的分组数（用于暂存提示）"""
+        keys = {self._group_key(g) for g in self.duplicate_groups}
+        return len(keys & (self.skipped_groups | self._viewed_groups))
+
+    def _save_staging_snapshot(self) -> bool:
+        """保存检测结果 + 人工选择；没有剩余分组时直接清除暂存"""
+        if not self.duplicate_groups:
+            dedup_staging.clear_staging()
+            return True
+        snapshot = dedup_staging.build_snapshot(
+            self.duplicate_groups,
+            self.selected_books,
+            self.recommended_selected_books,
+            self.skipped_groups,
+            self._viewed_groups,
+            self.current_group_index,
+            self.current_batch,
+            self.total_batches,
+            self.processing_remaining,
+            self.elapsed_seconds,
+        )
+        return dedup_staging.save_staging(snapshot)
+
+    def _sync_staging(self, clear: bool = False) -> None:
+        """静默同步暂存：撤销恢复 / 全部处理完时清除，否则落盘当前进度"""
+        if clear:
+            dedup_staging.clear_staging()
+        else:
+            self._save_staging_snapshot()
+
+    def _dismiss_with_sync(self, result: Dict[str, Any], clear: bool = False) -> None:
+        """关闭前自动暂存，避免用户忘了点「暂存」又要重新检测一遍"""
+        self._sync_staging(clear=clear)
+        self.dismiss(result)
+
+    def action_save_staging(self) -> None:
+        """ctrl+s /「暂存」按钮：立即保存检测结果与人工处理进度"""
+        t = get_global_i18n().t
+        if self._save_staging_snapshot():
+            self.notify(
+                t("duplicate_books.staging_saved",
+                  count=len(self.duplicate_groups),
+                  processed=self._staging_processed_count()),
+                severity="information",
+                timeout=4,
+            )
+        else:
+            self.notify(t("duplicate_books.staging_failed"), severity="error", timeout=4)
+
+    @on(Button.Pressed, "#staging-btn")
+    def on_staging_pressed(self) -> None:
+        self.action_save_staging()
+
     def _initialize_table(self) -> None:
         """延迟初始化数据表"""
         try:
@@ -182,9 +320,10 @@ class DuplicateBooksDialog(ModalScreen[Dict[str, Any]]):
             except AttributeError as e:
                 logger.warning(f"表格不支持某些选择属性: {e}")
             
-            # 如果有重复组，显示第一组
+            # 如果有重复组，显示当前组（从暂存恢复时是上次停留的组，而不是第一组）
             if self.duplicate_groups:
-                self._display_duplicate_group(0)
+                self._display_duplicate_group(self.current_group_index)
+                self._refresh_description()
             
             # 确保表格获得焦点
             try:
@@ -426,8 +565,8 @@ class DuplicateBooksDialog(ModalScreen[Dict[str, Any]]):
         except Exception:
             pass
         
-        # 立即关闭对话框（不等待后台线程）
-        self.dismiss({"refresh": False, "cancelled": True})
+        # 立即关闭对话框（不等待后台线程）；已检测出的分组与选择自动暂存
+        self._dismiss_with_sync({"refresh": False, "cancelled": True})
     
     def action_toggle_row(self) -> None:
         """切换当前行选中状态"""
@@ -734,8 +873,8 @@ class DuplicateBooksDialog(ModalScreen[Dict[str, Any]]):
 
     @on(Button.Pressed, "#cancel-btn")
     def on_cancel_pressed(self) -> None:
-        """取消按钮按下时的回调"""
-        self.dismiss({"refresh": False})
+        """取消按钮按下时的回调（自动暂存当前进度）"""
+        self._dismiss_with_sync({"refresh": False})
     
     @on(Button.Pressed, "#next-group-btn")
     def on_next_group_pressed(self) -> None:
@@ -779,6 +918,39 @@ class DuplicateBooksDialog(ModalScreen[Dict[str, Any]]):
     def on_skip_group_pressed(self) -> None:
         """跳过按钮回调"""
         self.action_skip_group()
+
+    def _deselect_groups_range(self, before: bool) -> None:
+        """取消当前组之前/之后所有组内书籍的选中状态（不含当前组）"""
+        if not self.duplicate_groups:
+            return
+        idx = self.current_group_index
+        target_groups = (
+            self.duplicate_groups[:idx] if before
+            else self.duplicate_groups[idx + 1:]
+        )
+        paths = {book.path for group in target_groups for book in group.books}
+        removed = len(paths & self.selected_books)
+        self.selected_books.difference_update(paths)
+
+        # 刷新表格勾选标记、状态栏与顶部说明
+        self._display_duplicate_group(self.current_group_index)
+        self._refresh_description()
+
+        key = "duplicate_books.deselect_before_result" if before else "duplicate_books.deselect_after_result"
+        self.notify(
+            get_global_i18n().t(key, groups=len(target_groups), count=removed),
+            timeout=3,
+        )
+
+    @on(Button.Pressed, "#deselect-before-btn")
+    def on_deselect_before_pressed(self) -> None:
+        """取消当前组之前所有组的选中状态"""
+        self._deselect_groups_range(before=True)
+
+    @on(Button.Pressed, "#deselect-after-btn")
+    def on_deselect_after_pressed(self) -> None:
+        """取消当前组之后所有组的选中状态"""
+        self._deselect_groups_range(before=False)
 
     @on(Button.Pressed, "#select-recommended-btn")
     def on_select_recommended_pressed(self) -> None:
@@ -888,8 +1060,8 @@ class DuplicateBooksDialog(ModalScreen[Dict[str, Any]]):
                 pass
             self.notify(t("recycle_bin.undo_success", count=result.get("ok", 0)),
                         severity="information")
-            # 恢复后原有重复组缓存已失效，关闭对话框让用户重新检测
-            self.dismiss({"refresh": True, "reopen_deduplicate": True})
+            # 恢复后原有重复组缓存已失效，清除暂存并关闭对话框让用户重新检测
+            self._dismiss_with_sync({"refresh": True, "reopen_deduplicate": True}, clear=True)
 
         self.app.push_screen(
             ConfirmDialog(
@@ -999,44 +1171,44 @@ class DuplicateBooksDialog(ModalScreen[Dict[str, Any]]):
                     severity="warning"
                 )
             
+            # 删完一批立即落盘：即使应用中途退出，也能从暂存继续，无需重新检测
+            self._sync_staging()
+
             # 检查是否还有重复组
             if not self.duplicate_groups:
-                # 没有重复组了，关闭对话框
+                # 没有重复组了，清除暂存并关闭对话框
                 self.notify(get_global_i18n().t("duplicate_books.all_duplicates_processed"), severity="information")
-                self.dismiss({"refresh": True})
+                self._dismiss_with_sync({"refresh": True}, clear=True)
                 return
             
             # 检查当前组索引是否仍然有效
             if self.current_group_index >= len(self.duplicate_groups):
                 self.current_group_index = len(self.duplicate_groups) - 1
             
-            # 如果所有批次已完成且没有更多组，关闭对话框
-            if not self.processing_remaining:
-                self.dismiss({"refresh": True})
-            else:
-                # 重新加载当前组，显示更新后的书籍列表
-                if 0 <= self.current_group_index < len(self.duplicate_groups):
-                    self._display_duplicate_group(self.current_group_index)
-                else:
-                    # 如果当前索引无效，显示第一个组
-                    if self.duplicate_groups:
-                        self._display_duplicate_group(0)
-                
-                # 如果发现了新的重复组，显示提示
-                if remaining_books_from_deleted_groups and any(
-                    any(book.path in [rb.path for rb in remaining_books_from_deleted_groups] for book in group.books)
-                    for group in self.duplicate_groups
-                ):
-                    self.notify(
-                        "发现新的重复关系，请检查并处理",
-                        severity="information"
-                    )
-                
-                # 通知用户删除成功但继续处理
+            # 无论后台检测是否仍在继续，只要还有分组就留在弹窗里继续处理，
+            # 避免每删一批都要重新执行一次耗时的全量检测
+            if 0 <= self.current_group_index < len(self.duplicate_groups):
+                self._display_duplicate_group(self.current_group_index)
+            elif self.duplicate_groups:
+                self._display_duplicate_group(0)
+
+            self._refresh_description()
+
+            # 如果发现了新的重复组，显示提示
+            if remaining_books_from_deleted_groups and any(
+                any(book.path in [rb.path for rb in remaining_books_from_deleted_groups] for book in group.books)
+                for group in self.duplicate_groups
+            ):
                 self.notify(
-                    get_global_i18n().t("duplicate_books.books_deleted_continue_processing", count=deleted_count),
+                    "发现新的重复关系，请检查并处理",
                     severity="information"
                 )
+            
+            # 通知用户删除成功但继续处理
+            self.notify(
+                get_global_i18n().t("duplicate_books.books_deleted_continue_processing", count=deleted_count),
+                severity="information"
+            )
         except Exception as e:
             logger.error(f"删除书籍失败: {e}")
             self.notify(get_global_i18n().t("duplicate_books.delete_failed"), severity="error")

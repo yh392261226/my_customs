@@ -46,8 +46,11 @@
     background: $accent;
 }
 
-#duplicate-books-buttons {
+#duplicate-books-buttons,
+#duplicate-books-buttons-nav {
     margin: 1 0 0 0;
+    height: auto;
+    overflow-x: auto;
 }
 
 #duplicate-books-status {

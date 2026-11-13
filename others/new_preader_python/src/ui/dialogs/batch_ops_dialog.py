@@ -26,6 +26,7 @@ from src.ui.dialogs.duplicate_books_dialog import DuplicateBooksDialog
 from src.config.default_config import SUPPORTED_FORMATS
 from src.utils.book_duplicate_detector_optimized import OptimizedBookDuplicateDetector, DuplicateGroup
 from src.utils.book_duplicate_detector_ultra import UltraBookDuplicateDetector  # 新增：超高性能检测器
+from src.utils import dedup_staging
 from src.utils.logger import get_logger
 from src.utils.logger import get_recent_memory_logs
 
@@ -484,6 +485,7 @@ class BatchOpsDialog(ModalScreen[Dict[str, Any]]):
         ("C", "merge_selected", get_global_i18n().t('batch_ops.shortcut_C')),
         ("D", "compare_read", get_global_i18n().t('common.compare_read')),
         ("u", "deduplicate", get_global_i18n().t('common.batch_dedupe')),
+        ("ctrl+d", "resume_dedup", get_global_i18n().t('duplicate_books.resume_dedup')),
         ("w", "set_author", get_global_i18n().t('common.set_author')),
         ("t", "set_tags", get_global_i18n().t('common.set_tags')),
         ("T", "clear_tags", get_global_i18n().t('common.clear_tags')),
@@ -560,6 +562,8 @@ class BatchOpsDialog(ModalScreen[Dict[str, Any]]):
                     Button(get_global_i18n().t("common.merge_mode"), id="merge-mode-btn", variant="primary"),
                     Button(get_global_i18n().t("common.compare_read"), id="compare-read-btn", variant="success"),
                     Button(get_global_i18n().t("common.batch_dedupe"), id="find-duplicates-btn", variant="primary"),
+                    Button(get_global_i18n().t("duplicate_books.resume_dedup"), id="resume-dedup-btn", variant="success", classes="hidden"),
+                    Button(get_global_i18n().t("duplicate_books.discard_staging"), id="clear-dedup-staging-btn", classes="hidden"),
                     Button(get_global_i18n().t("common.set_author"), id="set-author-btn", variant="primary"),
                     Button(get_global_i18n().t("common.set_tags"), id="set-tags-btn", variant="primary"),
                     Button(get_global_i18n().t("common.clear_tags"), id="clear-tags-btn", variant="warning"),
@@ -655,7 +659,118 @@ class BatchOpsDialog(ModalScreen[Dict[str, Any]]):
             table.focus()
         except Exception:
             pass
-    
+
+        # 若存在上次去重的进度暂存，显示「继续上次去重」并提示，避免重复检测
+        summary = self._refresh_resume_buttons()
+        if summary:
+            self.notify(
+                get_global_i18n().t(
+                    "duplicate_books.staging_hint",
+                    count=summary["count"],
+                    saved_at=summary["saved_at"],
+                ),
+                timeout=6,
+            )
+
+    # ─── 批量去重暂存 ───────────────────────────────────────
+
+    def _refresh_resume_buttons(self) -> Optional[Dict[str, Any]]:
+        """按是否存在暂存显示/隐藏「继续上次去重」「清除暂存」按钮"""
+        summary = dedup_staging.staging_summary()
+        for btn_id in ("#resume-dedup-btn", "#clear-dedup-staging-btn"):
+            try:
+                btn = self.query_one(btn_id, Button)
+                if summary:
+                    btn.remove_class("hidden")
+                else:
+                    btn.add_class("hidden")
+            except Exception:
+                pass
+        return summary
+
+    def _run_dedup_detection(self) -> None:
+        """启动一次完整（耗时）的重复检测"""
+        asyncio.create_task(self._find_duplicate_books())
+
+    def _start_dedup_flow(self) -> None:
+        """点击「批量去重」：已有暂存时先确认是否覆盖，避免误丢进度 / 白白重扫"""
+        t = get_global_i18n().t
+        summary = dedup_staging.staging_summary()
+        if not summary:
+            self._run_dedup_detection()
+            return
+
+        def on_confirm(confirmed: Optional[bool]) -> None:
+            if confirmed:
+                dedup_staging.clear_staging()
+                self._refresh_resume_buttons()
+                self._run_dedup_detection()
+
+        self.app.push_screen(
+            ConfirmDialog(
+                self.theme_manager,
+                t("duplicate_books.redetect_confirm_title"),
+                t("duplicate_books.redetect_confirm_message",
+                  count=summary["count"], saved_at=summary["saved_at"]),
+            ),
+            on_confirm,
+        )
+
+    def _resume_dedup_staging(self) -> None:
+        """从暂存恢复检测结果与人工进度，跳过耗时的重复检测"""
+        t = get_global_i18n().t
+        snapshot = dedup_staging.load_staging()
+        if not snapshot:
+            self._refresh_resume_buttons()
+            self.notify(t("duplicate_books.staging_none"), severity="warning", timeout=3)
+            return
+
+        try:
+            groups, state = dedup_staging.restore_snapshot(
+                snapshot, self.bookshelf.get_all_books()
+            )
+        except Exception as e:
+            logger.error(f"恢复去重暂存失败: {e}")
+            groups, state = [], {}
+
+        if not groups:
+            dedup_staging.clear_staging()
+            self._refresh_resume_buttons()
+            self.notify(t("duplicate_books.staging_invalid"), severity="warning", timeout=5)
+            return
+
+        dialog = DuplicateBooksDialog(
+            self.theme_manager,
+            groups,
+            state.get("current_batch", 0),
+            state.get("total_batches", 1),
+            False,  # 恢复自磁盘，不再启动后台检测
+            elapsed_seconds=state.get("elapsed_seconds"),
+            staging_state=state,
+        )
+        self.app.push_screen(dialog, self._on_resumed_dialog_closed)
+
+    def _on_resumed_dialog_closed(self, result: dict) -> None:
+        """从暂存恢复的对话框关闭后，刷新按钮与书籍列表"""
+        self._refresh_resume_buttons()
+        if not result:
+            return
+        try:
+            self.bookshelf._load_books()
+        except Exception as e:
+            logger.debug(f"刷新书库缓存失败（可忽略）: {e}")
+        try:
+            self._load_books()
+            self._update_status()
+        except Exception as e:
+            logger.debug(f"刷新批量操作列表失败（可忽略）: {e}")
+
+    def _clear_dedup_staging(self) -> None:
+        """丢弃上次的去重进度（书库发生较大变化时使用）"""
+        dedup_staging.clear_staging()
+        self._refresh_resume_buttons()
+        self.notify(get_global_i18n().t("duplicate_books.staging_cleared"), timeout=3)
+
     def _load_books(self) -> None:
         """加载书籍数据"""
         # 获取所有书籍
@@ -1806,9 +1921,12 @@ class BatchOpsDialog(ModalScreen[Dict[str, Any]]):
         asyncio.create_task(self._compare_read_selected_books())
 
     def action_deduplicate(self) -> None:
-        """u键 - 批量去重"""
-        import asyncio
-        asyncio.create_task(self._find_duplicate_books())
+        """u键 - 批量去重（已有暂存时先询问是否覆盖）"""
+        self._start_dedup_flow()
+
+    def action_resume_dedup(self) -> None:
+        """ctrl+d - 从上次暂存的进度继续，跳过重复检测"""
+        self._resume_dedup_staging()
 
     def action_set_author(self) -> None:
         """w键 - 设置作者"""
@@ -1863,7 +1981,11 @@ class BatchOpsDialog(ModalScreen[Dict[str, Any]]):
         elif event.button.id == "compare-read-btn":
             await self._compare_read_selected_books()
         elif event.button.id == "find-duplicates-btn":
-            await self._find_duplicate_books()
+            self._start_dedup_flow()
+        elif event.button.id == "resume-dedup-btn":
+            self._resume_dedup_staging()
+        elif event.button.id == "clear-dedup-staging-btn":
+            self._clear_dedup_staging()
         elif event.button.id == "mark-crawled-btn":
             self._mark_selected_as_crawled()
         elif event.button.id == "unmark-crawled-btn":
@@ -3411,6 +3533,9 @@ class BatchOpsDialog(ModalScreen[Dict[str, Any]]):
                                 get_global_i18n().t("duplicate_books.processing_remaining_batches"),
                                 severity="information"
                             )
+
+                        # 对话框关闭时会自动暂存，刷新「继续上次去重」按钮状态
+                        self._refresh_resume_buttons()
                     
                     dialog = DuplicateBooksDialog(
                         self.theme_manager, 
