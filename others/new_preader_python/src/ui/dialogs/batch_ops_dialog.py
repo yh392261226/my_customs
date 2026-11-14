@@ -515,6 +515,9 @@ class BatchOpsDialog(ModalScreen[Dict[str, Any]]):
         self.theme_manager = theme_manager
         self.bookshelf = bookshelf
         self.selected_books: Set[str] = set()
+        # 执行过会改动书籍数据的操作时置位；弹窗不自动关闭，
+        # 等用户主动退出时再把该标志返回给书库页面做一次刷新
+        self._needs_refresh = False
         
         # 分页相关属性
         self._current_page = 1
@@ -1004,7 +1007,7 @@ class BatchOpsDialog(ModalScreen[Dict[str, Any]]):
                 logger.debug(f"设置取消标志时出错: {e}")
             
             # 3. 立即关闭对话框（不等待任何线程）
-            self.dismiss({"refresh": False, "cancelled": True})
+            self.dismiss({"refresh": self._needs_refresh, "cancelled": True})
             event.stop()
         # elif event.key == "d":
         #     # D键执行批量去重
@@ -1727,9 +1730,23 @@ class BatchOpsDialog(ModalScreen[Dict[str, Any]]):
         )
         self.app.push_screen(dialog, handle_jump_result)
 
+    def _mark_changed(self) -> None:
+        """记录本次操作改动了书籍数据，但保持批量操作弹窗打开。
+
+        各操作在调用本方法前已更新数据并清空选中集合；这里统一重绘弹窗内的
+        列表、勾选列与状态栏（停留在弹窗时必须让界面与数据保持一致），并累计
+        「最终关闭弹窗时刷新书库」的标志，避免每做一次操作就退回书库页面。
+        """
+        self._needs_refresh = True
+        try:
+            self._load_books()
+            self._update_status()
+        except Exception as e:
+            logger.debug(f"刷新批量操作弹窗列表失败: {e}")
+
     def action_cancel(self) -> None:
-        """取消返回"""
-        self.dismiss({"refresh": False})
+        """取消返回（仅此处的用户主动关闭才会退出弹窗）"""
+        self.dismiss({"refresh": self._needs_refresh})
 
     def action_clear_search_params(self) -> None:
         """清除搜索参数"""
@@ -2004,8 +2021,8 @@ class BatchOpsDialog(ModalScreen[Dict[str, Any]]):
                         timeout=6,
                     )
             finally:
-                app.call_from_thread(self._load_books)
-                app.call_from_thread(self.dismiss, {"refresh": True})
+                # 合并完成后保持弹窗打开，统一切回主线程重绘列表并累计刷新标志
+                app.call_from_thread(self._mark_changed)
 
         self.app.run_worker(_worker, name="batch-merge-worker", thread=True)
 
@@ -2115,7 +2132,7 @@ class BatchOpsDialog(ModalScreen[Dict[str, Any]]):
         elif event.button.id == "recycle-bin-btn":
             self.action_open_recycle_bin()
         elif event.button.id == "cancel-btn":
-            self.dismiss({"refresh": False})
+            self.dismiss({"refresh": self._needs_refresh})
     
     def _select_all_books(self) -> None:
         """选择当前显示的所有书籍（搜索过滤后的书籍）"""
@@ -2224,8 +2241,8 @@ class BatchOpsDialog(ModalScreen[Dict[str, Any]]):
         self.selected_books.clear()
         self._update_status()
 
-        # 设置返回结果为需要刷新
-        self.dismiss({"refresh": True})
+        # 标记数据已变更：停留在批量操作弹窗，最终关闭时再刷新书库
+        self._mark_changed()
 
     def action_undo_last_operation(self) -> None:
         """U 键 - 撤销最近一次批量删除 / 合并（整批恢复）。"""
@@ -2253,7 +2270,7 @@ class BatchOpsDialog(ModalScreen[Dict[str, Any]]):
             self.notify(t("recycle_bin.undo_success", count=result.get("ok", 0)),
                         severity="information")
             self._load_books()
-            self.dismiss({"refresh": True})
+            self._mark_changed()
 
         self.app.push_screen(
             ConfirmDialog(
@@ -2272,7 +2289,7 @@ class BatchOpsDialog(ModalScreen[Dict[str, Any]]):
             if result and result.get("refresh"):
                 self.bookshelf._load_books()
                 self._load_books()
-                self.dismiss({"refresh": True})
+                self._mark_changed()
 
         self.app.push_screen(
             RecycleBinDialog(self.theme_manager, self.bookshelf), on_close
@@ -2392,8 +2409,8 @@ class BatchOpsDialog(ModalScreen[Dict[str, Any]]):
                 self._clear_table_selection()  # 清除表格的视觉选中状态
                 self._update_status()
                 
-                # 设置返回结果为需要刷新
-                self.dismiss({"refresh": True})
+                # 标记数据已变更：停留在批量操作弹窗，最终关闭时再刷新书库
+                self._mark_changed()
                 
 
                 
@@ -2446,8 +2463,8 @@ class BatchOpsDialog(ModalScreen[Dict[str, Any]]):
                 self._clear_table_selection()  # 清除表格的视觉选中状态
                 self._update_status()
                 
-                # 设置返回结果为需要刷新
-                self.dismiss({"refresh": True})
+                # 标记数据已变更：停留在批量操作弹窗，最终关闭时再刷新书库
+                self._mark_changed()
                 
 
                 
@@ -2549,8 +2566,8 @@ class BatchOpsDialog(ModalScreen[Dict[str, Any]]):
                     self._clear_table_selection()  # 清除表格的视觉选中状态
                     self._update_status()
                     
-                    # 设置返回结果为需要刷新
-                    self.dismiss({"refresh": True})
+                    # 标记数据已变更：停留在批量操作弹窗，最终关闭时再刷新书库
+                    self._mark_changed()
                     
 
                     
@@ -2611,8 +2628,8 @@ class BatchOpsDialog(ModalScreen[Dict[str, Any]]):
                     self._clear_table_selection()  # 清除表格的视觉选中状态
                     self._update_status()
                     
-                    # 设置返回结果为需要刷新
-                    self.dismiss({"refresh": True})
+                    # 标记数据已变更：停留在批量操作弹窗，最终关闭时再刷新书库
+                    self._mark_changed()
                     
                 except Exception as e:
                     logger.error(get_global_i18n().t("batch_ops.remove_missing_failed", error=str(e)))
@@ -3183,8 +3200,8 @@ class BatchOpsDialog(ModalScreen[Dict[str, Any]]):
                             self._clear_table_selection()
                             self._update_status()
                             
-                            # 设置返回结果为需要刷新
-                            self.dismiss({"refresh": True})
+                            # 标记数据已变更：停留在批量操作弹窗，最终关闭时再刷新书库
+                            self._mark_changed()
                         else:
                             self.notify(
                                 get_global_i18n().t("batch_ops.merge_failed"),
@@ -3423,12 +3440,14 @@ class BatchOpsDialog(ModalScreen[Dict[str, Any]]):
                     severity="information"
                 )
                 
-                # 【额外保护】如果已经弹出了窗口，尝试关闭它
+                # 【额外保护】只关闭仍停留在栈顶的去重结果子弹窗；
+                # 若栈顶已回到批量操作弹窗，绝不能 pop，否则会误退回书库页面
                 if getattr(self, '_duplicate_dialog_created', False):
                     try:
-                        self.app.pop_screen()  # 关闭可能存在的空白对话框
-                    except Exception:
-                        pass
+                        if isinstance(self.app.screen, DuplicateBooksDialog):
+                            self.app.pop_screen()
+                    except Exception as e:
+                        logger.debug(f"关闭去重结果弹窗失败: {e}")
                 return
             
             # 使用去重后的完整结果
@@ -3458,8 +3477,8 @@ class BatchOpsDialog(ModalScreen[Dict[str, Any]]):
                         self.selected_books.clear()
                         self._update_status()
                         
-                        # 设置返回结果为需要刷新
-                        self.dismiss({"refresh": True})
+                        # 标记数据已变更：停留在批量操作弹窗，最终关闭时再刷新书库
+                        self._mark_changed()
                 
                 # 显示重复书籍对话框（使用最终去重后的结果）
                 dialog = DuplicateBooksDialog(
@@ -3618,8 +3637,8 @@ class BatchOpsDialog(ModalScreen[Dict[str, Any]]):
                             self.selected_books.clear()
                             self._update_status()
                             
-                            # 设置返回结果为需要刷新
-                            self.dismiss({"refresh": True})
+                            # 标记数据已变更：停留在批量操作弹窗，最终关闭时再刷新书库
+                            self._mark_changed()
                         
                         # 检查是否还有未处理的批次
                         if self._processing_remaining:
@@ -3683,8 +3702,8 @@ class BatchOpsDialog(ModalScreen[Dict[str, Any]]):
                             self.selected_books.clear()
                             self._update_status()
                             
-                            # 设置返回结果为需要刷新
-                            self.dismiss({"refresh": True})
+                            # 标记数据已变更：停留在批量操作弹窗，最终关闭时再刷新书库
+                            self._mark_changed()
                     
                     # 显示重复书籍对话框
                     dialog = DuplicateBooksDialog(

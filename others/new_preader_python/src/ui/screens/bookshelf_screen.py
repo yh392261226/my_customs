@@ -2508,6 +2508,12 @@ class BookshelfScreen(Screen[None]):
         def handle_batch_ops(result: Optional[Dict[str, Any]]) -> None:
             """处理批量操作结果"""
             if result and result.get("refresh"):
+                # 批量操作弹窗内可能直接改动了数据库，先同步底层书库缓存，
+                # 再刷新页面（弹窗只在用户主动关闭时返回一次刷新标志）
+                try:
+                    self.bookshelf._load_books()
+                except Exception as e:
+                    logger.debug(f"刷新书库缓存失败: {e}")
                 # 重新加载书籍数据（保持当前搜索条件）
                 self._load_books(
                     search_keyword=self._search_keyword,
