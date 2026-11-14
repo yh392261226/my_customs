@@ -44,7 +44,9 @@ def _verify_request(headers: Any, query: Any, secret: str) -> bool:
       2. Authorization: Bearer <key>
       3. 查询参数 ?key=<key>（用于 sendBeacon 等无法设置自定义请求头的场景）
     """
+    secret = str(secret or '').strip()
     if not secret:
+        # 开放模式：忽略浏览器书签里残留的 ?key= 和 localStorage 里的旧密钥
         return True
     provided = (headers.get('X-API-Key') or '').strip()
     if not provided:
@@ -53,8 +55,234 @@ def _verify_request(headers: Any, query: Any, secret: str) -> bool:
             provided = auth[len('Bearer '):].strip()
     if not provided:
         vals = query.get('key')
-        provided = (vals[0] if vals else '') or ''
+        provided = str((vals[0] if vals else '') or '').strip()
     return provided == secret
+
+
+def get_runtime_secret() -> str:
+    """返回当前生效的接口密钥；空字符串表示开放模式（不校验密钥）。
+
+    每次请求都重新读取配置，因此设置中心把密钥清空或改掉之后，不用重启
+    「浏览器阅读器服务」也会立即生效；手机书签里的旧 ``?key=`` 在开放模式下
+    会被 ``_verify_request`` / ``check_auth`` 直接忽略。
+    """
+    try:
+        from src.config.config_manager import ConfigManager
+        cfg = ConfigManager.get_instance().get_config() or {}
+        return str((cfg.get('browser_server') or {}).get('api_secret', '') or '').strip()
+    except Exception as e:
+        logger.debug(f"读取接口密钥失败，回退到服务启动时的值: {e}")
+        try:
+            return str(BrowserReaderServerManager.get_instance()._secret or '').strip()
+        except Exception:
+            return ''
+
+
+# --------------------------------------------------------------------------- #
+# 局域网 Web 页面支持
+# --------------------------------------------------------------------------- #
+# 原先统一服务只提供 JSON 接口，阅读器页面是 file:// 单文件，
+# 因此局域网设备拿不到页面。这里让同一个服务额外提供书库入口页与阅读页，
+# 页面与 file:// 版本共用同一份 HTML 生成逻辑与前端资源。
+_WEB_PAGE_PATHS = ("/", "/reader", "/sw.js", "/manifest.webmanifest")
+_reader_page_cache: Dict[str, str] = {}
+_reader_page_cache_lock = threading.Lock()
+_READER_PAGE_CACHE_MAX = 6
+
+
+def _is_private_ipv4(ip: str) -> bool:
+    """判断是否为常见家用/办公局域网地址（排除 VPN 虚拟网段与链路本地地址）。"""
+    parts = (ip or "").split(".")
+    if len(parts) != 4:
+        return False
+    try:
+        n = [int(p) for p in parts]
+    except (TypeError, ValueError):
+        return False
+    return (n[0] == 10
+            or (n[0] == 192 and n[1] == 168)
+            or (n[0] == 172 and 16 <= n[1] <= 31))
+
+
+def get_lan_ip() -> str:
+    """探测本机局域网 IPv4（UDP connect 不实际发包，离线环境也可用）。
+
+    有 VPN / 虚拟网卡时默认出口可能是 198.18.x 之类无法从手机访问的地址，
+    因此优先在候选地址中挑 RFC1918 私有地址。
+    """
+    import socket
+    candidates = []
+    sock = None
+    try:
+        sock = socket.socket(socket.AF_INET, socket.SOCK_DGRAM)
+        sock.settimeout(0.3)
+        sock.connect(("8.8.8.8", 80))
+        candidates.append(sock.getsockname()[0])
+    except Exception:
+        pass
+    finally:
+        try:
+            if sock:
+                sock.close()
+        except Exception:
+            pass
+    try:
+        for info in socket.getaddrinfo(socket.gethostname(), None, socket.AF_INET):
+            candidates.append(info[4][0])
+    except Exception:
+        pass
+    for ip in candidates:
+        if _is_private_ipv4(ip):
+            return ip
+    for ip in candidates:
+        if ip and not ip.startswith("127."):
+            return ip
+    return "127.0.0.1"
+
+
+def _send_web_response(handler: Any, body: str, content_type: str = "text/html; charset=utf-8",
+                       status: int = 200, extra_headers: Optional[Dict[str, str]] = None) -> None:
+    """向浏览器写出 Web 页面资源。"""
+    data = body.encode("utf-8")
+    handler.send_response(status)
+    handler.send_header("Content-type", content_type)
+    handler.send_header("Content-Length", str(len(data)))
+    handler.send_header("Cache-Control", "no-cache")
+    handler.send_header("Access-Control-Allow-Origin", "*")
+    for name, value in (extra_headers or {}).items():
+        handler.send_header(name, value)
+    handler.end_headers()
+    try:
+        handler.wfile.write(data)
+    except (BrokenPipeError, ConnectionResetError):
+        pass
+
+
+def _is_known_book_path(file_path: str) -> bool:
+    """路径白名单：只允许打开书库中登记的书籍，防止局域网设备借 /reader 读取任意文件。"""
+    import os
+    try:
+        from src.core.bookshelf import Bookshelf
+        target = os.path.realpath(file_path)
+        for book in Bookshelf().get_all_books() or []:
+            # Bookshelf 返回 Book 数据对象；兼容 dict 形式以防后续实现变化
+            candidate = book.get("path") if isinstance(book, dict) else getattr(book, "path", "")
+            if candidate and os.path.realpath(candidate) == target:
+                return True
+    except Exception as e:
+        logger.debug(f"书库路径白名单校验失败: {e}")
+    return False
+
+
+def _build_reader_page(file_path: str, req_host: str, req_port: int, secret: str) -> Optional[str]:
+    """生成可通过 HTTP 访问的阅读页；与 file:// 版本是同一套页面与功能。"""
+    import os
+    from pathlib import Path
+    from src.config.config_manager import ConfigManager
+
+    if not file_path or not os.path.isfile(file_path):
+        return None
+    if not _is_known_book_path(file_path):
+        logger.warning(f"拒绝通过局域网打开非书库文件: {file_path}")
+        return None
+
+    try:
+        mtime = int(os.path.getmtime(file_path))
+    except OSError:
+        mtime = 0
+    cache_key = f"{os.path.realpath(file_path)}|{mtime}|{req_host}|{req_port}|{secret}|2"
+    with _reader_page_cache_lock:
+        cached = _reader_page_cache.get(cache_key)
+    if cached:
+        return cached
+
+    try:
+        cfg = ConfigManager.get_instance().get_config()
+        bs = cfg.get("browser_server", {}) or {}
+        content = BrowserReader.read_file_content(file_path)
+        base = f"http://{req_host}:{req_port}"
+        html = BrowserReader.create_reader_html(
+            content,
+            Path(file_path).stem,
+            "light",
+            save_progress_url=f"{base}/save_progress",
+            load_progress_url=f"{base}/load_progress",
+            book_id=Path(file_path).stem,
+            browser_server_host=req_host,
+            browser_server_port=req_port,
+            browser_server_base_port=req_port,
+            file_path=file_path,
+            lock_enabled=bool(bs.get("lock_enabled", False)),
+            api_base_url=base,
+            api_secret=secret,
+        )
+    except Exception as e:
+        logger.error(f"生成局域网阅读页失败: {e}")
+        return None
+
+    with _reader_page_cache_lock:
+        if len(_reader_page_cache) >= _READER_PAGE_CACHE_MAX:
+            _reader_page_cache.pop(next(iter(_reader_page_cache)))
+        _reader_page_cache[cache_key] = html
+    return html
+
+
+def _handle_web_get(handler: Any, path: str, query: Dict[str, Any], secret: str) -> bool:
+    """处理局域网 Web 页面 GET 请求；返回 False 表示交由原有接口逻辑处理。"""
+    import json
+
+    if path not in _WEB_PAGE_PATHS:
+        return False
+    from src.utils.reader_web import SERVICE_WORKER_JS, build_portal_html
+
+    # Service Worker 与 manifest 必须免鉴权：浏览器注册 SW 时无法携带自定义头或密钥
+    if path == "/sw.js":
+        _send_web_response(
+            handler, SERVICE_WORKER_JS, "application/javascript; charset=utf-8",
+            extra_headers={"Service-Worker-Allowed": "/"},
+        )
+        return True
+    if path == "/manifest.webmanifest":
+        manifest = json.dumps({
+            "name": "NewReader 浏览器阅读器", "short_name": "NewReader",
+            "start_url": "/", "display": "standalone", "background_color": "#f5f6f8",
+            "theme_color": "#2f7cf6",
+            "icons": [],
+        }, ensure_ascii=False)
+        _send_web_response(handler, manifest, "application/manifest+json; charset=utf-8")
+        return True
+
+    if not _verify_request(handler.headers, query, secret):
+        _send_web_response(
+            handler,
+            "<!doctype html><meta charset='utf-8'><p style='font:16px/1.8 sans-serif;padding:24px'>"
+            "接口密钥无效，请在访问地址后追加 ?key=&lt;密钥&gt;</p>",
+            status=401,
+        )
+        return True
+
+    if path == "/":
+        _send_web_response(handler, build_portal_html(secret=secret))
+        return True
+
+    # /reader?path=<书库中已登记的书籍路径>
+    file_path = (query.get("path") or [""])[0]
+    host_header = (handler.headers.get("Host") or "").split(":")[0] or "localhost"
+    try:
+        req_port = int(handler.server.server_address[1])
+    except Exception:
+        req_port = 54321
+    html = _build_reader_page(file_path, host_header, req_port, secret)
+    if html is None:
+        _send_web_response(
+            handler,
+            "<!doctype html><meta charset='utf-8'><p style='font:16px/1.8 sans-serif;padding:24px'>"
+            "无法打开该书籍：文件不存在或不在书库中。</p>",
+            status=404,
+        )
+    else:
+        _send_web_response(handler, html)
+    return True
 
 
 def translate_text_via_manager(text: str, target_lang: str = 'zh', source_lang: str = 'auto') -> Dict[str, Any]:
@@ -170,6 +398,8 @@ class BrowserReaderServerManager:
         self._api_thread = None
         # 统一服务是否挂载 /api/* 数据接口（由 start_server 按 browser_server.api_enabled 设置）
         self._serve_api: bool = True
+        # 是否允许局域网访问（开启时统一服务绑定 0.0.0.0）
+        self._lan_enabled: bool = False
         self._callbacks: Dict[str, Dict[str, Any]] = {}
         self._book_progress_data: Dict[str, Dict] = {}
         self._book_annotations: Dict[str, Dict[str, Any]] = {}
@@ -260,13 +490,20 @@ class BrowserReaderServerManager:
             config = config_manager.get_config()
             browser_config = config.get("browser_server", {})
             host = browser_config.get("host", "localhost")
+            # 局域网访问：对外绑定 0.0.0.0，但注入页面的地址仍用配置的 host（本机可用），
+            # HTTP 页面会在浏览器端用 location.origin 自动改用实际访问地址
+            self._lan_enabled = bool(browser_config.get("lan_enabled", False))
+            bind_host = "0.0.0.0" if self._lan_enabled else host
             # 本地统一服务使用的密钥（进度接口与 /api/* 数据接口共用 browser_server.api_secret）
-            self._secret = str(browser_config.get("api_secret", "") or "")
+            # 运行期每个请求都会重新读配置（get_runtime_secret），此处只是启动时的快照
+            self._secret = get_runtime_secret()
             # 是否在同一服务上提供 /api/* 数据接口（api_enabled=false 时仅提供进度接口）
             self._serve_api = bool(browser_config.get("api_enabled", True))
-            # 密钥注入到 /api/* 分发器（开放模式下为空）
+            # 密钥注入到 /api/* 分发器（开放模式下为空）；同时注册动态提供者，
+            # 让设置中心清空/修改密钥后无需重启服务即刻生效
             try:
-                from src.api import set_api_secret
+                from src.api import set_api_secret, set_api_secret_provider
+                set_api_secret_provider(get_runtime_secret)
                 set_api_secret(self._secret)
             except Exception as e:
                 logger.warning(f"注入 API 密钥失败: {e}")
@@ -314,10 +551,14 @@ class BrowserReaderServerManager:
                 logger.info(f"顺延窗口内无可用端口，按设置中心随机端口范围 [{_range_min}, {_range_max}] 兜底")
                 chosen_port = self._find_random_available_port(host, _range_min, _range_max, _max_retry)
 
-            # 启动统一服务器（进度接口 + 可选的 /api/* 数据接口）
-            logger.info(f"尝试启动统一服务 - host: {host}, port: {chosen_port}, serve_api: {self._serve_api}")
+            # 启动统一服务器（进度接口 + 可选的 /api/* 数据接口 + 局域网 Web 页面）
+            logger.info(f"尝试启动统一服务 - bind: {bind_host}, url_host: {host}, port: {chosen_port}, serve_api: {self._serve_api}")
             self._save_url, self._load_url, self._server, self._server_thread = \
-                self._start_custom_server(chosen_port, host, serve_api=self._serve_api)
+                self._start_custom_server(chosen_port, host, serve_api=self._serve_api, bind_host=bind_host)
+            if self._lan_enabled:
+                if not self._secret:
+                    logger.warning("局域网访问已开启但未设置接口密钥，同网段设备可直接访问数据接口，建议配置 browser_server.api_secret")
+                logger.info(f"局域网书库入口: http://{get_lan_ip()}:{chosen_port}/")
             
             logger.info(f"服务器启动结果 - save_url: {self._save_url}, load_url: {self._load_url}")
             if not (self._save_url and self._load_url):
@@ -334,7 +575,8 @@ class BrowserReaderServerManager:
             logger.error(f"启动浏览器阅读器服务器时出错: {e}", exc_info=True)
             return False
     
-    def _start_custom_server(self, port: int, host: str = "localhost", serve_api: bool = True) -> tuple:
+    def _start_custom_server(self, port: int, host: str = "localhost", serve_api: bool = True,
+                             bind_host: Optional[str] = None) -> tuple:
         """启动自定义服务器"""
         from http.server import BaseHTTPRequestHandler
         import json
@@ -349,7 +591,8 @@ class BrowserReaderServerManager:
                 parsed = urlparse(self.path)
                 path = parsed.path
                 query = parse_qs(parsed.query)
-                secret = BrowserReaderServerManager.get_instance()._secret
+                # 每次请求读当前配置：设置中心清空密钥后立即进入开放模式，无需重启服务
+                secret = get_runtime_secret()
 
                 # 健康检查：仅返回状态与实例标识，且需被无密钥的本地/远程健康探测访问，故保持开放
                 if path == '/health_check':
@@ -358,6 +601,11 @@ class BrowserReaderServerManager:
                     self.send_header('Access-Control-Allow-Origin', '*')
                     self.end_headers()
                     self.wfile.write(json.dumps({"status": "ok", "instance": PROCESS_INSTANCE_ID}).encode())
+                    return
+
+                # 局域网 Web 页面：书库入口页 / 阅读页 / Service Worker / manifest
+                # （内部自行处理鉴权；不匹配的路径返回 False 继续走原接口逻辑）
+                if _handle_web_get(self, path, query, secret):
                     return
 
                 # 其余读取接口（进度/标注/单词本）均需密钥匹配；开放模式下 secret 为空则放行
@@ -436,7 +684,7 @@ class BrowserReaderServerManager:
                 _parsed = urlparse(self.path)
                 _req_path = _parsed.path
                 _query = parse_qs(_parsed.query)
-                _secret = BrowserReaderServerManager.get_instance()._secret
+                _secret = get_runtime_secret()
                 if not _verify_request(self.headers, _query, _secret):
                     self.send_response(401)
                     self.send_header('Content-type', 'application/json')
@@ -719,7 +967,7 @@ class BrowserReaderServerManager:
             # 使用多线程服务器：避免慢请求（如 /translate 调用外部翻译API）
             # 占满单线程，把 /save_vocab 等普通写入请求堵住
             from http.server import ThreadingHTTPServer
-            server = ThreadingHTTPServer((host, port), CustomProgressHandler)
+            server = ThreadingHTTPServer((bind_host or host, port), CustomProgressHandler)
             # 使用守护线程，这样Python退出时不会等待
             server_thread = threading.Thread(target=server.serve_forever, daemon=True)
             server_thread.start()
@@ -849,6 +1097,54 @@ class BrowserReaderServerManager:
     def get_server_urls(self) -> tuple[Optional[str], Optional[str]]:
         """获取服务器URL"""
         return self._save_url, self._load_url
+
+    def sync_runtime_config(self, secret: Optional[str] = None) -> None:
+        """设置中心保存后热更新接口密钥，无需重启浏览器阅读器服务。
+
+        Args:
+            secret: 设置中心里填写的密钥（留空即开放模式）。传入时同时刷新配置管理器
+                的内存视图，避免 ``save_config(显式 config)`` 只落盘导致 ``get_config()``
+                仍返回旧值；不传则直接沿用当前配置。
+
+        注意：host / port / lan_enabled 决定监听地址，变更仍需重启服务。
+        """
+        try:
+            from src.config.config_manager import ConfigManager
+            cfg = ConfigManager.get_instance().get_config()
+            browser_cfg = cfg.setdefault("browser_server", {})
+            if secret is not None:
+                browser_cfg["api_secret"] = str(secret or "").strip()
+            self._secret = get_runtime_secret()
+            from src.api import set_api_secret, set_api_secret_provider
+            set_api_secret_provider(get_runtime_secret)
+            set_api_secret(self._secret)
+            self._configure_api()
+            logger.info("接口密钥已热更新：" + ("开放模式（不校验密钥）" if not self._secret else "需要密钥"))
+        except Exception as e:
+            logger.warning(f"同步浏览器阅读器运行配置失败: {e}")
+
+    def get_lan_access_url(self) -> Optional[str]:
+        """返回可直接复制到手机/平板的局域网访问地址。
+
+        未开启局域网访问或服务未启动时返回 None；配置了接口密钥时地址会带上 ``?key=``，
+        便于移动设备首次打开即可通过鉴权，之后密钥由浏览器 localStorage 保存。
+        """
+        if not getattr(self, "_lan_enabled", False) or not self._save_url:
+            return None
+        try:
+            from urllib.parse import quote, urlparse
+            port = urlparse(self._save_url).port
+        except Exception:
+            port = None
+        if not port:
+            return None
+        # 密钥可能刚在设置中心被清空/修改，展示的地址也要同步更新
+        secret = get_runtime_secret()
+        self._secret = secret
+        url = f"http://{get_lan_ip()}:{port}/"
+        if secret:
+            url += "?key=" + quote(secret, safe="")
+        return url
     
     def register_callbacks(self, book_id: str, 
                           on_progress_save: Optional[Callable] = None,

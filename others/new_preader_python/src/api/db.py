@@ -45,7 +45,7 @@ COLLECTIONS: Dict[str, Dict[str, Any]] = {
         "table": "books",
         "pk": "path",
         "pk_type": "text",
-        "search": ["title", "author", "pinyin", "tags", "format", "metadata"],
+        "search": ["title", "author", "pinyin", "tags", "format", "metadata", "path"],
         "order_by": "add_date DESC",
     },
     "websites": {
@@ -84,6 +84,23 @@ def get_columns(table: str) -> List[str]:
         conn.close()
     _COLUMN_CACHE[table] = cols
     return cols
+
+
+# 离线书单索引只取轻量字段，避免把 metadata（章节正文）整表读进内存与 JSON
+BOOK_INDEX_COLUMNS = ("path", "title", "author", "format", "pinyin", "tags", "status")
+
+
+def list_book_index() -> List[Dict[str, Any]]:
+    """返回全量书籍的精简索引（不分页），供浏览器端离线书库与离线搜索使用。"""
+    cols = [c for c in BOOK_INDEX_COLUMNS if c in set(get_columns("books"))]
+    if not cols:
+        return []
+    sql = "SELECT %s FROM books ORDER BY add_date DESC" % ", ".join(cols)
+    conn = get_conn()
+    try:
+        return rows_to_dicts(conn.execute(sql).fetchall())
+    finally:
+        conn.close()
 
 
 def query_paginated(collection: str, q: str, page: int, page_size: int, offset: int,

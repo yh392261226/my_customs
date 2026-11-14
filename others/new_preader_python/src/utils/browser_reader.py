@@ -13169,9 +13169,26 @@ class BrowserReader:
         except Exception as _lock_e:
             logger.warning(f"注入锁屏早期脚本失败: {_lock_e}")
 
+        # 局域网 / 响应式 / 在线离线并存资源（桌面端零影响）
+        # 采用注入方式而非改写上万行的主模板；失败时静默降级为原有页面
+        try:
+            from src.utils.reader_web import RESPONSIVE_CSS, MOBILE_HTML, render_reader_web_js
+            web_css, web_html, web_js = RESPONSIVE_CSS, MOBILE_HTML, render_reader_web_js()
+        except Exception as _web_e:
+            logger.warning(f"载入浏览器阅读器 Web 适配资源失败，沿用原页面: {_web_e}")
+            web_css = web_html = web_js = ""
+
         # 注入增强功能（CSS / HTML / JS）
-        html = html.replace('</style>', EXTRA_READER_CSS + LOCK_SCREEN_CSS + SYNC_CSS + '</style>', 1)
-        html = html.replace('</body>', EXTRA_READER_HTML + SYNC_HTML + '<script>' + EXTRA_READER_JS + '</script>' + '<script>' + LOCK_SCREEN_JS + '</script>' + '<script>' + SYNC_JS + '</script>' + '<script>' + ENCRYPTED_PDF_JS + '</script>' + '</body>', 1)
+        html = html.replace('</style>', EXTRA_READER_CSS + LOCK_SCREEN_CSS + SYNC_CSS + web_css + '</style>', 1)
+        html = html.replace(
+            '</body>',
+            EXTRA_READER_HTML + SYNC_HTML + web_html
+            + '<script>' + EXTRA_READER_JS + '</script>'
+            + '<script>' + LOCK_SCREEN_JS + '</script>'
+            + '<script>' + SYNC_JS + '</script>'
+            + '<script>' + ENCRYPTED_PDF_JS + '</script>'
+            + ('<script>' + web_js + '</script>' if web_js else '')
+            + '</body>', 1)
         
 
         # Python端翻译处理 - 替换所有{t('browser_reader.xxx')}占位符
@@ -13978,10 +13995,11 @@ class BrowserReader:
         config = config_manager.get_config()
         browser_server_config = config.get("browser_server", {})
 
-        # 本地阅读器服务使用的密钥（与 API 服务共用 browser_server.api_secret）
+        # 密钥每次请求都读当前配置：留空即开放模式，设置中心改动后无需重启服务。
         # 延迟导入以避免循环依赖；_verify_request 与 BrowserReaderServerManager 同源
-        from src.utils.browser_reader_server_manager import _verify_request as _verify_func
-        _reader_secret = str(browser_server_config.get("api_secret", "") or "")
+        from src.utils.browser_reader_server_manager import (
+            _verify_request as _verify_func, get_runtime_secret
+        )
 
         # 获取配置
         host = browser_server_config.get("host", "localhost")
@@ -14075,7 +14093,7 @@ class BrowserReader:
                     return
 
                 # 其余读取接口（进度/标注）均需密钥匹配；开放模式下 secret 为空则放行
-                if not _verify_func(self.headers, parsed_q, _reader_secret):
+                if not _verify_func(self.headers, parsed_q, get_runtime_secret()):
                     self.send_response(401)
                     self.send_header('Content-type', 'application/json')
                     self.send_header('Access-Control-Allow-Origin', '*')
@@ -14158,7 +14176,7 @@ class BrowserReader:
                 parsed_q = parse_qs(urlparse(self.path).query)
 
                 # 所有写接口均需密钥匹配；开放模式下 secret 为空则放行
-                if not _verify_func(self.headers, parsed_q, _reader_secret):
+                if not _verify_func(self.headers, parsed_q, get_runtime_secret()):
                     self.send_response(401)
                     self.send_header('Content-type', 'application/json')
                     self.send_header('Access-Control-Allow-Origin', '*')

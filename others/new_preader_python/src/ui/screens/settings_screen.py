@@ -557,6 +557,19 @@ class SettingsScreen(Screen[Any]):
                         id="microsoft-region-input"
                     )
 
+    def _get_lan_access_text(self) -> str:
+        """生成可复制到手机/平板浏览器的局域网访问地址说明。"""
+        i18n = get_global_i18n()
+        try:
+            from src.utils.browser_reader_server_manager import get_browser_reader_server_manager
+            url = get_browser_reader_server_manager().get_lan_access_url()
+        except Exception as e:
+            logger.debug(f"获取局域网访问地址失败: {e}")
+            url = None
+        if url:
+            return f"{i18n.t('settings.lan_address')}: {url}"
+        return i18n.t('settings.lan_address_hint')
+
     def _compose_browser_settings(self) -> ComposeResult:
         """组合浏览器设置"""
         with ScrollableContainer(id="browser-settings"):
@@ -643,6 +656,16 @@ class SettingsScreen(Screen[Any]):
                 )
             yield Label(get_global_i18n().t("settings.mobile_start_url_help"), classes="setting-description")
 
+            # 局域网访问（手机 / 平板）
+            yield Static("─", classes="setting-separator")
+            yield Label(get_global_i18n().t("settings.lan_access"), classes="setting-section-title")
+            yield Label(get_global_i18n().t("settings.lan_enabled"), classes="setting-label")
+            lan_setting = self.setting_registry.get_setting("browser_server.lan_enabled")
+            if lan_setting:
+                yield Switch(value=lan_setting.value, id="browser-lan-enabled-switch")
+            yield Label(get_global_i18n().t("settings.lan_enabled_help"), classes="setting-description")
+            yield Label(self._get_lan_access_text(), id="browser-lan-address-label", classes="setting-description")
+
             # 分隔线
             yield Static("─", classes="setting-separator")
             yield Label(get_global_i18n().t("settings.browser_server"), classes="setting-section-title")
@@ -726,7 +749,7 @@ class SettingsScreen(Screen[Any]):
                 )
 
             # 后端接口密钥
-            yield Label("后端接口密钥（浏览器阅读器须使用相同密钥才能访问；留空为开放模式）", classes="setting-label")
+            yield Label("后端接口密钥（浏览器阅读器须使用相同密钥才能访问；留空为开放模式，不验证密钥，保存后立即生效）", classes="setting-label")
             api_secret_setting = self.setting_registry.get_setting("browser_server.api_secret")
             if api_secret_setting:
                 yield password_field(
@@ -1247,6 +1270,15 @@ class SettingsScreen(Screen[Any]):
         
         return True  # 默认允许未知按钮
     
+    def _sync_reader_secret(self) -> None:
+        """让接口密钥改动立即生效（留空即开放模式，无需重启浏览器阅读器服务）。"""
+        try:
+            from src.utils.browser_reader_server_manager import BrowserReaderServerManager
+            secret = str(self.setting_registry.get_value("browser_server.api_secret", "") or "").strip()
+            BrowserReaderServerManager.get_instance().sync_runtime_config(secret)
+        except Exception as e:
+            logger.debug(f"同步浏览器阅读器接口密钥失败（可忽略）: {e}")
+
     def _save_settings(self) -> None:
         """保存设置"""
         try:
@@ -1257,6 +1289,8 @@ class SettingsScreen(Screen[Any]):
             if self.config_adapter.save_settings_to_config():
                 # 通知所有设置变更
                 self._notify_setting_changes()
+                # 密钥清空/修改后无需重启服务；否则页面/进度接口仍会按旧密钥校验
+                self._sync_reader_secret()
                 # 设置中心保存后：同步 appearance.theme 并立即应用刷新
                 try:
                     desired = self.setting_registry.get_value("appearance.theme", None)
@@ -1316,6 +1350,8 @@ class SettingsScreen(Screen[Any]):
             if count > 0:
                 # 重新加载UI
                 self._update_ui_from_settings()
+                # 重置可能把密钥清空，同步为开放模式，避免仍按旧密钥校验
+                self._sync_reader_secret()
                 self.notify(
                     get_global_i18n().t("settings.reset_success", count=count),
                     severity="information"
@@ -1511,6 +1547,13 @@ class SettingsScreen(Screen[Any]):
             pass
         except Exception:
             pass
+
+        # 局域网访问开关（修改后需重启浏览器阅读器服务才生效）
+        try:
+            lan_switch = self.query_one("#browser-lan-enabled-switch", Switch)
+            self.setting_registry.set_value("browser_server.lan_enabled", lan_switch.value)
+        except Exception as e:
+            logger.debug(f"保存局域网访问开关失败（可忽略）: {e}")
 
         # 手机模拟器默认网址（留空回退到默认值）
         try:

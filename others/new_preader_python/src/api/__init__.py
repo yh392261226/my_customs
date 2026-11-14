@@ -13,6 +13,8 @@ from .server import (  # noqa: F401
     get_api_base_url,
     set_open_book_callback,
     set_api_secret,
+    set_api_secret_provider,
+    get_api_secret,
     dispatch_api,
     is_api_path,
 )
@@ -22,6 +24,8 @@ __all__ = [
     "get_api_base_url",
     "set_open_book_callback",
     "set_api_secret",
+    "set_api_secret_provider",
+    "get_api_secret",
     "dispatch_api",
     "is_api_path",
 ]

@@ -162,6 +162,16 @@ def route_list(collection: str, query: Dict[str, List[str]]) -> Dict[str, Any]:
     }
 
 
+def route_book_index() -> Dict[str, Any]:
+    """全量精简书单（不分页）：浏览器阅读器用它做离线书库与离线搜索。
+
+    主列表走 :func:`route_list` 的服务端分页；这里只提供轻量索引，
+    不含 metadata/章节正文，避免为离线缓存反复翻页请求。
+    """
+    items = db.list_book_index()
+    return {"success": True, "collection": "books", "items": items, "total": len(items)}
+
+
 def route_get(collection: str, pk: Any) -> Optional[Dict[str, Any]]:
     item = db.get_one(collection, pk)
     if item is None:

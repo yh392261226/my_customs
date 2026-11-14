@@ -93,6 +93,7 @@ class WebReaderScreen(QuickIsolationMixin, Screen[None]):
                     Label("", id="wr-host-label", classes="wr-info-line"),
                     Label("", id="wr-port-label", classes="wr-info-line"),
                     Label("", id="wr-addr-label", classes="wr-info-line"),
+                    Label("", id="wr-lan-label", classes="wr-info-line"),
                     classes="wr-panel",
                     id="wr-info-panel",
                 ),
@@ -226,6 +227,15 @@ class WebReaderScreen(QuickIsolationMixin, Screen[None]):
             self.query_one("#wr-host-label", Label).update(f"{i18n.t('common.host')}: {host}")
             self.query_one("#wr-port-label", Label).update(f"{i18n.t('common.port')}: {port}")
             self.query_one("#wr-addr-label", Label).update(f"{i18n.t('web_reader.address')}: http://{host}:{port}")
+            try:
+                lan_url = self._get_server_manager().get_lan_access_url()
+            except Exception:
+                lan_url = None
+            lan_text = (
+                f"{i18n.t('web_reader.lan_address')}: {lan_url}"
+                if lan_url else i18n.t('web_reader.lan_disabled')
+            )
+            self.query_one("#wr-lan-label", Label).update(lan_text)
             toggle_btn = self.query_one("#wr-toggle-btn", Button)
             toggle_btn.label = i18n.t('web_reader.toggle_server_stop') if running else i18n.t('web_reader.toggle_server')
         except Exception as e:

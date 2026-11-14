@@ -744,6 +744,15 @@ def create_browser_settings() -> SettingSection:
         category="browser"
     ))
 
+    # 局域网访问：开启后统一服务绑定 0.0.0.0，供手机/平板访问书库与阅读页
+    section.add_setting(BooleanSetting(
+        key="browser_server.lan_enabled",
+        default_value=False,
+        display_name="允许局域网访问",  # 将在UI中通过国际化显示
+        description="开启后手机/平板可通过 http://<本机局域网IP>:<端口> 打开书库与阅读页；建议同时设置接口密钥",
+        category="browser"
+    ))
+
     return section
 
 def create_path_settings() -> SettingSection:

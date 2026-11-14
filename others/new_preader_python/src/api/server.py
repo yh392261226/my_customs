@@ -29,6 +29,8 @@ COLLECTIONS = ("books", "websites", "crawls")
 
 # 服务端密钥：由 set_api_secret/start_api_server 注入；为空表示开放模式（不校验）
 _API_SECRET = ""
+# 动态密钥提供者：由浏览器阅读器统一服务注册，使密钥改动无需重启服务即可生效
+_API_SECRET_PROVIDER = None
 # 打开书籍回调：由上层（管理器）注入，签名为 open_cb(path) -> (success, message) 或 bool
 _OPEN_BOOK_CB = None
 
@@ -45,6 +47,28 @@ def set_api_secret(secret) -> None:
     _API_SECRET = secret or ""
 
 
+def set_api_secret_provider(provider) -> None:
+    """注册动态密钥提供者：``provider()`` 返回当前密钥，空字符串表示开放模式；
+    传 ``None`` 可注销，退回静态的 ``_API_SECRET``。
+
+    浏览器阅读器统一服务用它让设置中心「清空密钥」/「修改密钥」立即生效，
+    不必重启服务，也不必担心调用方忘了同步静态的 ``_API_SECRET``。
+    """
+    global _API_SECRET_PROVIDER
+    _API_SECRET_PROVIDER = provider
+
+
+def get_api_secret() -> str:
+    """返回当前生效的密钥；空字符串表示不校验密钥（开放模式）。"""
+    provider = _API_SECRET_PROVIDER
+    if provider is not None:
+        try:
+            return str(provider() or "").strip()
+        except Exception:
+            pass
+    return str(_API_SECRET or "").strip()
+
+
 def raw_request_path(handler: BaseHTTPRequestHandler) -> str:
     """从原始请求行解析路径，避免 %2F 等被 HTTP 服务器提前解码为 / 而破坏路由。"""
     line = getattr(handler, "raw_requestline", None)
@@ -58,18 +82,19 @@ def raw_request_path(handler: BaseHTTPRequestHandler) -> str:
 
 def check_auth(handler: BaseHTTPRequestHandler) -> bool:
     """校验请求密钥。服务端未配置密钥时放行（开放模式）。"""
-    secret = _API_SECRET
+    secret = get_api_secret()
     if not secret:
+        # 开放模式：忽略浏览器书签里残留的 ?key= 和 localStorage 里的旧密钥
         return True
-    provided = handler.headers.get("X-API-Key") or ""
+    provided = (handler.headers.get("X-API-Key") or "").strip()
     if not provided:
         auth = handler.headers.get("Authorization", "")
         if auth.startswith("Bearer "):
-            provided = auth[len("Bearer "):]
+            provided = auth[len("Bearer "):].strip()
     if not provided:
         q = parse_query(raw_request_path(handler))
         vals = q.get("key")
-        provided = (vals[0] if vals else "") or ""
+        provided = str((vals[0] if vals else "") or "").strip()
     return provided == secret
 
 
@@ -99,6 +124,14 @@ def dispatch_api(handler: BaseHTTPRequestHandler) -> None:
     if raw_path == "/api/health":
         if method == "GET":
             send_json(handler, 200, routes.route_health())
+        else:
+            send_error(handler, 405, "Method Not Allowed")
+        return
+
+    # 必须放在通用 /api/{collection}/{pk} 路由之前，否则 "index" 会被当成书籍主键
+    if raw_path == "/api/books/index":
+        if method == "GET":
+            send_json(handler, 200, routes.route_book_index())
         else:
             send_error(handler, 405, "Method Not Allowed")
         return
@@ -235,6 +268,8 @@ class ApiHandler(BaseHTTPRequestHandler):
 
 def start_api_server(host: str = "localhost", port: int = 54322, secret: str = None):
     """独立启动 API 服务器（兼容旧调用），返回 (server, thread)。secret 非空时要求客户端密钥一致。"""
+    # 独立服务以显式传入的 secret 为准，不受统一服务注册的动态提供者影响
+    set_api_secret_provider(None)
     set_api_secret(secret)
     server = ThreadingHTTPServer((host, port), ApiHandler)
     thread = threading.Thread(target=server.serve_forever, daemon=True)
