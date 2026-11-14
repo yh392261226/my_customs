@@ -292,6 +292,17 @@ class NovelSiteDialog(ModalScreen[Optional[Dict[str, Any]]]):
                         ),
                         id="selectable-settings-container"
                     ),
+
+                    # 一键爬取设置
+                    Vertical(
+                        Horizontal(
+                            Label(get_global_i18n().t('novel_site_dialog.one_click_crawl'), id="enable-one-click-crawl-label"),
+                            Switch(id="enable-one-click-crawl"),  # 默认关闭
+                            id="one-click-crawl-enable-container", classes="form-row"
+                        ),
+                        self._help_row(get_global_i18n().t('novel_site_dialog.one_click_crawl_help')),
+                        id="one-click-crawl-settings-container"
+                    ),
                     id="novel-site-dialog-body", classes="scroll-y"
                 ),
 
@@ -390,7 +401,13 @@ class NovelSiteDialog(ModalScreen[Optional[Dict[str, Any]]]):
         # 选择书籍设置
         selectable_checkbox = self.query_one("#enable-selectable", Switch)
         selectable_checkbox.value = self.novel_site.get("selectable_enabled", True)  # 默认开启
-        
+
+        # 一键爬取设置（旧数据缺列时默认关闭）
+        one_click_crawl_checkbox = self.query_one("#enable-one-click-crawl", Switch)
+        one_click_crawl_checkbox.value = bool(
+            self.novel_site.get("one_click_crawl_enabled", self.novel_site.get("daily_crawl_enabled", False))
+        )
+
         # 星级评分
         rating_select = self.query_one("#rating-select", Select)
         rating_value = self.novel_site.get("rating", 2)  # 默认2星
@@ -535,6 +552,7 @@ class NovelSiteDialog(ModalScreen[Optional[Dict[str, Any]]]):
         parser_select = self.query_one("#parser-select", Select)
         proxy_checkbox = self.query_one("#enable-proxy", Switch)
         selectable_checkbox = self.query_one("#enable-selectable", Switch)
+        one_click_crawl_checkbox = self.query_one("#enable-one-click-crawl", Switch)
         rating_select = self.query_one("#rating-select", Select)
         crawl_header_select = self.query_one("#crawl-header-mode-select", Select)
         
@@ -588,6 +606,7 @@ class NovelSiteDialog(ModalScreen[Optional[Dict[str, Any]]]):
             "parser": parser_value,
             "proxy_enabled": proxy_checkbox.value,
             "selectable_enabled": selectable_checkbox.value,
+            "one_click_crawl_enabled": bool(one_click_crawl_checkbox.value),
             "rating": rating_value,
             "crawl_header_mode": normalize_mode(
                 crawl_header_select.value if crawl_header_select.value != Select.BLANK else MODE_NORMAL

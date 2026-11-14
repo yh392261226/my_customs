@@ -138,9 +138,10 @@ BUTTON_ACTION_OVERRIDES: Dict[str, Dict[str, str]] = {
         "book-details-preview-btn": "preview",
         "book-details-close-btn": "close",
     },
-    # 获取书籍：代理设置(P)
+    # 获取书籍：代理设置(P)、一键爬取(G)
     "GetBooksScreen": {
         "proxy-settings-btn": "open_proxy_list",
+        "one-click-crawl-btn": "one_click_crawl",
     },
     # 解锁屏：回车提交
     "LockScreen": {

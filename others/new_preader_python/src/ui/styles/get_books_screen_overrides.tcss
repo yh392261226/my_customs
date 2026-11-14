@@ -42,7 +42,8 @@
 #get-books-container #get-books-buttons {
     width: 100%;
     height: 4;
-    /* 使用 .btn-row 控制横向与居中 */
+    /* 使用 .btn-row 控制横向与居中；按钮较多时允许横向滚动，避免窄终端裁切 */
+    overflow-x: auto;
 }
 
 #get-books-container #novel-sites-preview {

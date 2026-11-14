@@ -1482,6 +1482,19 @@
     "visual_merge_failed": "Failed to open visual merge page",
     "visual_merge_opened": "Visual merge page opened in browser — drag books to zones and confirm"
   },
+  "one_click_crawl": {
+    "already_running": "One-click crawl is already running, please wait for this round to finish",
+    "finished": "One-click crawl finished",
+    "load_failed": "Failed to load one-click crawl sites: {error}",
+    "no_permission": "No permission to run one-click crawl",
+    "no_sites": "No book site is enabled for one-click crawl. Enable it in the book site editor first",
+    "site_done": "[{name}] finished: {success} succeeded, {failed} failed",
+    "site_failed": "[{name}] auto-crawl failed: {error}",
+    "site_no_new_books": "[{name}] no new books to crawl",
+    "site_no_url": "[{name}] no auto-crawl page configured, skipped",
+    "site_started": "[{name}] async crawl task started ({count} books)",
+    "started": "One-click crawl started: auto-crawling {count} sites concurrently"
+  },
   "get_books": {
     "back": "Back",
     "books-folder-not-exist": "Books folder does not exist",
@@ -1502,6 +1515,7 @@
     "clear_all_invalid_failed": "Clear failed: {error}",
     "clear_all_invalid_no_data": "No invalid records to clear",
     "clear_all_invalid_success": "Clear completed: {success} success, {fail} failed",
+    "one_click_crawl": "One-Click Crawl",
     "description": "Get books from online book websites",
     "no_permission": "No permission",
     "no_sites_found": "No book websites found",
@@ -1718,6 +1732,8 @@
     "crawl_header_normal": "Normal (Desktop)",
     "crawl_header_mobile": "Mobile",
     "crawl_header_help": "Normal keeps the existing desktop headers. Mobile crawls this site with a phone browser fingerprint (mobile UA and mobile request headers), for sites that only serve mobile clients.",
+    "one_click_crawl": "One-Click Crawl",
+    "one_click_crawl_help": "When enabled, clicking \"One-Click Crawl\" (G) on the Get Books page runs this site's Auto-Crawl Books flow. Multiple sites run concurrently in the background without blocking page navigation or other actions.",
     "edit_title": "Edit Book Site",
     "enable_selectable": "Support Book Selection",
     "enter_site_name": "Please enter site name",

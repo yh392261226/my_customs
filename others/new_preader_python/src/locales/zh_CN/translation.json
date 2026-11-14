@@ -1482,6 +1482,19 @@
     "visual_merge_failed": "无法打开可视化补足缺失章节页面",
     "visual_merge_opened": "已在浏览器中打开可视化补足缺失章节页面，拖拽分配后点击确认即可"
   },
+  "one_click_crawl": {
+    "already_running": "一键爬取正在运行中，请等待本轮完成",
+    "finished": "一键爬取已全部完成",
+    "load_failed": "读取一键爬取网站失败: {error}",
+    "no_permission": "无权限执行一键爬取",
+    "no_sites": "尚未设置「一键爬取」的书籍网站，请先在书籍网站编辑页开启该选项",
+    "site_done": "[{name}] 爬取完成：成功 {success} 本，失败 {failed} 本",
+    "site_failed": "[{name}] 自动爬取失败: {error}",
+    "site_no_new_books": "[{name}] 没有新书籍需要爬取",
+    "site_no_url": "[{name}] 未配置自动爬取页面，已跳过",
+    "site_started": "[{name}] 已启动异步爬取任务（{count} 本）",
+    "started": "一键爬取已启动：{count} 个网站并发执行自动爬取"
+  },
   "get_books": {
     "back": "返回",
     "books-folder-not-exist": "书籍目录不存在",
@@ -1502,6 +1515,7 @@
     "clear_all_invalid_failed": "清理失败：{error}",
     "clear_all_invalid_no_data": "没有需要清理的无效记录",
     "clear_all_invalid_success": "清理完成：成功 {success} 条，失败 {fail} 条",
+    "one_click_crawl": "一键爬取",
     "description": "从在线书籍网站获取书籍",
     "no_permission": "无权限",
     "no_sites_found": "没有找到任何书籍网站",
@@ -1718,6 +1732,8 @@
     "crawl_header_normal": "普通",
     "crawl_header_mobile": "手机",
     "crawl_header_help": "「普通」保持原有桌面请求头；「手机」在爬取该网站时模拟手机浏览器（手机 UA 与移动端请求头），适用于只允许手机访问的站点。",
+    "one_click_crawl": "一键爬取",
+    "one_click_crawl_help": "开启后，在「获取书籍」页面点击「一键爬取」(G) 时会自动执行该网站的「自动爬取书籍」流程。多个网站会并发执行，任务在后台运行，不影响页面切换与其他操作。",
     "edit_title": "编辑书籍网站",
     "enable_selectable": "支持选择书籍",
     "enter_site_name": "请输入网站名称",

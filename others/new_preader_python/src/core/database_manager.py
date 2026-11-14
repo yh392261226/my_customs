@@ -442,7 +442,8 @@ class DatabaseManager:
                     auto_crawl_next_rule TEXT DEFAULT '',         -- 自动爬取：下一页规则（返回下一页地址）
                     auto_crawl_format TEXT DEFAULT '',            -- 自动爬取：数据格式 ''自动/json接口/html链接
                     auto_crawl_selector TEXT DEFAULT '',         -- 自动爬取：CSS选择器，用于限定只取页面某个区域
-                    crawl_header_mode TEXT DEFAULT 'normal'      -- 爬取头：'normal'普通(桌面) / 'mobile'手机
+                    crawl_header_mode TEXT DEFAULT 'normal',     -- 爬取头：'normal'普通(桌面) / 'mobile'手机
+                    one_click_crawl_enabled BOOLEAN NOT NULL DEFAULT 0  -- 一键爬取：是否纳入批量任务
                 )
             """)
 
@@ -586,6 +587,9 @@ class DatabaseManager:
 
             # 检查并添加novel_sites表的crawl_header_mode列（爬取头：普通/手机；旧库默认普通）
             self._add_column_if_not_exists(cursor, "novel_sites", "crawl_header_mode", "TEXT", "'normal'")
+
+            # 检查并添加novel_sites表的one_click_crawl_enabled列（一键爬取开关；旧库默认关闭）
+            self._add_column_if_not_exists(cursor, "novel_sites", "one_click_crawl_enabled", "BOOLEAN NOT NULL", "0")
             
             # 检查并添加crawl_history表的新字段（支持增量爬取）
             self._add_column_if_not_exists(cursor, "crawl_history", "book_type", "TEXT", "'短篇'")
@@ -621,6 +625,7 @@ class DatabaseManager:
         """执行所有一次性数据库迁移"""
         migrations = (
             ('backfill_crawled_novel_ids_2026', self._migrate_backfill_crawled_novel_ids),
+            ('rename_daily_crawl_to_one_click_2026', self._migrate_daily_crawl_to_one_click),
         )
         for name, func in migrations:
             if self._has_migration(cursor, name):
@@ -650,6 +655,19 @@ class DatabaseManager:
             GROUP BY site_id, novel_id
         """)
         logger.info(f"已爬取书籍ID账本回填完成，新增 {cursor.rowcount} 条记录")
+
+    def _migrate_daily_crawl_to_one_click(self, cursor: sqlite3.Cursor) -> None:
+        """一次性迁移：「每日爬取」更名为「一键爬取」后，把旧列的开关值复制到新列。
+
+        旧列 daily_crawl_enabled 保留不删（SQLite 删列代价高且无必要），
+        后续读写统一走 one_click_crawl_enabled，本迁移只执行一次，
+        避免每次启动都用旧值覆盖用户之后修改过的设置。
+        """
+        cursor.execute("PRAGMA table_info(novel_sites)")
+        columns = [row[1] for row in cursor.fetchall()]
+        if "daily_crawl_enabled" in columns and "one_click_crawl_enabled" in columns:
+            cursor.execute("UPDATE novel_sites SET one_click_crawl_enabled = daily_crawl_enabled")
+            logger.info(f"一键爬取开关已从旧列迁移，共 {cursor.rowcount} 个网站")
 
     def register_merged_sources(self, site_id: int, merged_file_path: str,
                                 sources: List[Dict[str, Any]]) -> int:
@@ -2116,12 +2134,21 @@ class DatabaseManager:
                 # 爬取头：普通(normal) / 手机(mobile)。此处内联归一化，避免核心 DB 模块依赖工具模块
                 _raw_mode = str(site_data.get("crawl_header_mode") or "").strip().lower()
                 crawl_header_mode = "mobile" if _raw_mode in ("mobile", "phone", "手机", "true", "yes", "on", "1") else "normal"
+                # 一键爬取开关：兼容 bool / int / 字符串，统一存 0/1；
+                # 同时兼容更名前外部仍传入 daily_crawl_enabled 的情况
+                _raw_enabled = site_data.get(
+                    "one_click_crawl_enabled",
+                    site_data.get("daily_crawl_enabled", False),
+                )
+                one_click_crawl_enabled = 1 if str(_raw_enabled).strip().lower() in (
+                    "1", "true", "yes", "on"
+                ) else 0
 
                 if "id" in site_data and site_data["id"]:
                     # 更新现有网站
                     cursor.execute("""
                         UPDATE novel_sites 
-                        SET name = ?, url = ?, storage_folder = ?, proxy_enabled = ?, selectable_enabled = ?, parser = ?, tags = ?, rating = ?, book_id_example = ?, status = ?, url_pattern = ?, search_url = ?, auto_crawl_url = ?, auto_crawl_rule = ?, auto_crawl_pages = ?, auto_crawl_next_rule = ?, auto_crawl_format = ?, auto_crawl_selector = ?, crawl_header_mode = ?, updated_at = ?
+                        SET name = ?, url = ?, storage_folder = ?, proxy_enabled = ?, selectable_enabled = ?, parser = ?, tags = ?, rating = ?, book_id_example = ?, status = ?, url_pattern = ?, search_url = ?, auto_crawl_url = ?, auto_crawl_rule = ?, auto_crawl_pages = ?, auto_crawl_next_rule = ?, auto_crawl_format = ?, auto_crawl_selector = ?, crawl_header_mode = ?, one_click_crawl_enabled = ?, updated_at = ?
                         WHERE id = ?
                     """, (
                         site_data["name"],
@@ -2143,6 +2170,7 @@ class DatabaseManager:
                         site_data.get("auto_crawl_format", ""),  # 自动爬取数据格式
                         site_data.get("auto_crawl_selector", ""),  # 自动爬取CSS选择器
                         crawl_header_mode,  # 爬取头：普通/手机
+                        one_click_crawl_enabled,  # 一键爬取开关
                         now,
                         site_data["id"]
                     ))
@@ -2150,8 +2178,8 @@ class DatabaseManager:
                     # 插入新网站
                     cursor.execute("""
                         INSERT INTO novel_sites 
-                        (name, url, storage_folder, proxy_enabled, selectable_enabled, parser, tags, rating, book_id_example, status, url_pattern, search_url, auto_crawl_url, auto_crawl_rule, auto_crawl_pages, auto_crawl_next_rule, auto_crawl_format, auto_crawl_selector, crawl_header_mode, created_at, updated_at)
-                        VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
+                        (name, url, storage_folder, proxy_enabled, selectable_enabled, parser, tags, rating, book_id_example, status, url_pattern, search_url, auto_crawl_url, auto_crawl_rule, auto_crawl_pages, auto_crawl_next_rule, auto_crawl_format, auto_crawl_selector, crawl_header_mode, one_click_crawl_enabled, created_at, updated_at)
+                        VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
                     """, (
                         site_data["name"],
                         site_data["url"],
@@ -2172,6 +2200,7 @@ class DatabaseManager:
                         site_data.get("auto_crawl_format", ""),  # 自动爬取数据格式
                         site_data.get("auto_crawl_selector", ""),  # 自动爬取CSS选择器
                         crawl_header_mode,  # 爬取头：普通/手机
+                        one_click_crawl_enabled,  # 一键爬取开关
                         now,
                         now
                     ))

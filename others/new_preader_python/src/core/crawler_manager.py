@@ -15,6 +15,10 @@ from src.locales.i18n_manager import get_global_i18n
 
 logger = get_logger(__name__)
 
+# 任务来源：manual = 页面手动触发；one_click = 一键爬取后台批量任务
+CRAWL_SOURCE_MANUAL = "manual"
+CRAWL_SOURCE_ONE_CLICK = "one_click"
+
 class CrawlStatus(Enum):
     """爬取状态枚举"""
     PENDING = "pending"
@@ -41,6 +45,7 @@ class CrawlTask:
     error_message: Optional[str] = None
     parser_override: Optional[str] = None  # 临时覆盖的解析器名称（不写入数据库）
     force: bool = False  # 是否强制爬取（跳过连续失败次数限制，用于手动重试）
+    source: str = CRAWL_SOURCE_MANUAL  # 任务来源，one_click 任务的通知不会广播到各页面 UI
 
 
 class CrawlerManager:
@@ -60,6 +65,9 @@ class CrawlerManager:
             self._running_tasks: Dict[str, asyncio.Task] = {}
             self._status_callbacks: List[Callable] = []
             self._notification_callbacks: List[Callable] = []
+            # 一键爬取任务的专用回调：与页面 UI 回调隔离，避免后台任务串改页面状态
+            self._one_click_status_callbacks: List[Callable] = []
+            self._one_click_notification_callbacks: List[Callable] = []
             self._lock = threading.Lock()
             self._initialized = True
     
@@ -86,17 +94,46 @@ class CrawlerManager:
         with self._lock:
             if callback in self._notification_callbacks:
                 self._notification_callbacks.remove(callback)
-    
+
+    def register_one_click_status_callback(self, callback: Callable) -> None:
+        """注册「一键爬取」任务专用的状态回调"""
+        with self._lock:
+            if callback not in self._one_click_status_callbacks:
+                self._one_click_status_callbacks.append(callback)
+
+    def unregister_one_click_status_callback(self, callback: Callable) -> None:
+        """注销「一键爬取」任务专用的状态回调"""
+        with self._lock:
+            if callback in self._one_click_status_callbacks:
+                self._one_click_status_callbacks.remove(callback)
+
+    def register_one_click_notification_callback(self, callback: Callable) -> None:
+        """注册「一键爬取」任务专用的成功通知回调"""
+        with self._lock:
+            if callback not in self._one_click_notification_callbacks:
+                self._one_click_notification_callbacks.append(callback)
+
+    def unregister_one_click_notification_callback(self, callback: Callable) -> None:
+        """注销「一键爬取」任务专用的成功通知回调"""
+        with self._lock:
+            if callback in self._one_click_notification_callbacks:
+                self._one_click_notification_callbacks.remove(callback)
+
     def _notify_status_change(self, task_id: str) -> None:
-        """通知状态变化"""
+        """通知状态变化（一键爬取任务只通知其专用回调，不干扰页面 UI）"""
         task = self._tasks.get(task_id)
         if task:
             with self._lock:
-                for callback in self._status_callbacks:
-                    try:
-                        callback(task_id, task)
-                    except Exception as e:
-                        logger.error(f"状态回调执行失败: {e}")
+                callbacks = list(
+                    getattr(self, "_one_click_status_callbacks", [])
+                    if getattr(task, "source", CRAWL_SOURCE_MANUAL) == CRAWL_SOURCE_ONE_CLICK
+                    else self._status_callbacks
+                )
+            for callback in callbacks:
+                try:
+                    callback(task_id, task)
+                except Exception as e:
+                    logger.error(f"状态回调执行失败: {e}")
     
     def _notify_crawl_success(self, task_id: str, novel_id: str, novel_title: str, already_exists: bool = False, file_path: str = '') -> None:
         """通知爬取成功
@@ -110,12 +147,17 @@ class CrawlerManager:
                        避免依赖事后查询 crawl_history（尤其是 already_exists=True
                        或非连载模式跳过增量爬取时，crawl_history 可能未被更新）。
         """
+        task = self._tasks.get(task_id)
+        is_one_click = bool(task and getattr(task, "source", CRAWL_SOURCE_MANUAL) == CRAWL_SOURCE_ONE_CLICK)
         with self._lock:
-            for callback in self._notification_callbacks:
-                try:
-                    callback(task_id, novel_id, novel_title, already_exists, file_path)
-                except Exception as e:
-                    logger.error(f"成功通知回调执行失败: {e}")
+            callbacks = list(
+                getattr(self, "_one_click_notification_callbacks", []) if is_one_click else self._notification_callbacks
+            )
+        for callback in callbacks:
+            try:
+                callback(task_id, novel_id, novel_title, already_exists, file_path)
+            except Exception as e:
+                logger.error(f"成功通知回调执行失败: {e}")
     
     def get_active_tasks(self) -> List[CrawlTask]:
         """获取活跃的爬取任务"""
@@ -126,7 +168,7 @@ class CrawlerManager:
         """根据任务ID获取任务"""
         return self._tasks.get(task_id)
     
-    def start_crawl_task(self, site_id: int, novel_ids: List[str], proxy_config: Dict[str, Any], parser_override: Optional[str] = None, force: bool = False) -> str:
+    def start_crawl_task(self, site_id: int, novel_ids: List[str], proxy_config: Dict[str, Any], parser_override: Optional[str] = None, force: bool = False, source: str = CRAWL_SOURCE_MANUAL) -> str:
         """开始新的爬取任务
 
         Args:
@@ -135,6 +177,7 @@ class CrawlerManager:
             proxy_config: 代理配置
             parser_override: 临时覆盖的解析器名称（可选，不写入数据库）
             force: 是否强制爬取（跳过连续失败次数限制，用于手动重试）
+            source: 任务来源（manual/one_click），one_click 不向页面 UI 广播通知
         """
         import uuid
         
@@ -148,7 +191,8 @@ class CrawlerManager:
             status=CrawlStatus.PENDING,
             total=len(novel_ids),
             parser_override=parser_override,
-            force=force
+            force=force,
+            source=source
         )
         
         with self._lock:

@@ -39,6 +39,7 @@ class GetBooksScreen(Screen[None]):
         ("j", "jump_to", get_global_i18n().t('bookshelf.jump_to')),
         ("r", "clear_all_invalid", get_global_i18n().t('common.clean_invalid')),
         ("C", "check_all_sites", get_global_i18n().t('common.one_click_check')),
+        ("G", "one_click_crawl", get_global_i18n().t('get_books.one_click_crawl')),
         ("b", "view_book_catalog", get_global_i18n().t('common.book_toc')),
     ]
 
@@ -103,6 +104,7 @@ class GetBooksScreen(Screen[None]):
                         Button(get_global_i18n().t('common.book_site_manage'), id="novel-sites-btn", classes="btn"),
                         Button(get_global_i18n().t('common.proxy_settings'), id="proxy-settings-btn", classes="btn"),
                         Button(get_global_i18n().t('get_books.check_all'), id="check-all-sites-btn", classes="btn"),
+                        Button(get_global_i18n().t('get_books.one_click_crawl'), id="one-click-crawl-btn", classes="btn", variant="success"),
                         Button(get_global_i18n().t('get_books.clear_all_invalid'), id="clear-all-invalid-btn", classes="btn", variant="error"),
                         Button(get_global_i18n().t('common.book_toc'), id="open-books-folder-btn", classes="btn"),
                         Button(get_global_i18n().t('common.back'), id="back-btn", classes="btn"),
@@ -1012,6 +1014,8 @@ class GetBooksScreen(Screen[None]):
                 self.notify(get_global_i18n().t('get_books.np_manage_proxy'), severity="warning")
         elif event.button.id == "check-all-sites-btn":
             self._check_all_sites_status_async()
+        elif event.button.id == "one-click-crawl-btn":
+            self._start_one_click_crawl()
         elif event.button.id == "clear-all-invalid-btn":
             self._clear_all_invalid_records()
         elif event.button.id == "open-books-folder-btn":
@@ -1309,6 +1313,19 @@ class GetBooksScreen(Screen[None]):
     def action_check_all_sites(self) -> None:
         """C键 - 一键检测所有网站状态"""
         self._check_all_sites_status_async()
+
+    def action_one_click_crawl(self) -> None:
+        """G键 - 对所有开启「一键爬取」的网站并发执行自动爬取书籍"""
+        self._start_one_click_crawl()
+
+    def _start_one_click_crawl(self) -> None:
+        """按钮与 G 快捷键共用入口；任务运行在 App 级，离开本页不会中断。"""
+        try:
+            from src.core.one_click_crawl_manager import get_one_click_crawl_manager
+            get_one_click_crawl_manager(self.app).start()
+        except Exception as e:
+            logger.error(f"启动一键爬取失败: {e}")
+            self.notify(f"{get_global_i18n().t('get_books.one_click_crawl')}: {e}", severity="error")
 
     def action_view_book_catalog(self) -> None:
         """b键 - 打开书籍目录"""
