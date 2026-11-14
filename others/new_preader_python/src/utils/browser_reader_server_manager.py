@@ -215,6 +215,7 @@ def _build_reader_page(file_path: str, req_host: str, req_port: int, secret: str
             lock_enabled=bool(bs.get("lock_enabled", False)),
             api_base_url=base,
             api_secret=secret,
+            progress_sync_enabled=True,
         )
     except Exception as e:
         logger.error(f"生成局域网阅读页失败: {e}")
@@ -272,6 +273,65 @@ def _handle_web_get(handler: Any, path: str, query: Dict[str, Any], secret: str)
         req_port = int(handler.server.server_address[1])
     except Exception:
         req_port = 54321
+
+    # ★ 局域网版阅读页：为该书注册进度落库回调。
+    # 桌面端“在浏览器打开”流程（browser_reader.py:13795）会注册，但 /reader 直链访问不会，
+    # 导致 POST /save_progress 找不到回调、manager.save_progress 返回 False、HTTP 404，
+    # 进度无法同步到服务器。这里用 BookmarkManager 按 book_path 直接落库，与桌面端一致。
+    if file_path:
+        try:
+            from pathlib import Path as _P
+            from src.core.bookmark import BookmarkManager
+            from src.utils.multi_user_manager import MultiUserManager
+            _bm = BookmarkManager()
+            _bid = _P(file_path).stem
+
+            # 与桌面书架保持一致：以当前登录用户的 id 作为落库 user_id，
+            # 这样局域网版保存的进度在桌面书架也能正确读取（避免“同步成功但书架进度不变”）。
+            # get_current_user() 是 MultiUserManager 的静态方法（单用户/超级管理员模式返回 id=1，
+            # 多用户模式返回真实登录用户 id），与书架设置 current_user_id 的来源完全相同。
+            def _get_uid() -> int:
+                try:
+                    _cu = MultiUserManager.get_current_user()
+                    if isinstance(_cu, dict) and _cu.get('id') is not None:
+                        return int(_cu['id'])
+                except Exception:
+                    pass
+                return 0
+
+            def _on_progress_save(progress, scroll_top=0, scroll_height=0,
+                                  current_page=None, total_pages=None, word_count=0):
+                try:
+                    _uid = _get_uid()
+                    _tp = int(total_pages) if total_pages and total_pages > 0 else max(1, int((scroll_height or 0) / 1000))
+                    _cp = int(current_page) if current_page and current_page > 0 else int(progress * _tp)
+                    _bm.save_reading_info(
+                        file_path, current_page=_cp, total_pages=_tp,
+                        reading_progress=float(progress), scroll_top=int(scroll_top or 0),
+                        scroll_height=int(scroll_height or 0), word_count=int(word_count or 0),
+                        user_id=_uid)
+                except Exception as _e:
+                    logger.error(f"局域网版保存阅读进度失败: {_e}", exc_info=True)
+
+            def _on_progress_load(book_id=""):
+                try:
+                    _uid = _get_uid()
+                    _info = _bm.get_reading_info(file_path, user_id=_uid)
+                    if _info and _info.get('progress', 0) > 0:
+                        return {
+                            'progress': _info.get('progress', 0),
+                            'scrollTop': _info.get('scrollTop', 0),
+                            'scrollHeight': _info.get('scrollHeight', 0) or 10000,
+                        }
+                except Exception as _e:
+                    logger.error(f"局域网版加载阅读进度失败: {_e}", exc_info=True)
+                return None
+
+            BrowserReaderServerManager.get_instance().register_callbacks(
+                _bid, on_progress_save=_on_progress_save, on_progress_load=_on_progress_load)
+        except Exception as _e:
+            logger.warning(f"为局域网阅读页注册进度回调失败: {_e}")
+
     html = _build_reader_page(file_path, host_header, req_port, secret)
     if html is None:
         _send_web_response(

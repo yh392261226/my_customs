@@ -2041,7 +2041,8 @@ class BrowserReader:
                         file_path: Optional[str] = None,
                         lock_enabled: bool = False,
                         api_base_url: Optional[str] = None,
-                        api_secret: Optional[str] = None) -> str:
+                        api_secret: Optional[str] = None,
+                        progress_sync_enabled: Optional[bool] = None) -> str:
         """
         创建浏览器阅读器HTML
         
@@ -2144,6 +2145,9 @@ class BrowserReader:
         Returns:
             HTML字符串
         """
+        # 局域网版默认开启进度同步（与离线版对齐）；未显式指定时回退到原默认（禁用，需手动开启）
+        _progress_sync_default = 'true' if progress_sync_enabled else 'false'
+
         # 获取主题设置
         settings = BrowserReader.THEMES.get(theme, BrowserReader.THEMES["light"]).copy()
         
@@ -5068,7 +5072,7 @@ class BrowserReader:
 
         <label>
             <script>document.write(t('browser_reader.line_height_label'));</script>
-            <input type="range" min="1.2" max="2.5" step="0.1" value="{settings['line_height']}" onchange="changeLineHeight(this.value)">
+            <input type="range" id="lineHeightInput" min="1.2" max="2.5" step="0.1" value="{settings['line_height']}" onchange="changeLineHeight(this.value)">
         </label>
 
         <label>
@@ -5665,7 +5669,7 @@ class BrowserReader:
         let isBackendOnline = SAVE_PROGRESS_URL ? true : false;
         
         // 进度同步设置
-        let progressSyncEnabled = localStorage.getItem('progressSyncEnabled') === 'true';
+        let progressSyncEnabled = (localStorage.getItem('progressSyncEnabled') !== null) ? (localStorage.getItem('progressSyncEnabled') === 'true') : {_progress_sync_default};
         let syncInterval = parseInt(localStorage.getItem('syncInterval') || '7200000'); // 默认2小时
         let lastSyncTime = localStorage.getItem('lastSyncTime') || null;
         
@@ -7683,6 +7687,26 @@ class BrowserReader:
             if (letterSpacingValue) letterSpacingValue.textContent = settings.letter_spacing;
             if (wordSpacingValue) wordSpacingValue.textContent = settings.word_spacing;
             if (themeSelect) themeSelect.value = getThemeName(settings);
+
+            // 同步工具栏与字体面板中的其它控件，避免「设置已保存但控件仍显示默认值」的错位
+            const lineHeightInput = document.getElementById('lineHeightInput');
+            if (lineHeightInput) lineHeightInput.value = settings.line_height;
+
+            const fontFamilySelect = document.getElementById('fontFamilySelect');
+            if (fontFamilySelect) {{
+                const _ff = {str(BrowserReader.FONT_FAMILIES)};
+                for (const _k in _ff) {{ if (_ff[_k].value === settings.font_family) {{ fontFamilySelect.value = _k; break; }} }}
+            }}
+            const textAlignSelect = document.getElementById('textAlignSelect');
+            if (textAlignSelect) textAlignSelect.value = settings.text_align;
+            const boldBtn = document.getElementById('boldBtn');
+            if (boldBtn) boldBtn.classList.toggle('active', settings.font_weight === 'bold');
+            const italicBtn = document.getElementById('italicBtn');
+            if (italicBtn) italicBtn.classList.toggle('active', settings.font_style === 'italic');
+            const underlineBtn = document.getElementById('underlineBtn');
+            if (underlineBtn) underlineBtn.classList.toggle('active', settings.text_decoration === 'underline');
+            const paragraphSpacingInputPanel = document.getElementById('paragraphSpacingInputPanel');
+            if (paragraphSpacingInputPanel) paragraphSpacingInputPanel.value = settings.paragraph_spacing;
 
             currentSettings = {{...settings}};
             
