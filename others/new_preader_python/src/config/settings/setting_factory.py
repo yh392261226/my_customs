@@ -555,6 +555,15 @@ def create_advanced_settings() -> SettingSection:
         max_value=365,
         category="advanced"
     ))
+
+    # 爬取书籍格式化重排总开关（与各书籍网站的开关是「与」关系）
+    section.add_setting(BooleanSetting(
+        key="advanced.crawl_format_enabled",
+        default_value=True,
+        display_name="爬取书籍格式化重排",  # 将在UI中通过国际化显示
+        description="总开关：关闭后所有网站爬取的书籍都不重新排版；开启时还需该书籍网站自身的开关同时开启才会重排",
+        category="advanced"
+    ))
     
     return section
 
@@ -725,7 +734,16 @@ def create_browser_settings() -> SettingSection:
         description="浏览器阅读器须使用相同密钥才能访问接口；留空则为开放模式（任何请求均可访问）。请设置一个足够复杂的字符串。",
         category="browser"
     ))
-    
+
+    # 手机模拟器默认网址（ConfigAdapter 会自动创建 mobile_simulator 配置段）
+    section.add_setting(StringSetting(
+        key="mobile_simulator.start_url",
+        default_value="https://www.baidu.com",
+        display_name="手机模拟器默认网址",  # 将在UI中通过国际化显示
+        description="打开手机模拟器时默认加载的网址；留空则使用 https://www.baidu.com",
+        category="browser"
+    ))
+
     return section
 
 def create_path_settings() -> SettingSection:

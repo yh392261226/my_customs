@@ -64,7 +64,8 @@ Container {
 #auto-crawl-url-container,
 #auto-crawl-selector-container,
 #auto-crawl-pages-container,
-#one-click-crawl-enable-container {
+#one-click-crawl-enable-container,
+#format-enable-container {
     width: 100%;
     height: 3;
     margin: 1 0;
@@ -194,7 +195,7 @@ Container {
 }
 
 /* 书籍选择设置容器 */
-#proxy-settings-container, #selectable-settings-container, #one-click-crawl-settings-container {
+#proxy-settings-container, #selectable-settings-container, #one-click-crawl-settings-container, #format-settings-container {
     layout: vertical;
     width: 100%;
     height: auto;

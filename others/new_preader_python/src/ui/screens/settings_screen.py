@@ -632,6 +632,17 @@ class SettingsScreen(Screen[Any]):
                     placeholder=str(monitor_timeout_setting.default_value)
                 )
 
+            # 手机模拟器默认网址
+            yield Label(get_global_i18n().t("settings.mobile_start_url"), classes="setting-label")
+            mobile_start_url_setting = self.setting_registry.get_setting("mobile_simulator.start_url")
+            if mobile_start_url_setting:
+                yield Input(
+                    value=mobile_start_url_setting.value or "",
+                    id="browser-mobile-start-url-input",
+                    placeholder=mobile_start_url_setting.default_value
+                )
+            yield Label(get_global_i18n().t("settings.mobile_start_url_help"), classes="setting-description")
+
             # 分隔线
             yield Static("─", classes="setting-separator")
             yield Label(get_global_i18n().t("settings.browser_server"), classes="setting-section-title")
@@ -802,7 +813,17 @@ class SettingsScreen(Screen[Any]):
                     value=auto_vacuum_setting.value,
                     id="advanced-auto-vacuum-switch"
                 )
-    
+
+            # 爬取书籍格式化重排总开关
+            yield Label(get_global_i18n().t("settings.crawl_format_enabled"), classes="setting-label")
+            crawl_format_setting = self.setting_registry.get_setting("advanced.crawl_format_enabled")
+            if crawl_format_setting:
+                yield Switch(
+                    value=crawl_format_setting.value,
+                    id="advanced-crawl-format-switch"
+                )
+            yield Label(get_global_i18n().t("settings.crawl_format_enabled_help"), classes="setting-description")
+
     def _compose_database_settings(self) -> ComposeResult:
         """组合数据库管理设置"""
         with ScrollableContainer(id="database-settings"):
@@ -1491,6 +1512,20 @@ class SettingsScreen(Screen[Any]):
         except Exception:
             pass
 
+        # 手机模拟器默认网址（留空回退到默认值）
+        try:
+            mobile_start_url_input = self.query_one("#browser-mobile-start-url-input", Input)
+            mobile_start_url = (mobile_start_url_input.value or "").strip()
+            if not mobile_start_url:
+                mobile_url_setting = self.setting_registry.get_setting("mobile_simulator.start_url")
+                mobile_start_url = (
+                    mobile_url_setting.default_value
+                    if mobile_url_setting else "https://www.baidu.com"
+                )
+            self.setting_registry.set_value("mobile_simulator.start_url", mobile_start_url)
+        except Exception as e:
+            logger.debug(f"保存手机模拟器默认网址失败（可忽略）: {e}")
+
         # 浏览器服务器设置
         host_input = self.query_one("#browser-server-host-input", Input)
         self.setting_registry.set_value("browser_server.host", host_input.value)
@@ -1588,6 +1623,13 @@ class SettingsScreen(Screen[Any]):
         library_input = self.query_one("#paths-library-input", Input)
         if library_input.value:
             self.setting_registry.set_value("paths.library", library_input.value)
+
+        # 爬取书籍格式化重排总开关
+        try:
+            crawl_format_switch = self.query_one("#advanced-crawl-format-switch", Switch)
+            self.setting_registry.set_value("advanced.crawl_format_enabled", crawl_format_switch.value)
+        except Exception as e:
+            logger.debug(f"保存格式化重排总开关失败（可忽略）: {e}")
 
     
     def _init_multi_user_password_linkage(self) -> None:

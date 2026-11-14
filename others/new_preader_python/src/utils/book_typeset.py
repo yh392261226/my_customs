@@ -771,6 +771,53 @@ def build_body(title: str, novel_content: dict) -> str:
     return (title.strip() + "\n") if title else ""
 
 
+def build_raw_body(title: str, novel_content: dict) -> str:
+    """
+    生成「不重新排版」的正文：保留网站返回的原始章节标题、段落与换行。
+
+    与 build_body 的区别：不做自动切章、章节编号规范化、段落重排、
+    首行缩进、标点/全角字符归一化；仅补书名行与章节之间的空行，
+    以便阅读器仍能识别章节边界。
+
+    参数同 build_body。
+    """
+    novel_content = novel_content or {}
+    parts = []
+    if title:
+        parts.append(title.strip())
+        parts.append("")
+
+    chapters = novel_content.get('chapters') or []
+    if chapters:
+        for ch in chapters:
+            raw_title = str(ch.get('title', '') or '').strip()
+            content = str(ch.get('content', '') or '').rstrip()
+            # 「未命名章节 / 全文」是解析器造的占位标题，不写进正文
+            if raw_title not in ('', '未命名章节', '全文'):
+                parts.append(raw_title)
+                parts.append("")
+            if content:
+                parts.append(content)
+                parts.append("")
+    else:
+        full_text = str(
+            novel_content.get('total_content') or novel_content.get('content') or ''
+        ).rstrip()
+        if full_text:
+            parts.append(full_text)
+            parts.append("")
+
+    text = "\n".join(parts).rstrip()
+    return text + "\n" if text else ""
+
+
+def build_body_auto(title: str, novel_content: dict, format_enabled: bool = True) -> str:
+    """按两级开关结果选择落盘正文：开启走统一排版，关闭保留站点原始正文。"""
+    if format_enabled:
+        return build_body(title, novel_content)
+    return build_raw_body(title, novel_content)
+
+
 def typeset_novel_content(
     title: str,
     chapters: list = None,

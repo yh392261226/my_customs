@@ -136,6 +136,21 @@ def create_parser(parser_name: str, proxy_config: Optional[Dict[str, Any]] = Non
             except Exception as e:
                 logger.warning(f"应用书籍网站爬取头设置失败，按普通模式继续: {e}")
 
+            # 注入「格式化重排」开关：总开关(设置中心) 与 本站点开关 的与结果。
+            # 放在 create_parser 统一注入，所有创建解析器的入口（爬取任务、
+            # 一键爬取、选择书籍、自动爬取）会自动保持一致。
+            try:
+                from src.utils.crawl_format import resolve_format_enabled
+                format_enabled = resolve_format_enabled(site)
+            except Exception as e:
+                logger.debug(f"读取格式化重排开关失败，按默认开启处理: {e}")
+                format_enabled = True
+            try:
+                parser.format_enabled = format_enabled
+            except (AttributeError, TypeError) as e:
+                # 极少数解析器使用 __slots__ / 只读属性，无法注入，按默认开启处理
+                logger.debug(f"注入格式化重排开关失败，按默认开启处理: {e}")
+
             return parser
         else:
             raise ValueError(f"解析器 {parser_name} 类不存在")

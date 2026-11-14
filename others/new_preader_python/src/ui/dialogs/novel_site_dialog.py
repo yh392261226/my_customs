@@ -303,6 +303,17 @@ class NovelSiteDialog(ModalScreen[Optional[Dict[str, Any]]]):
                         self._help_row(get_global_i18n().t('novel_site_dialog.one_click_crawl_help')),
                         id="one-click-crawl-settings-container"
                     ),
+
+                    # 格式化重排设置
+                    Vertical(
+                        Horizontal(
+                            Label(get_global_i18n().t('novel_site_dialog.format_book'), id="enable-format-label"),
+                            Switch(id="enable-format", value=True),  # 默认开启，保持原有排版行为
+                            id="format-enable-container", classes="form-row"
+                        ),
+                        self._help_row(get_global_i18n().t('novel_site_dialog.format_book_help')),
+                        id="format-settings-container"
+                    ),
                     id="novel-site-dialog-body", classes="scroll-y"
                 ),
 
@@ -407,6 +418,10 @@ class NovelSiteDialog(ModalScreen[Optional[Dict[str, Any]]]):
         one_click_crawl_checkbox.value = bool(
             self.novel_site.get("one_click_crawl_enabled", self.novel_site.get("daily_crawl_enabled", False))
         )
+
+        # 格式化重排设置（旧数据缺列时默认开启）
+        format_checkbox = self.query_one("#enable-format", Switch)
+        format_checkbox.value = bool(self.novel_site.get("format_enabled", True))
 
         # 星级评分
         rating_select = self.query_one("#rating-select", Select)
@@ -553,6 +568,7 @@ class NovelSiteDialog(ModalScreen[Optional[Dict[str, Any]]]):
         proxy_checkbox = self.query_one("#enable-proxy", Switch)
         selectable_checkbox = self.query_one("#enable-selectable", Switch)
         one_click_crawl_checkbox = self.query_one("#enable-one-click-crawl", Switch)
+        format_checkbox = self.query_one("#enable-format", Switch)
         rating_select = self.query_one("#rating-select", Select)
         crawl_header_select = self.query_one("#crawl-header-mode-select", Select)
         
@@ -607,6 +623,7 @@ class NovelSiteDialog(ModalScreen[Optional[Dict[str, Any]]]):
             "proxy_enabled": proxy_checkbox.value,
             "selectable_enabled": selectable_checkbox.value,
             "one_click_crawl_enabled": bool(one_click_crawl_checkbox.value),
+            "format_enabled": bool(format_checkbox.value),
             "rating": rating_value,
             "crawl_header_mode": normalize_mode(
                 crawl_header_select.value if crawl_header_select.value != Select.BLANK else MODE_NORMAL

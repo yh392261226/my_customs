@@ -1529,10 +1529,11 @@ class BaseParser:
             self._last_save_collided = False
         
 
-        # 写入文件（写入前统一按内容自动切分章节，保证落盘即已分章）
-        from src.utils.book_typeset import build_body
+        # 写入文件：总开关与本站开关都开启时才按内容自动切分章节并统一排版，
+        # 否则保留网站返回的原始正文与换行
+        from src.utils.book_typeset import build_body_auto
 
-        body = build_body(title, novel_content)
+        body = build_body_auto(title, novel_content, getattr(self, 'format_enabled', True))
         if not novel_content.get('chapters') and not novel_content.get('total_content') \
                 and not novel_content.get('content'):
             logger.warning(f"小说内容为空，仅保存标题: {title}")

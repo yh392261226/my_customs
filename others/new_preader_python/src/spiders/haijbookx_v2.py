@@ -685,11 +685,14 @@ class HaijBookxParser(BaseParser):
             file_path = candidate
             self._last_save_collided = False
         
-        # 写入文件，使用UTF-8编码（统一排版）
-        from src.utils.book_typeset import typeset_body
+        # 写入文件：两级开关都开启时才统一排版，否则保留原始正文
+        from src.utils.book_typeset import build_raw_body, typeset_body
 
         chapters = novel_content.get('chapters', [])
-        body = typeset_body(title, chapters=chapters) if chapters else (title.strip() + "\n")
+        if getattr(self, 'format_enabled', True):
+            body = typeset_body(title, chapters=chapters) if chapters else (title.strip() + "\n")
+        else:
+            body = build_raw_body(title, novel_content)
         with open(file_path, 'w', encoding='utf-8') as f:
             f.write(body)
         

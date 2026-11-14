@@ -102,7 +102,7 @@ ALLOWED_SORT: Dict[str, List[str]] = {
 ALLOWED_FILTER: Dict[str, List[str]] = {
     "books": ["format", "author", "tags"],
     "crawls": ["status", "book_type", "site_id"],
-    "websites": ["parser", "tags", "selectable_enabled", "one_click_crawl_enabled"],
+    "websites": ["parser", "tags", "selectable_enabled", "one_click_crawl_enabled", "format_enabled"],
 }
 
 
@@ -257,6 +257,7 @@ def _create_website(body: Dict[str, Any], handler) -> Optional[Dict[str, Any]]:
         "proxy_enabled": int(bool(body.get("proxy_enabled", 0))),
         "selectable_enabled": int(body.get("selectable_enabled", 1)),
         "one_click_crawl_enabled": int(bool(body.get("one_click_crawl_enabled", body.get("daily_crawl_enabled", 0)))),
+        "format_enabled": int(bool(body.get("format_enabled", 1))),
         "parser": body.get("parser", ""),
         "tags": body.get("tags", "") or "",
         "rating": int(body.get("rating", 2) or 2),

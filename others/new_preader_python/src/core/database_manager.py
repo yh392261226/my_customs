@@ -443,7 +443,8 @@ class DatabaseManager:
                     auto_crawl_format TEXT DEFAULT '',            -- 自动爬取：数据格式 ''自动/json接口/html链接
                     auto_crawl_selector TEXT DEFAULT '',         -- 自动爬取：CSS选择器，用于限定只取页面某个区域
                     crawl_header_mode TEXT DEFAULT 'normal',     -- 爬取头：'normal'普通(桌面) / 'mobile'手机
-                    one_click_crawl_enabled BOOLEAN NOT NULL DEFAULT 0  -- 一键爬取：是否纳入批量任务
+                    one_click_crawl_enabled BOOLEAN NOT NULL DEFAULT 0, -- 一键爬取：是否纳入批量任务
+                    format_enabled BOOLEAN NOT NULL DEFAULT 1  -- 格式化重排：该网站爬取的书籍是否重新排版（需总开关同时开启）
                 )
             """)
 
@@ -590,6 +591,9 @@ class DatabaseManager:
 
             # 检查并添加novel_sites表的one_click_crawl_enabled列（一键爬取开关；旧库默认关闭）
             self._add_column_if_not_exists(cursor, "novel_sites", "one_click_crawl_enabled", "BOOLEAN NOT NULL", "0")
+
+            # 检查并添加novel_sites表的format_enabled列（格式化重排开关；旧库默认开启，保持原有排版行为）
+            self._add_column_if_not_exists(cursor, "novel_sites", "format_enabled", "BOOLEAN NOT NULL", "1")
             
             # 检查并添加crawl_history表的新字段（支持增量爬取）
             self._add_column_if_not_exists(cursor, "crawl_history", "book_type", "TEXT", "'短篇'")
@@ -2143,12 +2147,16 @@ class DatabaseManager:
                 one_click_crawl_enabled = 1 if str(_raw_enabled).strip().lower() in (
                     "1", "true", "yes", "on"
                 ) else 0
+                # 格式化重排开关：默认开启，兼容旧调用方未传该字段的情况
+                format_enabled = 0 if str(site_data.get("format_enabled", True)).strip().lower() in (
+                    "0", "false", "no", "off"
+                ) else 1
 
                 if "id" in site_data and site_data["id"]:
                     # 更新现有网站
                     cursor.execute("""
                         UPDATE novel_sites 
-                        SET name = ?, url = ?, storage_folder = ?, proxy_enabled = ?, selectable_enabled = ?, parser = ?, tags = ?, rating = ?, book_id_example = ?, status = ?, url_pattern = ?, search_url = ?, auto_crawl_url = ?, auto_crawl_rule = ?, auto_crawl_pages = ?, auto_crawl_next_rule = ?, auto_crawl_format = ?, auto_crawl_selector = ?, crawl_header_mode = ?, one_click_crawl_enabled = ?, updated_at = ?
+                        SET name = ?, url = ?, storage_folder = ?, proxy_enabled = ?, selectable_enabled = ?, parser = ?, tags = ?, rating = ?, book_id_example = ?, status = ?, url_pattern = ?, search_url = ?, auto_crawl_url = ?, auto_crawl_rule = ?, auto_crawl_pages = ?, auto_crawl_next_rule = ?, auto_crawl_format = ?, auto_crawl_selector = ?, crawl_header_mode = ?, one_click_crawl_enabled = ?, format_enabled = ?, updated_at = ?
                         WHERE id = ?
                     """, (
                         site_data["name"],
@@ -2171,6 +2179,7 @@ class DatabaseManager:
                         site_data.get("auto_crawl_selector", ""),  # 自动爬取CSS选择器
                         crawl_header_mode,  # 爬取头：普通/手机
                         one_click_crawl_enabled,  # 一键爬取开关
+                        format_enabled,  # 格式化重排开关
                         now,
                         site_data["id"]
                     ))
@@ -2178,8 +2187,8 @@ class DatabaseManager:
                     # 插入新网站
                     cursor.execute("""
                         INSERT INTO novel_sites 
-                        (name, url, storage_folder, proxy_enabled, selectable_enabled, parser, tags, rating, book_id_example, status, url_pattern, search_url, auto_crawl_url, auto_crawl_rule, auto_crawl_pages, auto_crawl_next_rule, auto_crawl_format, auto_crawl_selector, crawl_header_mode, one_click_crawl_enabled, created_at, updated_at)
-                        VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
+                        (name, url, storage_folder, proxy_enabled, selectable_enabled, parser, tags, rating, book_id_example, status, url_pattern, search_url, auto_crawl_url, auto_crawl_rule, auto_crawl_pages, auto_crawl_next_rule, auto_crawl_format, auto_crawl_selector, crawl_header_mode, one_click_crawl_enabled, format_enabled, created_at, updated_at)
+                        VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
                     """, (
                         site_data["name"],
                         site_data["url"],
@@ -2201,6 +2210,7 @@ class DatabaseManager:
                         site_data.get("auto_crawl_selector", ""),  # 自动爬取CSS选择器
                         crawl_header_mode,  # 爬取头：普通/手机
                         one_click_crawl_enabled,  # 一键爬取开关
+                        format_enabled,  # 格式化重排开关
                         now,
                         now
                     ))

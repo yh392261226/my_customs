@@ -992,6 +992,18 @@ class MobileSimulator:
             logger.debug(f"读取手机模拟器配置失败，使用默认值: {e}")
             return {}
 
+    def _refresh_start_url(self) -> None:
+        """从设置中心读取最新默认网址。
+
+        本类是进程内单例，__init__ 只在首次使用时执行一次；
+        在设置中心修改网址后，需要每次构造打开地址/外壳时重新读取，
+        否则会一直沿用旧的默认值。
+        """
+        url = str(self._read_config().get("start_url") or "").strip()
+        if url and "://" not in url and not url.startswith(("about:", "data:", "file:")):
+            url = "https://" + url
+        self.start_url = url or DEFAULT_START_URL
+
     # ------------------------------------------------------------------ #
     # 服务生命周期
     # ------------------------------------------------------------------ #
@@ -1043,6 +1055,7 @@ class MobileSimulator:
 
     def build_page_url(self, url: str = "", device: str = "", ua: str = "") -> str:
         """构造带 ?url= 参数的模拟器地址（网址参数支持）。"""
+        self._refresh_start_url()
         if not self.start():
             raise RuntimeError("手机模拟器服务未能启动")
         params: Dict[str, str] = {}
@@ -1365,6 +1378,7 @@ class MobileSimulator:
                 return page.encode("utf-8")
 
             def _shell(self) -> None:
+                sim._refresh_start_url()
                 cfg = {
                     "token": sim.token,
                     "devices": DEVICE_PRESETS,
