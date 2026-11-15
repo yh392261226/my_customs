@@ -543,12 +543,18 @@ class CrawlerManager:
             if last_chapter_url and hasattr(parser, 'parse_novel_detail_incremental'):
                 try:
                     logger.info(f"使用增量爬取模式，从URL: {last_chapter_url} 开始")
-                    result = parser.parse_novel_detail_incremental(
-                        novel_id=novel_id,
-                        start_url=last_chapter_url,
-                        title=last_successful.get('novel_title') if last_successful else None,
-                        author=last_successful.get('author', '') if last_successful else None,
-                        start_index=start_index
+                    # 增量爬取内部是同步网络 I/O（含逐章 time.sleep），必须在
+                    # 线程池执行，否则会阻塞主事件循环导致整个 UI 卡死
+                    loop = asyncio.get_running_loop()
+                    result = await loop.run_in_executor(
+                        None,
+                        lambda: parser.parse_novel_detail_incremental(
+                            novel_id=novel_id,
+                            start_url=last_chapter_url,
+                            title=last_successful.get('novel_title') if last_successful else None,
+                            author=last_successful.get('author', '') if last_successful else None,
+                            start_index=start_index
+                        )
                     )
                     
                     used_incremental_crawl = True  # 标记使用了增量爬取
