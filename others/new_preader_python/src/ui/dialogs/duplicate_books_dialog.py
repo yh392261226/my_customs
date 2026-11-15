@@ -88,7 +88,7 @@ class DuplicateBooksDialog(ModalScreen[Dict[str, Any]]):
         self._viewed_groups: set[frozenset] = set()
         if duplicate_groups:
             for book in duplicate_groups[0].recommended_to_delete:
-                self.selected_books.add(book.path)
+                self._select_book(book.path)
             self._viewed_groups.add(self._group_key(duplicate_groups[0]))
 
         # 最近一次删除所属的回收站批次（用于一键撤销）
@@ -195,9 +195,14 @@ class DuplicateBooksDialog(ModalScreen[Dict[str, Any]]):
 
     def _apply_staging_state(self, state: Dict[str, Any]) -> None:
         """套用从暂存恢复的进度，并定位到上次的中断位置"""
-        self.selected_books = set(state.get("selected_books", set()))
-        self.recommended_selected_books = set(state.get("recommended_selected_books", set()))
+        # 先恢复跳过组，再用它过滤历史选中：旧暂存里可能残留「已跳过组」的书籍
+        # 选中项（当年全选/恢复时带入），恢复时一并剔除，保证两套状态一致。
         self.skipped_groups = set(state.get("skipped_groups", set()))
+        restored_selected = set(state.get("selected_books", set()))
+        self.selected_books = {
+            p for p in restored_selected if not self._is_path_skipped(p)
+        }
+        self.recommended_selected_books = set(state.get("recommended_selected_books", set()))
         self._viewed_groups = set(state.get("viewed_groups", set()))
         self.current_batch = int(state.get("current_batch", 0) or 0)
         self.total_batches = int(state.get("total_batches", 1) or 1)
@@ -507,6 +512,22 @@ class DuplicateBooksDialog(ModalScreen[Dict[str, Any]]):
         """判断某书籍路径是否属于任一被跳过的组"""
         return any(path in key for key in self.skipped_groups)
 
+    def _select_book(self, path: str) -> bool:
+        """加入选中集合；属于被跳过组的书一律拒绝（返回是否成功加入）。
+
+        跳过组的书在跳过那一刻已从选中集合移除，但之后可能被「全选」「选中推荐」
+        等操作重新加回来。把所有加选入口统一收敛到这里，保证跳过状态与选中状态
+        始终一致：只要一本书出现在任一被跳过组里，就永远不会被选中。
+        """
+        if self._is_path_skipped(path):
+            return False
+        self.selected_books.add(path)
+        return True
+
+    def _unselect_book(self, path: str) -> None:
+        """从选中集合移除（无副作用，供各处统一调用）"""
+        self.selected_books.discard(path)
+
     def _update_status(self) -> None:
         """更新状态信息"""
         status_label = None
@@ -596,8 +617,8 @@ class DuplicateBooksDialog(ModalScreen[Dict[str, Any]]):
             if book_path in self.selected_books:
                 self.selected_books.remove(book_path)
             else:
-                self.selected_books.add(book_path)
-            
+                self._select_book(book_path)
+
             # 重新加载表格显示
             self._display_duplicate_group(self.current_group_index)
         except Exception as e:
@@ -638,8 +659,7 @@ class DuplicateBooksDialog(ModalScreen[Dict[str, Any]]):
         else:
             added = 0
             for book in current_books:
-                if book.path not in self.selected_books:
-                    self.selected_books.add(book.path)
+                if book.path not in self.selected_books and self._select_book(book.path):
                     added += 1
             self.notify(
                 get_global_i18n().t(
@@ -677,8 +697,7 @@ class DuplicateBooksDialog(ModalScreen[Dict[str, Any]]):
 
             added = 0
             for book in all_books:
-                if book.path not in self.selected_books:
-                    self.selected_books.add(book.path)
+                if book.path not in self.selected_books and self._select_book(book.path):
                     added += 1
             self.notify(
                 get_global_i18n().t(
@@ -790,8 +809,9 @@ class DuplicateBooksDialog(ModalScreen[Dict[str, Any]]):
                 )
                 return
 
-            # 将当前组推荐删除的书籍加入选中集合
-            self.selected_books.update(recommended_paths)
+            # 将当前组推荐删除的书籍加入选中集合（跳过组的书不加入）
+            for path in recommended_paths:
+                self._select_book(path)
 
             # 重新加载当前组表格显示（同步勾选状态）并更新统计信息
             self._display_duplicate_group(self.current_group_index)
@@ -960,11 +980,11 @@ class DuplicateBooksDialog(ModalScreen[Dict[str, Any]]):
         # 清除所有选择
         self.selected_books.clear()
         
-        # 选择所有推荐的删除书籍
+        # 选择所有推荐的删除书籍（跳过组的书不加入）
         for group in self.duplicate_groups:
             for book in group.recommended_to_delete:
-                self.selected_books.add(book.path)
-        
+                self._select_book(book.path)
+
         # 重新加载当前组显示
         self._display_duplicate_group(self.current_group_index)
     
@@ -1017,16 +1037,11 @@ class DuplicateBooksDialog(ModalScreen[Dict[str, Any]]):
         group_index = self.current_group_index
         current_group = self.duplicate_groups[group_index]
 
-        # 当前组是用户正在查看并主动勾选的组：若此前被标记过「跳过」，现在重新处理
-        # 它时先清除跳过标记。表格勾选状态只依据 selected_books，旧的合并校验却额外
-        # 排除了「被跳过组」的书籍，导致用户明明勾选了多本仍提示“至少两本”。
-        current_key = self._group_key(current_group)
-        if current_key in self.skipped_groups:
-            self.skipped_groups.discard(current_key)
-
+        # 合并入口保留跳过组兜底校验：选中集合已由各勾选入口保证不含跳过组的书，
+        # 这里再做一次过滤，避免历史暂存/异常路径带入被跳过的书籍。
         selected_books = [
             book for book in current_group.books
-            if book.path in self.selected_books
+            if book.path in self.selected_books and not self._is_path_skipped(book.path)
         ]
         if len(selected_books) < 2:
             logger.warning(
@@ -1418,8 +1433,8 @@ class DuplicateBooksDialog(ModalScreen[Dict[str, Any]]):
                 if book_path in self.selected_books:
                     self.selected_books.remove(book_path)
                 else:
-                    self.selected_books.add(book_path)
-                
+                    self._select_book(book_path)
+
                 # 重新加载表格显示
                 self._display_duplicate_group(self.current_group_index)
                 event.stop()
