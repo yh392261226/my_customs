@@ -1254,6 +1254,8 @@
     "batch_no_duplicate_processing_next": "第 {batch} 批未找到重复项，继续处理下一批",
     "books_deleted": "成功删除 {count} 本重复书籍",
     "books_deleted_continue_processing": "成功删除 {count} 本重复书籍，后台仍在处理",
+    "merge_selected": "合并选中(c)",
+    "merge_need_at_least_two": "请至少勾选 2 本当前组的书籍进行合并",
     "compare_max_two": "最多只能选择两本书籍进行对比",
     "compare_need_at_least_two": "请选择至少两本书籍进行对比",
     "compare_selected": "对比选中",
@@ -1643,6 +1645,24 @@
     "early_completed": "提前完成：已提交 {merged} 组、跳过 {skipped} 组，舍弃 {discarded} 组未处理",
     "confirm_early_title": "提前完成合并",
     "confirm_early_message": "将提交已处理的 {merge_count} 组并执行合并/删除，剩余 {discarded} 组将被舍弃不再处理。是否继续？"
+  },
+  "dedup_merge": {
+    "title": "合并选中书籍",
+    "table_hint": "勾选要合并的书籍（至少 2 本）· 列表顺序即合并顺序 · k/j 或 ↑↓ 上移下移 · 数字 1-9、0(第10位) 把光标所在行移到指定位置 · m 按章节智能排序 · t 智能标题",
+    "col_check": "选",
+    "col_seq": "序号",
+    "col_title": "书名",
+    "no_site": "无网站",
+    "status": "已勾选 {selected}/{total} 本",
+    "smart_sort": "按章节排序(m)",
+    "smart_sort_failed": "未能按章节排序",
+    "smart_sorted": "已按章节号排序",
+    "site_label": "书籍网站：",
+    "site_hint_multi": "检测到多个书籍网站，请选择合并到哪个网站（合并记录将写入该网站）",
+    "confirm": "确认合并",
+    "files_missing": "可合并的有效文件不足 2 个（文件可能已被移动或删除）",
+    "unknown_author": "未知作者",
+    "no_bookshelf": "无法获取书库对象"
   },
   "merge_mode": {
     "auto_merged_hint": "已自动将 {count} 组相同书籍的不同章节归为一组",

@@ -1,0 +1,122 @@
+/* ───── 去重分组页「合并选中」弹窗样式 ───── */
+
+DedupMergeDialog {
+    align: center middle;
+    background: $background 60%;
+}
+
+DedupMergeDialog Header {
+    dock: top;
+    height: 1;
+}
+
+DedupMergeDialog Footer {
+    dock: bottom;
+    height: 1;
+}
+
+#dedup-merge-container {
+    align: center middle;
+    width: 100%;
+    height: 100%;
+    background: $surface;
+    border: solid $primary;
+    padding: 1 2;
+    layout: vertical;
+    overflow-y: auto;
+}
+
+#dedup-merge-title {
+    width: 100%;
+    height: 1;
+    text-style: bold;
+    color: $accent;
+}
+
+#dedup-merge-hint {
+    width: 100%;
+    height: 2;
+    color: $text-muted;
+    margin-bottom: 1;
+}
+
+#dedup-merge-table {
+    width: 100%;
+    height: 1fr;
+    min-height: 8;
+    margin-bottom: 1;
+}
+
+#dedup-merge-sort-row {
+    width: 100%;
+    height: 3;
+    align: center middle;
+}
+
+#dedup-merge-sort-row Button {
+    margin: 0 1;
+}
+
+#dedup-merge-title-row {
+    width: 100%;
+    height: 3;
+    align: center middle;
+}
+
+#dm-title-label {
+    width: 16;
+    height: 3;
+    padding: 1 0;
+    text-style: bold;
+}
+
+#dm-title-input {
+    width: 40;
+    height: 3;
+}
+
+#dedup-merge-site-row {
+    width: 100%;
+    height: 3;
+    align: center middle;
+}
+
+#dedup-merge-site-row.hidden {
+    display: none;
+}
+
+#dm-site-label {
+    width: 16;
+    height: 3;
+    padding: 1 0;
+    text-style: bold;
+}
+
+#dm-site-select {
+    width: 24;
+    height: 3;
+}
+
+#dm-site-hint {
+    width: auto;
+    height: 3;
+    padding: 1 0 0 2;
+    color: $warning;
+}
+
+#dedup-merge-status {
+    width: 100%;
+    height: 1;
+    color: $text-muted;
+}
+
+#dedup-merge-buttons {
+    width: 100%;
+    height: 3;
+    align: center middle;
+    margin-top: 1;
+}
+
+#dedup-merge-buttons Button {
+    margin: 0 2;
+}

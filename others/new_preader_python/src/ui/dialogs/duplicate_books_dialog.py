@@ -34,6 +34,7 @@ class DuplicateBooksDialog(ModalScreen[Dict[str, Any]]):
         ("a", "toggle_select_current_page", get_global_i18n().t('duplicate_books.toggle_select_current_page')),
         ("A", "toggle_select_all_pages", get_global_i18n().t('duplicate_books.toggle_select_all_pages')),
         ("v", "preview_current", get_global_i18n().t('common.preview')),
+        ("c", "merge_selected", get_global_i18n().t('duplicate_books.merge_selected')),
         ("n", "next_group", get_global_i18n().t('duplicate_books.next_group')),
         ("p", "prev_group", get_global_i18n().t('duplicate_books.prev_group')),
         ("t", "skip_group", get_global_i18n().t('common.skip_group')),
@@ -129,6 +130,7 @@ class DuplicateBooksDialog(ModalScreen[Dict[str, Any]]):
                 Horizontal(
                     Button(get_global_i18n().t("duplicate_books.staging"), id="staging-btn", variant="success"),
                     Button(get_global_i18n().t("duplicate_books.compare_selected"), id="compare-btn", variant="primary"),
+                    Button(get_global_i18n().t("duplicate_books.merge_selected"), id="merge-selected-btn", variant="success"),
                     Button(get_global_i18n().t("duplicate_books.select_recommended"), id="select-recommended-btn", variant="primary"),
                     Button(get_global_i18n().t("common.deselect"), id="deselect-all-btn"),
                     Button(get_global_i18n().t("common.delete_selected"), id="delete-btn", variant="error"),
@@ -1001,7 +1003,137 @@ class DuplicateBooksDialog(ModalScreen[Dict[str, Any]]):
         # 显示比较对话框
         comparison_dialog = BookComparisonDialog(self.theme_manager, selected_books[0], selected_books[1])
         self.app.push_screen(comparison_dialog)
-    
+
+    def action_merge_selected(self) -> None:
+        """c 键 - 合并选中的重复书籍（可调整顺序、智能识别书名/章节、选择书籍网站）"""
+        t = get_global_i18n().t
+        if not self.duplicate_groups or self.current_group_index < 0 \
+                or self.current_group_index >= len(self.duplicate_groups):
+            self.notify(t("duplicate_books.no_books_selected"), severity="warning")
+            return
+
+        # 合并以「当前重复组」为单位：把当前组内勾选的书籍按选中顺序交给合并弹窗，
+        # 顺序调整 / 智能标题 / 网站选择都在 DedupMergeDialog 中完成。
+        group_index = self.current_group_index
+        current_group = self.duplicate_groups[group_index]
+
+        # 当前组是用户正在查看并主动勾选的组：若此前被标记过「跳过」，现在重新处理
+        # 它时先清除跳过标记。表格勾选状态只依据 selected_books，旧的合并校验却额外
+        # 排除了「被跳过组」的书籍，导致用户明明勾选了多本仍提示“至少两本”。
+        current_key = self._group_key(current_group)
+        if current_key in self.skipped_groups:
+            self.skipped_groups.discard(current_key)
+
+        selected_books = [
+            book for book in current_group.books
+            if book.path in self.selected_books
+        ]
+        if len(selected_books) < 2:
+            logger.warning(
+                "去重合并选中：当前组 %d/%d 勾选不足 2 本"
+                "（组内含 %d 本，组内已勾选 %d 本，全局已勾选 %d 本）",
+                group_index + 1, len(self.duplicate_groups), len(current_group.books),
+                sum(1 for b in current_group.books if b.path in self.selected_books),
+                len(self.selected_books),
+            )
+            self.notify(t("duplicate_books.merge_need_at_least_two"), severity="warning")
+            return
+
+        bookshelf = getattr(self.app, "bookshelf", None)
+        db_manager = getattr(bookshelf, "db_manager", None) if bookshelf else None
+
+        from src.ui.dialogs.dedup_merge_dialog import DedupMergeDialog
+
+        def on_merge_result(result: Optional[Dict[str, Any]]) -> None:
+            self._after_dedup_merge(result, bookshelf, group_index)
+
+        self.app.push_screen(
+            DedupMergeDialog(self.theme_manager, selected_books, db_manager=db_manager),
+            on_merge_result,
+        )
+
+    @on(Button.Pressed, "#merge-selected-btn")
+    def on_merge_selected_pressed(self) -> None:
+        self.action_merge_selected()
+
+    def _after_dedup_merge(self, result: Optional[Dict[str, Any]], bookshelf,
+                           group_index: int) -> None:
+        """合并弹窗返回后：用「合并结果 + 未合并书籍」重建原组，停留在原组继续去重。
+
+        - 若原组还有未参与合并的书籍：它们与刚才合并生成的结果一起留在原组，
+          继续按重复书籍处理（重新计算推荐保留/删除），不跳到别组；
+        - 若原组书籍全部参与合并：原组只保留合并生成的结果。
+        """
+        if not result or not result.get("merged"):
+            self._display_duplicate_group(self.current_group_index)
+            return
+
+        merged_paths: set = set(result.get("merged_paths", set()))
+        merged_book: Optional[Book] = result.get("merged_book")
+        batch_id = result.get("batch_id")
+
+        # 记录最近一次回收站批次，便于 u 键撤销合并
+        if batch_id:
+            self._last_recycle_batch_id = batch_id
+
+        # 从选择集合中移除已合并的源书籍
+        for path in merged_paths:
+            self.selected_books.discard(path)
+            self.recommended_selected_books.discard(path)
+
+        # 重建原组：合并结果 + 未参与合并的书籍（保留组内原有顺序位置）
+        if 0 <= group_index < len(self.duplicate_groups):
+            group = self.duplicate_groups[group_index]
+            old_key = self._group_key(group)
+
+            rebuilt_books: List[Book] = []
+            inserted_result = merged_book is None
+            for book in group.books:
+                if book.path in merged_paths:
+                    # 被合并的源书：只在第一本的位置放入合并结果一次
+                    if not inserted_result:
+                        rebuilt_books.append(merged_book)
+                        inserted_result = True
+                else:
+                    rebuilt_books.append(book)
+            if not inserted_result:
+                rebuilt_books.insert(0, merged_book)
+
+            group.books = rebuilt_books
+            # 重新计算推荐保留/删除
+            BookDuplicateDetector._recommend_deletion(group)
+            if len(rebuilt_books) < 2:
+                # 单书组（全部被合并）：只有合并结果，无推荐删除项
+                group.recommended_to_keep = list(rebuilt_books)
+                group.recommended_to_delete = []
+            # 更新稳定标识（组内书籍已变化）
+            self._viewed_groups.discard(old_key)
+            self._viewed_groups.add(self._group_key(group))
+            if old_key in self.skipped_groups:
+                self.skipped_groups.discard(old_key)
+
+        # 合并会改变书库，通知上层刷新列表
+        try:
+            from src.ui.messages import RefreshBookshelfMessage
+            if bookshelf is not None:
+                bookshelf._load_books()
+            self.app.post_message(RefreshBookshelfMessage())
+        except Exception as e:
+            logger.debug(f"合并后刷新书库失败（可忽略）: {e}")
+
+        # 落盘暂存
+        self._sync_staging()
+
+        # 停留在原组继续去重（合并结果与原未合并书籍现已同组）
+        target = max(0, min(group_index, len(self.duplicate_groups) - 1))
+        self._display_duplicate_group(target, preserve_cursor=True)
+        self._refresh_description()
+        self.notify(
+            get_global_i18n().t("recycle_bin.undo_hint"),
+            severity="information",
+            timeout=6,
+        )
+
     @on(Button.Pressed, "#delete-btn")
     def on_delete_pressed(self) -> None:
         """删除按钮按下时的回调"""

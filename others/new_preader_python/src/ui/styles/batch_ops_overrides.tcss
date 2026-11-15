@@ -2,7 +2,7 @@
 .batchops-component Container {
     align: center middle;
     width: 90%;
-    height: 85%;
+    height: 95%;
     background: $background 60%;
 }
 

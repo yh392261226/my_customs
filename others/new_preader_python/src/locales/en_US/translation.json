@@ -1254,6 +1254,8 @@
     "batch_no_duplicate_processing_next": "Batch {batch} found no duplicates, processing next batch",
     "books_deleted": "Successfully deleted {count} duplicate books",
     "books_deleted_continue_processing": "Successfully deleted {count} duplicate books, still processing in background",
+    "merge_selected": "Merge Selected(c)",
+    "merge_need_at_least_two": "Please select at least 2 books in the current group to merge",
     "compare_max_two": "You can only select two books for comparison",
     "compare_need_at_least_two": "Please select at least two books for comparison",
     "compare_selected": "Compare Selected",
@@ -1643,6 +1645,24 @@
     "early_completed": "Finished early: committed {merged} groups, skipped {skipped}, discarded {discarded}",
     "confirm_early_title": "Finish Early",
     "confirm_early_message": "Will commit the processed {merge_count} groups and run merge/delete; remaining {discarded} groups will be discarded. Continue?"
+  },
+  "dedup_merge": {
+    "title": "Merge Selected Books",
+    "table_hint": "Check books to merge (at least 2) · List order is the merge order · k/j or Up/Down to move · digits 1-9, 0 (10th) to move the cursor row · m to smart-sort by chapter · t for smart title",
+    "col_check": "Sel",
+    "col_seq": "Seq",
+    "col_title": "Title",
+    "no_site": "No site",
+    "status": "{selected}/{total} checked",
+    "smart_sort": "Sort by chapter(m)",
+    "smart_sort_failed": "Could not sort by chapter",
+    "smart_sorted": "Sorted by chapter number",
+    "site_label": "Book site:",
+    "site_hint_multi": "Multiple book sites detected; choose which site to merge into (merge record will be written there)",
+    "confirm": "Confirm Merge",
+    "files_missing": "Fewer than 2 valid files to merge (files may have been moved or deleted)",
+    "unknown_author": "Unknown author",
+    "no_bookshelf": "Cannot access the bookshelf"
   },
   "merge_mode": {
     "auto_merged_hint": "Auto-merged {count} groups as chapters of the same book",
