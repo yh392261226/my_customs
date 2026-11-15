@@ -74,11 +74,14 @@ RESPONSIVE_CSS = r"""
         --br-nav-offset: calc(var(--br-nav-h) + var(--br-nav-safe));
     }
 
-    /* --- 正文：全宽、触屏友好 --- */
+    /* --- 正文：全宽、触屏友好 ---
+       字号 / 行高必须完全交给阅读器设置（applySettings 写入 body 内联样式）。
+       这里曾写死 17px / 1.8 并加 !important，内联样式优先级低于 !important，
+       导致窄屏下 A+/A- 与设置页的字号、行高滑块全部失效；宽屏不受影响。
+       默认值沿用主模板 body 的 18px / 1.8，加载后由 applySettings 覆盖。 */
     html.br-compact body, .br-web body {
         max-width: 100% !important;
         padding: 12px 14px calc(76px + var(--br-nav-safe)) 14px !important;
-        font-size: 17px !important; line-height: 1.8 !important;
     }
     .br-compact .content, .br-web .content {
         margin-top: 12px !important; padding-bottom: 70px !important;
@@ -534,8 +537,11 @@ READER_WEB_JS = r"""
         if (fs) {
             fs.addEventListener('input', function () {
                 $('brSetFontSizeValue').textContent = fs.value;
+                /* updateSetting 已经调用 applySettings（内含翻页样式刷新）。
+                   不要再调 changeFontSize(0)：它用 getComputedStyle 反推字号并
+                   写回 currentSettings，字号被 CSS 锁定或浏览器做字体缩放时会
+                   把刚设置的新值改回旧值。 */
                 updateSetting('font_size', fs.value);
-                callGlobal('changeFontSize', 0);
             });
         }
         var lh = $('brSetLineHeight');
@@ -644,6 +650,41 @@ READER_WEB_JS = r"""
 #  - /sw.js、/health_check 等不缓存，避免把「离线」误判成「在线」。
 SERVICE_WORKER_JS = r"""
 const CACHE = 'br-reader-v1';
+/* ---- 旧缓存页面迁移 ----
+   早期窄屏 CSS 把正文字号写成 `font-size: 17px !important`，且设置页滑块还会再调
+   `changeFontSize(0)`（按 getComputedStyle 反推字号，配合 body 的 transition 会把
+   刚设的字号写回旧值）。后端关闭时导航请求回退到缓存的旧 HTML，前端修复送不到
+   这些页面。SW 更新（activate）时把这两处精确剔除并回写，离线打开的旧页面也
+   随之恢复；离线回退时再做一次兜底。缓存名保持不变，避免删掉离线书籍。 */
+const LEGACY_FONT_LOCK = /font-size\s*:\s*17px\s*!important\s*;\s*line-height\s*:\s*1\.8\s*!important\s*;/g;
+const LEGACY_FONT_JS = /callGlobal\('changeFontSize',\s*0\);/g;
+function stripLegacyFontLock(res) {
+    if (!res || (res.headers.get('Content-Type') || '').indexOf('text/html') < 0) {
+        return Promise.resolve(res);
+    }
+    return res.clone().text().then(function (text) {
+        var fixed = text.replace(LEGACY_FONT_LOCK, '').replace(LEGACY_FONT_JS, '');
+        if (fixed === text) { return res; }
+        return new Response(fixed, {
+            status: res.status, statusText: res.statusText,
+            headers: { 'Content-Type': 'text/html; charset=utf-8' }
+        });
+    }).catch(function () { return res; });
+}
+function patchCachedPages() {
+    return caches.open(CACHE).then(function (c) {
+        return c.keys().then(function (keys) {
+            return Promise.all(keys.map(function (req) {
+                return c.match(req).then(function (res) {
+                    if (!res) { return; }
+                    return stripLegacyFontLock(res).then(function (fixed) {
+                        if (fixed !== res) { return c.put(req, fixed); }
+                    });
+                });
+            }));
+        });
+    }).catch(function () {});
+}
 /* 缓存键去掉 ?key=（密钥变化不应导致缓存失效），但保留 /reader 的 path（每本书独立缓存） */
 function cacheKey(raw) {
     var u = new URL(raw);
@@ -656,7 +697,7 @@ self.addEventListener('install', function (e) { self.skipWaiting(); });
 self.addEventListener('activate', function (e) {
     e.waitUntil(caches.keys().then(function (keys) {
         return Promise.all(keys.filter(function (k) { return k !== CACHE; }).map(function (k) { return caches.delete(k); }));
-    }).then(function () { return self.clients.claim(); }));
+    }).then(patchCachedPages).then(function () { return self.clients.claim(); }));
 });
 self.addEventListener('fetch', function (e) {
     var req = e.request;
@@ -677,7 +718,10 @@ self.addEventListener('fetch', function (e) {
                 return res;
             }).catch(function () {
                 return caches.match(key).then(function (hit) {
-                    return hit || caches.match(new URL('/', self.location.origin).href) || new Response(
+                    if (hit) { return stripLegacyFontLock(hit); }
+                    return caches.match(new URL('/', self.location.origin).href).then(stripLegacyFontLock);
+                }).then(function (res) {
+                    return res || new Response(
                         '<!doctype html><meta charset="utf-8"><p style="font:16px/1.8 sans-serif;padding:24px">后端未运行，且本机没有该页面的离线缓存。可在书库页「离线」中打开已缓存的书籍。</p>',
                         { status: 503, headers: { 'Content-Type': 'text/html; charset=utf-8' } }
                     );
@@ -1778,6 +1822,8 @@ _PORTAL_JS = r"""
         s.line_height = (parseInt($('lineHeightInput').value, 10) / 10).toFixed(1);
         safe(function () { localStorage.setItem('readerSettings', JSON.stringify(s)); });
         document.documentElement.classList.toggle('br-dark', $('darkInput').checked);
+        /* 离线阅读页若已打开，拖动滑块即时生效，不必退出后重新打开书籍 */
+        applyReaderSettings();
     }
 
     function bind() {
