@@ -648,6 +648,7 @@ class BatchOpsDialog(ModalScreen[Dict[str, Any]]):
         table.add_column(get_global_i18n().t("common.bookshelf"), key="title")
         table.add_column(get_global_i18n().t("common.author"), key="author")
         table.add_column(get_global_i18n().t("common.format"), key="format")
+        table.add_column(get_global_i18n().t("common.crawl_time"), key="crawl_time")
         table.add_column(get_global_i18n().t("common.tag"), key="tags")
         table.add_column(get_global_i18n().t("common.view_file"), key="view_action")  # 查看文件按钮列
         table.add_column(get_global_i18n().t("common.preview"), key="preview_action")  # 预览按钮列
@@ -873,11 +874,22 @@ class BatchOpsDialog(ModalScreen[Dict[str, Any]]):
             # 添加预览按钮
             preview_button = f"[{get_global_i18n().t('common.preview')}]"
 
+            # 格式化爬取时间显示（优先使用 add_date，即书籍加入书库的爬取时间）
+            crawl_time_display = ""
+            raw_crawl_time = getattr(book, "add_date", "") or ""
+            if raw_crawl_time:
+                raw_crawl_time = str(raw_crawl_time)
+                if len(raw_crawl_time) >= 16:
+                    crawl_time_display = raw_crawl_time[:16].replace("T", " ")
+                else:
+                    crawl_time_display = raw_crawl_time
+
             table.add_row(
                 str(index),  # 序号
                 book.title,
                 book.author,
                 book.format.upper() if book.format else "",
+                crawl_time_display,
                 tags_display,
                 view_file_button,  # 查看文件按钮
                 preview_button,  # 预览按钮
@@ -1108,16 +1120,16 @@ class BatchOpsDialog(ModalScreen[Dict[str, Any]]):
             total_columns = 0
         
         # 列索引映射：
-        # 0=索引, 1=书名, 2=作者, 3=格式, 4=标签, 5=查看文件按钮, 6=预览按钮, 7=已选择列
+        # 0=索引, 1=书名, 2=作者, 3=格式, 4=爬取时间, 5=标签, 6=查看文件按钮, 7=预览按钮, 8=已选择列
         
-        # 处理查看文件按钮列的点击（索引5）
-        if event.coordinate.column == 5:
+        # 处理查看文件按钮列的点击（索引6）
+        if event.coordinate.column == 6:
             self._view_file(book.path)
             event.stop()
             return
         
-        # 处理预览按钮列的点击（索引6）
-        if event.coordinate.column == 6:
+        # 处理预览按钮列的点击（索引7）
+        if event.coordinate.column == 7:
             self._preview_book(book.path)
             event.stop()
             return
@@ -1130,8 +1142,8 @@ class BatchOpsDialog(ModalScreen[Dict[str, Any]]):
             return
         
         # 处理筛选列的点击（作者、格式、标签）
-        # 列索引从0开始：2=作者, 3=格式, 4=标签
-        if event.coordinate.column in [2, 3, 4]:
+        # 列索引从0开始：2=作者, 3=格式, 5=标签
+        if event.coordinate.column in [2, 3, 5]:
             self._handle_column_filter(event.coordinate.column, book)
             event.stop()
     
@@ -1210,11 +1222,12 @@ class BatchOpsDialog(ModalScreen[Dict[str, Any]]):
                 filter_value = book.format.lower().lstrip('.')
                 filter_type = "format"
                 filter_display = f"格式: {filter_value.upper()}"
-            elif column_key == 4:  # 标签列
+            elif column_key == 5:  # 标签列
                 filter_value = book.tags if book.tags else ""
                 filter_type = "tags"
                 filter_display = f"标签: {filter_value}"
             else:
+                # 爬取时间等其他列不提供点击筛选
                 return
             
             # 如果筛选值为空，则不执行筛选
@@ -1325,7 +1338,7 @@ class BatchOpsDialog(ModalScreen[Dict[str, Any]]):
             logger.debug(f"表头点击事件: column={column_key}")
 
             # 只对特定列进行排序：序号、标题、作者、格式、标签
-            sortable_columns = ["index", "title", "author", "format", "tags"]
+            sortable_columns = ["index", "title", "author", "format", "crawl_time", "tags"]
 
             if column_key in sortable_columns:
                 # 切换排序方向
@@ -1380,6 +1393,9 @@ class BatchOpsDialog(ModalScreen[Dict[str, Any]]):
                 elif column_key == "format":
                     # 格式排序，转换为小写进行比较
                     return book.format.lower() if book.format else ""
+                elif column_key == "crawl_time":
+                    # 爬取时间排序，按 ISO 时间字符串比较（字典序即时间序）
+                    return book.add_date or ""
                 elif column_key == "tags":
                     # 标签排序
                     return book.tags or ""
