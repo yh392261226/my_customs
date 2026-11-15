@@ -5748,6 +5748,20 @@ class CrawlerManagementScreen(Screen[None]):
             # 重置爬取状态
             self._reset_crawl_state()
     
+    def _refresh_bookshelf_after_title_change(self) -> None:
+        """书名同步写入书库表后，刷新书架内存缓存与书库页面"""
+        try:
+            bookshelf = getattr(self.app, "bookshelf", None)
+            if bookshelf is not None and hasattr(bookshelf, "_load_books"):
+                bookshelf._load_books()
+        except Exception as e:
+            logger.warning(f"刷新书架缓存失败: {e}")
+        try:
+            from src.ui.messages import RefreshBookshelfMessage
+            self.app.post_message(RefreshBookshelfMessage())
+        except Exception as e:
+            logger.warning(f"发送书库刷新消息失败: {e}")
+
     def _rename_novel(self, history_item: Dict[str, Any]) -> None:
         """重命名小说标题"""
         try:
@@ -5755,6 +5769,7 @@ class CrawlerManagementScreen(Screen[None]):
             
             current_title = history_item.get('novel_title', '')
             history_id = history_item.get('id')
+            file_path = history_item.get('file_path', '')
             
             if not current_title or not history_id:
                 self._update_status(get_global_i18n().t('common.unknown_book'), "error")
@@ -5771,6 +5786,8 @@ class CrawlerManagementScreen(Screen[None]):
                     
                     # 更新数据库中的小说标题
                     if self.db_manager.update_crawl_history_full(history_id, novel_title=new_title):
+                        # 兜底：按文件路径再同步一次书库，覆盖两表路径不一致的情况
+                        self.db_manager.sync_book_title(file_path, new_title, history_id=history_id)
                         # 更新内存中的数据
                         for item in self.crawler_history:
                             if item.get("id") == history_id:
@@ -5783,6 +5800,7 @@ class CrawlerManagementScreen(Screen[None]):
                         )
                         # 刷新表格显示
                         self._update_history_table()
+                        self._refresh_bookshelf_after_title_change()
                     else:
                         self._update_status(get_global_i18n().t('crawler.rename_failed'), "error")
             
@@ -5843,7 +5861,7 @@ class CrawlerManagementScreen(Screen[None]):
                                 title_with_timestamp = formatted_title
                             
                             # 调用重命名功能
-                            if bookshelf.rename_book(file_path, title_with_timestamp):
+                            if bookshelf.rename_book(file_path, title_with_timestamp, display_title=formatted_title):
                                 logger.info(f"书库中的书籍标题已更新: {file_path} -> {title_with_timestamp}")
                             else:
                                 logger.warning(f"更新书库标题失败: {file_path}")
@@ -5856,6 +5874,7 @@ class CrawlerManagementScreen(Screen[None]):
                 )
                 # 刷新表格显示
                 self._update_history_table()
+                self._refresh_bookshelf_after_title_change()
             else:
                 self._update_status(get_global_i18n().t('crawler.format_title_failed'), "error")
                 
@@ -5938,7 +5957,7 @@ class CrawlerManagementScreen(Screen[None]):
                                                     title_with_timestamp = formatted_title
                                                 
                                                 # 调用重命名功能
-                                                if bookshelf.rename_book(file_path, title_with_timestamp):
+                                                if bookshelf.rename_book(file_path, title_with_timestamp, display_title=formatted_title):
                                                     logger.info(f"书库中的书籍标题已更新: {file_path} -> {title_with_timestamp}")
                                                 else:
                                                     logger.warning(f"更新书库标题失败: {file_path}")
@@ -5958,6 +5977,7 @@ class CrawlerManagementScreen(Screen[None]):
                         
                         # 刷新历史记录
                         self._load_crawl_history()
+                        self._refresh_bookshelf_after_title_change()
                         
                         # 显示结果
                         if failed_count > 0:

@@ -3374,9 +3374,19 @@ class DatabaseManager:
                     WHERE site_id = ? AND novel_id = ?
                 """, (new_title, site_id, novel_id))
                 
+                updated = cursor.rowcount > 0
+                if updated:
+                    # 同步书库中同一本书的冗余书名
+                    cursor.execute(
+                        "SELECT DISTINCT file_path FROM crawl_history WHERE site_id = ? AND novel_id = ?",
+                        (site_id, novel_id),
+                    )
+                    for (path,) in cursor.fetchall():
+                        self._sync_book_title_in_transaction(cursor, path, new_title)
+                
                 conn.commit()
                 
-                if cursor.rowcount > 0:
+                if updated:
                     logger.info(f"修复小说标题成功: {novel_id} -> {new_title}")
                     return True
                 else:
@@ -3414,6 +3424,63 @@ class DatabaseManager:
             logger.error(f"获取最后一次成功爬取记录失败: {e}")
             return None
 
+    def _sync_book_title_in_transaction(self, cursor: sqlite3.Cursor,
+                                        file_path: str, new_title: str) -> bool:
+        """在同一事务内把书名同步到书库表及同一文件关联的爬取历史记录。
+
+        书名在 books.title 与 crawl_history.novel_title 中冗余存了两份，两表
+        仅靠 file_path == books.path 弱关联；只改其中一张表会造成书库页面与
+        爬取管理页面显示不同的书名。
+        """
+        if not file_path or file_path == 'already_exists' or not new_title:
+            return False
+        try:
+            cursor.execute(
+                "UPDATE books SET title = ?, pinyin = ? WHERE path = ?",
+                (new_title, convert_to_pinyin(new_title), file_path),
+            )
+            book_updated = cursor.rowcount > 0
+            cursor.execute(
+                "UPDATE crawl_history SET novel_title = ? "
+                "WHERE file_path = ? AND novel_title != ?",
+                (new_title, file_path, new_title),
+            )
+            if book_updated:
+                logger.info(f"书名已同步到书库: {file_path} -> {new_title}")
+            return book_updated
+        except sqlite3.Error as e:
+            logger.warning(f"同步书名到书库失败({file_path}): {e}")
+            return False
+
+    def sync_book_title(self, file_path: str, new_title: str,
+                        history_id: Optional[int] = None) -> bool:
+        """按文件路径统一书库与爬取历史中的书名（不改动磁盘文件名）。
+
+        Args:
+            file_path: 书籍路径（books.path / crawl_history.file_path）
+            new_title: 新书名
+            history_id: 可选的爬取历史 ID，file_path 缺失时用它反查
+
+        Returns:
+            是否成功更新了书库记录
+        """
+        if not new_title:
+            return False
+        try:
+            with sqlite3.connect(self.db_path) as conn:
+                cursor = conn.cursor()
+                effective_path = file_path
+                if (not effective_path or effective_path == 'already_exists') and history_id is not None:
+                    cursor.execute("SELECT file_path FROM crawl_history WHERE id = ?", (history_id,))
+                    row = cursor.fetchone()
+                    effective_path = row[0] if row else ''
+                synced = self._sync_book_title_in_transaction(cursor, effective_path, new_title)
+                conn.commit()
+                return synced
+        except sqlite3.Error as e:
+            logger.error(f"同步书名失败: {e}")
+            return False
+
     def update_crawl_history_full(self, history_id: int, **kwargs) -> bool:
         """
         更新爬取历史记录（支持所有字段）
@@ -3446,6 +3513,19 @@ class DatabaseManager:
                     SET {', '.join(update_fields)}
                     WHERE id = ?
                 """, update_values)
+                
+                # 爬取管理改名、格式化书名、补足缺失章节后的改名都走这里，
+                # 必须同时更新 books.title，否则书库页面一直显示旧书名。
+                new_title = kwargs.get('novel_title')
+                if new_title:
+                    sync_path = kwargs.get('file_path')
+                    if not sync_path:
+                        cursor.execute(
+                            "SELECT file_path FROM crawl_history WHERE id = ?", (history_id,)
+                        )
+                        path_row = cursor.fetchone()
+                        sync_path = path_row[0] if path_row else ''
+                    self._sync_book_title_in_transaction(cursor, sync_path, new_title)
                 
                 conn.commit()
                 logger.info(f"更新爬取历史记录 {history_id} 成功，更新字段: {list(kwargs.keys())}")

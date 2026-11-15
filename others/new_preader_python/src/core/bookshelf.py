@@ -1503,13 +1503,16 @@ class Bookshelf:
         except Exception:
             pass
 
-    def rename_book(self, book_path: str, new_title: str) -> bool:
+    def rename_book(self, book_path: str, new_title: str,
+                    display_title: Optional[str] = None) -> bool:
         """
         重命名书籍
         
         Args:
             book_path: 原书籍路径
-            new_title: 新书名
+            new_title: 用于生成磁盘文件名的新书名
+            display_title: 可选，写入数据库的显示书名；文件名带时间戳等后缀时，
+                           用它保证 books.title 与 crawl_history.novel_title 一致
             
         Returns:
             bool: 重命名是否成功
@@ -1521,8 +1524,11 @@ class Bookshelf:
                 logger.error(f"未找到书籍: {book_path}")
                 return False
             
-            # 检查新书名是否与原书名相同
-            if new_title == book.title:
+            # 只有文件名与数据库显示名都没变化时才跳过。不能只比较 book.title：
+            # 爬取管理改名时 books.title 可能已被同步，但磁盘文件名仍是旧的。
+            effective_title = display_title or new_title
+            current_file_title = os.path.splitext(os.path.basename(book.path))[0]
+            if new_title == current_file_title and effective_title == book.title:
                 logger.warning(f"新书名与原书名相同: {new_title}")
                 return False
             
@@ -1535,8 +1541,9 @@ class Bookshelf:
             new_file_name = f"{new_title}{old_file_ext}"
             new_file_path = os.path.join(old_file_dir, new_file_name)
             
-            # 检查新文件是否已存在
-            if os.path.exists(new_file_path):
+            # 检查新文件是否已存在（同路径即文件本身，不算冲突）
+            if (os.path.exists(new_file_path)
+                    and os.path.abspath(new_file_path) != os.path.abspath(old_file_path)):
                 logger.error(f"目标文件已存在: {new_file_path}")
                 return False
             
@@ -1551,7 +1558,7 @@ class Bookshelf:
             # 更新书籍对象
             old_path = book.path
             book.path = new_file_path
-            book.title = new_title
+            book.title = effective_title
             
             # 更新数据库中的书籍记录（使用旧路径定位记录）
             if not self.db_manager.update_book(book, old_path):
@@ -1566,6 +1573,10 @@ class Bookshelf:
             
             # 更新相关表中的书籍路径引用
             self._update_book_references(old_path, new_file_path)
+
+            # 路径引用更新会按新文件名反推爬取历史书名，统一回写显示名
+            if display_title:
+                self.db_manager.sync_book_title(new_file_path, display_title)
             
             # 更新内存中的书籍记录
             if old_path in self.books:

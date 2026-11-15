@@ -2228,17 +2228,29 @@ class FillMissingDialog(ModalScreen[Dict[str, Any]]):
                 logger.warning(f"清理临时记录失败: {e}")
 
     def _update_target_book_title(self, new_title: str) -> None:
+        """统一更新目标书名：书库表、爬取历史表以及书库界面缓存。"""
         if not self.db_manager or not new_title: return
         try:
             target_file = self.target_book.get('file_path', '')
             record_id = self.target_book.get('id')
             if record_id:
                 self.db_manager.update_crawl_history_full(record_id, novel_title=new_title)
-            books = self.db_manager.get_all_books() if hasattr(self.db_manager, 'get_all_books') else []
-            for book in books:
-                if hasattr(book, 'path') and book.path == target_file:
-                    book.title = new_title; break
-            logger.info(f"已更新书籍标题为: {new_title}")
+            # 兜底：历史记录缺失或两表路径不一致时，直接按文件路径同步
+            self.db_manager.sync_book_title(target_file, new_title, history_id=record_id)
+
+            try:
+                bookshelf = getattr(self.app, 'bookshelf', None)
+                if bookshelf is not None and hasattr(bookshelf, '_load_books'):
+                    bookshelf._load_books()
+            except Exception as refresh_err:
+                logger.warning(f"刷新书架缓存失败: {refresh_err}")
+            try:
+                from src.ui.messages import RefreshBookshelfMessage
+                self.app.post_message(RefreshBookshelfMessage())
+            except Exception as msg_err:
+                logger.warning(f"发送书库刷新消息失败: {msg_err}")
+
+            logger.info(f"已同步书籍标题为: {new_title}")
         except Exception as e:
             logger.warning(f"更新书籍标题失败: {e}")
 
