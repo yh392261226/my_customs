@@ -729,6 +729,25 @@ class SettingsScreen(Screen[Any]):
                     id="browser-server-lock-switch"
                 )
 
+            # 浏览器阅读器开屏密码开关
+            yield Label("浏览器阅读器开屏密码（开启后，打开离线版/局域网版阅读器需先输入开屏密码验证；开启前必须在下方设置密码）", classes="setting-label")
+            startup_pwd_enabled_setting = self.setting_registry.get_setting("browser_server.startup_password_enabled")
+            if startup_pwd_enabled_setting:
+                yield Switch(
+                    value=startup_pwd_enabled_setting.value,
+                    id="browser-server-startup-pwd-enabled-switch"
+                )
+
+            # 浏览器阅读器开屏密码（明文保存）
+            yield Label("开屏密码（明文保存，便于忘记后修改；开启开屏密码选项后必须填写）", classes="setting-label")
+            startup_pwd_setting = self.setting_registry.get_setting("browser_server.startup_password")
+            if startup_pwd_setting:
+                yield password_field(
+                    "browser-server-startup-pwd-input",
+                    placeholder="设置开屏密码",
+                    value=startup_pwd_setting.value or "",
+                )
+
             # 后端数据接口开关
             yield Label("启用后端数据接口（/api/* 已并入统一服务端口：书库/网站/爬取等数据上传下拉，与本地缓存互通）", classes="setting-label")
             api_enabled_setting = self.setting_registry.get_setting("browser_server.api_enabled")
@@ -1282,6 +1301,16 @@ class SettingsScreen(Screen[Any]):
     def _save_settings(self) -> None:
         """保存设置"""
         try:
+            # 开屏密码开关开启时必须已设置开屏密码
+            try:
+                startup_pwd_enabled_switch = self.query_one("#browser-server-startup-pwd-enabled-switch", Switch)
+                startup_pwd_input = self.query_one("#browser-server-startup-pwd-input", Input)
+                if startup_pwd_enabled_switch.value and not (startup_pwd_input.value or "").strip():
+                    self.notify("开启浏览器阅读器开屏密码后，必须先在下方设置开屏密码", severity="error")
+                    return
+            except Exception:
+                pass
+
             # 更新所有设置项的值
             self._update_settings_from_ui()
             
@@ -1600,6 +1629,12 @@ class SettingsScreen(Screen[Any]):
         # 浏览器阅读器锁屏开关
         lock_switch = self.query_one("#browser-server-lock-switch", Switch)
         self.setting_registry.set_value("browser_server.lock_enabled", bool(lock_switch.value))
+
+        # 浏览器阅读器开屏密码开关与密码
+        startup_pwd_enabled_switch = self.query_one("#browser-server-startup-pwd-enabled-switch", Switch)
+        self.setting_registry.set_value("browser_server.startup_password_enabled", bool(startup_pwd_enabled_switch.value))
+        startup_pwd_input = self.query_one("#browser-server-startup-pwd-input", Input)
+        self.setting_registry.set_value("browser_server.startup_password", (startup_pwd_input.value or "").strip())
 
         # 后端数据接口开关与地址
         api_enabled_switch = self.query_one("#browser-server-api-enabled-switch", Switch)

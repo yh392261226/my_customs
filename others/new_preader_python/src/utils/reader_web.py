@@ -771,6 +771,214 @@ def render_reader_web_js(locale: Optional[str] = None) -> str:
 
 
 # --------------------------------------------------------------------------- #
+# 浏览器阅读器「开屏密码」门禁（离线 file:// 页 / 局域网书库入口页共用）
+# --------------------------------------------------------------------------- #
+# 密码在「平台设置中心」设置，后端只把 SHA-256 摘要注入页面，页面内不含明文；
+# 校验完全在前端完成，因此离线版与局域网版行为一致，且不依赖 crypto.subtle
+# （局域网 http:// 并非安全上下文，crypto.subtle 不可用，故自带纯 JS SHA-256）。
+def startup_password_hash(password: str) -> str:
+    """返回开屏密码的 SHA-256 十六进制摘要，用于注入页面做前端校验。
+
+    未设置密码时返回空串：页面据此提示「尚未在设置中心设置开屏密码」，
+    避免用空串摘要把用户挡在门外却给出「密码错误」的误导信息。
+    """
+    import hashlib
+    pwd = password or ""
+    if not pwd:
+        return ""
+    return hashlib.sha256(pwd.encode("utf-8")).hexdigest()
+
+
+def render_startup_gate_early_js(enabled: bool, password_hash: str = "") -> str:
+    """生成放在 <head> 中最先执行的脚本：注入开关/摘要并立即隐藏正文，避免闪现。"""
+    return (
+        '<script>\n'
+        '(function(){\n'
+        '  try {\n'
+        '    window.__BR_STARTUP_PASSWORD_ENABLED__ = ' + ('true' if enabled else 'false') + ';\n'
+        '    window.__BR_STARTUP_PASSWORD_HASH__ = ' + _js_json(password_hash or "") + ';\n'
+        '    if (window.__BR_STARTUP_PASSWORD_ENABLED__) {\n'
+        '      document.documentElement.classList.add("br-startup-locked");\n'
+        '    }\n'
+        '  } catch(e) {}\n'
+        '})();\n'
+        '</script>\n'
+    )
+
+
+STARTUP_GATE_CSS = r"""
+/* === 浏览器阅读器开屏密码门禁 === */
+html.br-startup-locked, html.br-startup-locked body { overflow: hidden !important; }
+html.br-startup-locked #content,
+html.br-startup-locked #portalRoot,
+html.br-startup-locked .br-portal { visibility: hidden !important; }
+html.br-startup-locked #brLockFab,
+html.br-startup-locked #brEditFab,
+html.br-startup-locked .br-sync-badge { display: none !important; }
+#brStartupGate {
+  position: fixed; inset: 0; z-index: 2147483647 !important; display: none;
+  align-items: center; justify-content: center;
+  background: #0d0f14; color: #e8eaf0;
+  font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", "PingFang SC", "Microsoft YaHei", sans-serif;
+}
+html.br-startup-locked #brStartupGate { display: flex !important; }
+#brStartupGate .br-startup-card {
+  width: 90%; max-width: 380px; display: flex; flex-direction: column; align-items: center; gap: 14px;
+}
+#brStartupGate .br-startup-icon { font-size: 44px; line-height: 1; }
+#brStartupGate .br-startup-title { font-size: 19px; font-weight: 600; }
+#brStartupGate .br-startup-hint { font-size: 13px; opacity: 0.6; text-align: center; line-height: 1.7; }
+#brStartupGate .br-pwd-row { position: relative; display: flex; align-items: center; width: 100%; }
+#brStartupGate input.br-startup-pwd {
+  width: 100%; box-sizing: border-box; padding: 12px 44px 12px 16px; font-size: 16px;
+  border-radius: 10px; border: 1px solid #2a2f3a; background: #161a22; color: #e8eaf0;
+  outline: none; text-align: center; font-family: inherit;
+}
+#brStartupGate input.br-startup-pwd:focus { border-color: #4facfe; }
+#brStartupGate .br-startup-eye {
+  position: absolute; right: 8px; top: 50%; transform: translateY(-50%);
+  display: flex; align-items: center; justify-content: center;
+  width: 34px; height: 34px; padding: 0; border: none; background: transparent;
+  color: #8a93a6; cursor: pointer; border-radius: 8px;
+}
+#brStartupGate .br-startup-eye:hover { color: #4facfe; background: rgba(255,255,255,0.06); }
+#brStartupGate .br-startup-eye svg { display: block; }
+#brStartupGate .br-startup-eye .br-startup-eye-off { display: none; }
+#brStartupGate .br-startup-eye.br-startup-eye-on .br-startup-eye-open { display: none; }
+#brStartupGate .br-startup-eye.br-startup-eye-on .br-startup-eye-off { display: block; }
+#brStartupGate .br-startup-btn {
+  width: 100%; padding: 12px; font-size: 16px; border: none; border-radius: 10px;
+  cursor: pointer; background: #4facfe; color: #fff; font-weight: 600; font-family: inherit;
+}
+#brStartupGate .br-startup-btn:hover { background: #3a9fe8; }
+#brStartupGate .br-startup-msg { font-size: 13px; min-height: 18px; color: #ff6b6b; }
+"""
+
+STARTUP_GATE_HTML = r"""
+<!-- 浏览器阅读器开屏密码验证 -->
+<div id="brStartupGate">
+  <div class="br-startup-card">
+    <div class="br-startup-icon">🔐</div>
+    <div class="br-startup-title">浏览器阅读器已加密</div>
+    <div class="br-startup-hint">请输入在设置中心设置的开屏密码，验证通过后才能进入并使用阅读器</div>
+    <div class="br-pwd-row">
+      <input type="password" class="br-startup-pwd" id="brStartupPwd" placeholder="请输入开屏密码" autocomplete="off" />
+      <button type="button" class="br-startup-eye" id="brStartupEye" title="显示/隐藏密码" aria-label="显示或隐藏密码">
+        <svg class="br-startup-eye-open" viewBox="0 0 24 24" width="20" height="20" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M1 12s4-7 11-7 11 7 11 7-4 7-11 7-11-7-11-7z"/><circle cx="12" cy="12" r="3"/></svg>
+        <svg class="br-startup-eye-off" viewBox="0 0 24 24" width="20" height="20" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M17.94 17.94A10.07 10.07 0 0 1 12 20c-7 0-11-8-11-8a18.45 18.45 0 0 1 5.06-5.94M9.9 4.24A9.12 9.12 0 0 1 12 4c7 0 11 8 11 8a18.5 18.5 0 0 1-2.16 3.19m-6.72-1.07a3 3 0 1 1-4.24-4.24"/><line x1="1" y1="1" x2="23" y2="23"/></svg>
+      </button>
+    </div>
+    <button class="br-startup-btn" id="brStartupBtn">进入阅读器</button>
+    <div class="br-startup-msg" id="brStartupMsg"></div>
+  </div>
+</div>
+"""
+
+STARTUP_GATE_JS = r"""
+/* === 浏览器阅读器开屏密码校验 === */
+(function(){
+  'use strict';
+  if (window.__BR_STARTUP_PASSWORD_ENABLED__ !== true) return;
+
+  var K = [
+    0x428a2f98,0x71374491,0xb5c0fbcf,0xe9b5dba5,0x3956c25b,0x59f111f1,0x923f82a4,0xab1c5ed5,
+    0xd807aa98,0x12835b01,0x243185be,0x550c7dc3,0x72be5d74,0x80deb1fe,0x9bdc06a7,0xc19bf174,
+    0xe49b69c1,0xefbe4786,0x0fc19dc6,0x240ca1cc,0x2de92c6f,0x4a7484aa,0x5cb0a9dc,0x76f988da,
+    0x983e5152,0xa831c66d,0xb00327c8,0xbf597fc7,0xc6e00bf3,0xd5a79147,0x06ca6351,0x14292967,
+    0x27b70a85,0x2e1b2138,0x4d2c6dfc,0x53380d13,0x650a7354,0x766a0abb,0x81c2c92e,0x92722c85,
+    0xa2bfe8a1,0xa81a664b,0xc24b8b70,0xc76c51a3,0xd192e819,0xd6990624,0xf40e3585,0x106aa070,
+    0x19a4c116,0x1e376c08,0x2748774c,0x34b0bcb5,0x391c0cb3,0x4ed8aa4a,0x5b9cca4f,0x682e6ff3,
+    0x748f82ee,0x78a5636f,0x84c87814,0x8cc70208,0x90befffa,0xa4506ceb,0xbef9a3f7,0xc67178f2
+  ];
+  var H0 = [0x6a09e667,0xbb67ae85,0x3c6ef372,0xa54ff53a,0x510e527f,0x9b05688c,0x1f83d9ab,0x5be0cd19];
+
+  function brSha256Hex(str){
+    var bytes;
+    if (typeof TextEncoder !== 'undefined') { bytes = new TextEncoder().encode(str); }
+    else {
+      var bin = unescape(encodeURIComponent(str));
+      bytes = [];
+      for (var q=0;q<bin.length;q++) bytes.push(bin.charCodeAt(q));
+    }
+    var bitLen = bytes.length * 8;
+    var total = ((bytes.length + 9 + 63) >> 6) << 6;
+    var msg = new Uint8Array(total);
+    msg.set(bytes);
+    msg[bytes.length] = 0x80;
+    var hi = Math.floor(bitLen / 4294967296), lo = bitLen >>> 0;
+    msg[total-8]=(hi>>>24)&255; msg[total-7]=(hi>>>16)&255;
+    msg[total-6]=(hi>>>8)&255;  msg[total-5]=hi&255;
+    msg[total-4]=(lo>>>24)&255; msg[total-3]=(lo>>>16)&255;
+    msg[total-2]=(lo>>>8)&255;  msg[total-1]=lo&255;
+    var H = H0.slice(), w = new Int32Array(64);
+    function rotr(x,n){ return (x>>>n)|(x<<(32-n)); }
+    for (var off=0; off<total; off+=64){
+      for (var t=0;t<16;t++){
+        w[t]=(msg[off+t*4]<<24)|(msg[off+t*4+1]<<16)|(msg[off+t*4+2]<<8)|msg[off+t*4+3];
+      }
+      for (t=16;t<64;t++){
+        var x=w[t-15], y=w[t-2];
+        var s0=rotr(x,7)^rotr(x,18)^(x>>>3);
+        var s1=rotr(y,17)^rotr(y,19)^(y>>>10);
+        w[t]=(w[t-16]+s0+w[t-7]+s1)|0;
+      }
+      var a=H[0],b=H[1],c=H[2],d=H[3],e=H[4],f=H[5],g=H[6],h=H[7];
+      for (t=0;t<64;t++){
+        var S1=rotr(e,6)^rotr(e,11)^rotr(e,25);
+        var ch=(e&f)^((~e)&g);
+        var t1=(h+S1+ch+K[t]+w[t])|0;
+        var S0=rotr(a,2)^rotr(a,13)^rotr(a,22);
+        var maj=(a&b)^(a&c)^(b&c);
+        var t2=(S0+maj)|0;
+        h=g; g=f; f=e; e=(d+t1)|0; d=c; c=b; b=a; a=(t1+t2)|0;
+      }
+      H[0]=(H[0]+a)|0; H[1]=(H[1]+b)|0; H[2]=(H[2]+c)|0; H[3]=(H[3]+d)|0;
+      H[4]=(H[4]+e)|0; H[5]=(H[5]+f)|0; H[6]=(H[6]+g)|0; H[7]=(H[7]+h)|0;
+    }
+    var hex='';
+    for (var i=0;i<8;i++) hex += ('00000000'+(H[i]>>>0).toString(16)).slice(-8);
+    return hex;
+  }
+
+  function brMsg(m){ var e=document.getElementById('brStartupMsg'); if(e) e.textContent=m||''; }
+  function brToggleEye(){
+    var btn=document.getElementById('brStartupEye'), inp=document.getElementById('brStartupPwd');
+    if(!btn||!inp) return;
+    var on=btn.classList.toggle('br-startup-eye-on');
+    inp.type=on?'text':'password';
+    if(on) inp.focus();
+  }
+  function brUnlock(){
+    var inp=document.getElementById('brStartupPwd'), val=inp?inp.value:'';
+    var expected=window.__BR_STARTUP_PASSWORD_HASH__||'';
+    if(!val){ brMsg('请输入开屏密码'); return; }
+    if(!expected){ brMsg('尚未在设置中心设置开屏密码，无法进入'); return; }
+    if(brSha256Hex(val)!==expected){
+      brMsg('开屏密码错误，请重试');
+      if(inp){ inp.value=''; inp.focus(); }
+      return;
+    }
+    brMsg('');
+    document.documentElement.classList.remove('br-startup-locked');
+    try { window.dispatchEvent(new Event('br-startup-unlocked')); } catch(e) {}
+  }
+  function brInit(){
+    var btn=document.getElementById('brStartupBtn'); if(btn) btn.addEventListener('click', brUnlock);
+    var inp=document.getElementById('brStartupPwd');
+    if(inp){
+      inp.addEventListener('keydown', function(e){ if(e.key==='Enter'){ e.preventDefault(); brUnlock(); } });
+      inp.addEventListener('input', function(){ brMsg(''); });
+      setTimeout(function(){ try{ inp.focus(); }catch(e){} }, 50);
+    }
+    var eye=document.getElementById('brStartupEye'); if(eye) eye.addEventListener('click', brToggleEye);
+  }
+  if(document.readyState==='loading'){ document.addEventListener('DOMContentLoaded', brInit); }
+  else { brInit(); }
+})();
+"""
+
+
+# --------------------------------------------------------------------------- #
 # 6. 局域网书库入口页（在线 / 离线共用同一页面）
 # --------------------------------------------------------------------------- #
 # 书库专属视觉层：只作用于入口页，不注入 file:// 阅读器页面。
@@ -1024,6 +1232,7 @@ _PORTAL_TEMPLATE = r"""<!DOCTYPE html>
 <html lang="__LANG__">
 <head>
 <meta charset="UTF-8">
+__STARTUP_GATE_EARLY__
 <meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover">
 <meta name="theme-color" content="#2f7cf6">
 <meta name="apple-mobile-web-app-capable" content="yes">
@@ -1036,6 +1245,7 @@ body{margin:0;background:var(--br-page-bg);color:var(--br-page-fg);font-family:-
 button,input,select{font-family:inherit}
 __RESPONSIVE_CSS__
 __PORTAL_CSS__
+__STARTUP_GATE_CSS__
 </style>
 </head>
 <body>
@@ -1134,6 +1344,8 @@ window.__BR_BOOT_SECRET__ = __SECRET_JSON__;
 <script>
 __PORTAL_JS__
 </script>
+__STARTUP_GATE_HTML__
+<script>__STARTUP_GATE_JS__</script>
 </body>
 </html>
 """
@@ -1639,12 +1851,16 @@ _PORTAL_JS = r"""
 """
 
 
-def build_portal_html(locale: Optional[str] = None, secret: str = "") -> str:
+def build_portal_html(locale: Optional[str] = None, secret: str = "",
+                      startup_password_enabled: bool = False,
+                      startup_password: str = "") -> str:
     """生成局域网书库入口页（在线 / 离线共用同一页面）。
 
     Args:
         locale: 界面语言；None 时读取全局 i18n。
         secret: 后端接口密钥，仅作为首次访问的默认值写入页面（之后由 localStorage 覆盖）。
+        startup_password_enabled: 是否开启浏览器阅读器开屏密码。
+        startup_password: 设置中心配置的开屏密码（仅注入 SHA-256 摘要，不注入明文）。
 
     Returns:
         完整的 HTML 字符串。
@@ -1658,6 +1874,11 @@ def build_portal_html(locale: Optional[str] = None, secret: str = "") -> str:
         "__RESPONSIVE_CSS__": RESPONSIVE_CSS,
         "__PORTAL_CSS__": PORTAL_CSS,
         "__PORTAL_JS__": _PORTAL_JS,
+        "__STARTUP_GATE_EARLY__": render_startup_gate_early_js(
+            bool(startup_password_enabled), startup_password_hash(startup_password)),
+        "__STARTUP_GATE_CSS__": STARTUP_GATE_CSS,
+        "__STARTUP_GATE_HTML__": STARTUP_GATE_HTML,
+        "__STARTUP_GATE_JS__": STARTUP_GATE_JS,
         "__PORTAL_TITLE__": labels["portal_title"],
         "__PORTAL_TAGLINE__": labels["portal_tagline"],
         "__PORTAL_COUNT__": labels["portal_count"].replace("%d", "0"),

@@ -705,6 +705,24 @@ def create_browser_settings() -> SettingSection:
         description="开启后每次在浏览器中打开阅读器需先设置锁屏密码（密码仅保存在浏览器端，刷新或重新打开仍需验证）",  # 将在UI中通过国际化显示
         category="browser"
     ))
+
+    # 浏览器阅读器开屏密码开关
+    section.add_setting(BooleanSetting(
+        key="browser_server.startup_password_enabled",
+        default_value=False,
+        display_name="浏览器阅读器开屏密码",  # 将在UI中通过国际化显示
+        description="开启后，打开浏览器阅读器（离线版/局域网版）必须先输入开屏密码验证通过才能进入；开启前须在下方设置开屏密码",  # 将在UI中通过国际化显示
+        category="browser"
+    ))
+
+    # 浏览器阅读器开屏密码（明文保存在设置中心）
+    section.add_setting(StringSetting(
+        key="browser_server.startup_password",
+        default_value="",
+        display_name="开屏密码",  # 将在UI中通过国际化显示
+        description="开屏密码在设置中心设置（明文保存，便于忘记后修改）；开启开屏密码选项后必须填写",  # 将在UI中通过国际化显示
+        category="browser"
+    ))
     
     section.add_setting(BooleanSetting(
         key="browser_server.api_enabled",

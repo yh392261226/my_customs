@@ -1189,8 +1189,16 @@ LOCK_SCREEN_JS = r"""
       brTrigger();
     }
   });
-  if(document.readyState==='loading'){ document.addEventListener('DOMContentLoaded', brInit); }
-  else { brInit(); }
+  // 开屏密码未验证通过时延后锁屏初始化，避免锁屏弹窗与开屏门禁叠加
+  function brStartWhenReady(){
+    if(document.documentElement.classList.contains('br-startup-locked')){
+      window.addEventListener('br-startup-unlocked', function(){ brInit(); }, { once:true });
+    } else {
+      brInit();
+    }
+  }
+  if(document.readyState==='loading'){ document.addEventListener('DOMContentLoaded', brStartWhenReady); }
+  else { brStartWhenReady(); }
 })();
 """
 
@@ -2042,7 +2050,9 @@ class BrowserReader:
                         lock_enabled: bool = False,
                         api_base_url: Optional[str] = None,
                         api_secret: Optional[str] = None,
-                        progress_sync_enabled: Optional[bool] = None) -> str:
+                        progress_sync_enabled: Optional[bool] = None,
+                        startup_password_enabled: bool = False,
+                        startup_password: str = "") -> str:
         """
         创建浏览器阅读器HTML
         
@@ -2057,6 +2067,19 @@ class BrowserReader:
         Returns:
             HTML字符串
         """
+        # 开屏密码门禁资源：离线 file:// 阅读页与局域网 /reader 阅读页共用
+        try:
+            from src.utils import reader_web as _sg_mod
+            _sg_css = _sg_mod.STARTUP_GATE_CSS
+            _sg_html = _sg_mod.STARTUP_GATE_HTML
+            _sg_js = _sg_mod.STARTUP_GATE_JS
+            _startup_early_js = _sg_mod.render_startup_gate_early_js(
+                bool(startup_password_enabled),
+                _sg_mod.startup_password_hash(startup_password))
+        except Exception as _sg_e:
+            logger.warning(f"载入开屏密码门禁资源失败: {_sg_e}")
+            _sg_css = _sg_html = _sg_js = _startup_early_js = ""
+
         # 故障转移扫描起始端口：未指定时取本实例实际端口
         if browser_server_base_port is None:
             browser_server_base_port = browser_server_port
@@ -13189,7 +13212,7 @@ class BrowserReader:
                 '})();\n'
                 '</script>\n'
             )
-            html = html.replace('<head>', '<head>' + lock_early_script, 1)
+            html = html.replace('<head>', '<head>' + lock_early_script + _startup_early_js, 1)
         except Exception as _lock_e:
             logger.warning(f"注入锁屏早期脚本失败: {_lock_e}")
 
@@ -13203,15 +13226,16 @@ class BrowserReader:
             web_css = web_html = web_js = ""
 
         # 注入增强功能（CSS / HTML / JS）
-        html = html.replace('</style>', EXTRA_READER_CSS + LOCK_SCREEN_CSS + SYNC_CSS + web_css + '</style>', 1)
+        html = html.replace('</style>', EXTRA_READER_CSS + LOCK_SCREEN_CSS + SYNC_CSS + web_css + _sg_css + '</style>', 1)
         html = html.replace(
             '</body>',
-            EXTRA_READER_HTML + SYNC_HTML + web_html
+            EXTRA_READER_HTML + SYNC_HTML + web_html + _sg_html
             + '<script>' + EXTRA_READER_JS + '</script>'
             + '<script>' + LOCK_SCREEN_JS + '</script>'
             + '<script>' + SYNC_JS + '</script>'
             + '<script>' + ENCRYPTED_PDF_JS + '</script>'
             + ('<script>' + web_js + '</script>' if web_js else '')
+            + ('<script>' + _sg_js + '</script>' if _sg_js else '')
             + '</body>', 1)
         
 
@@ -13870,13 +13894,17 @@ class BrowserReader:
                 except Exception as e:
                     logger.warning(f"获取初始进度失败: {e}")
             
-            # 读取浏览器阅读器锁屏开关与后端 API 地址（密码仅保存在浏览器端，刷新/重开仍需验证）
+            # 读取浏览器阅读器锁屏开关与开屏密码（开屏密码由设置中心配置，离线页同样需要校验）
             try:
                 from src.config.config_manager import ConfigManager
                 _br_cfg = ConfigManager.get_instance().get_config().get("browser_server", {})
                 _lock_enabled = bool(_br_cfg.get("lock_enabled", False))
+                _startup_password_enabled = bool(_br_cfg.get("startup_password_enabled", False))
+                _startup_password = str(_br_cfg.get("startup_password", "") or "")
             except Exception:
                 _lock_enabled = False
+                _startup_password_enabled = False
+                _startup_password = ""
 
             # 计算后端数据接口地址（供浏览器阅读器连接；不可用时留空，仅本地模式）
             _api_base_url = ""
@@ -13899,7 +13927,9 @@ class BrowserReader:
                 book_id, initial_progress, browser_server_host, browser_server_port,
                 browser_server_base_port,
                 file_path, lock_enabled=_lock_enabled, api_base_url=_api_base_url,
-                api_secret=_api_secret
+                api_secret=_api_secret,
+                startup_password_enabled=_startup_password_enabled,
+                startup_password=_startup_password
             )
             
             # 创建临时HTML文件

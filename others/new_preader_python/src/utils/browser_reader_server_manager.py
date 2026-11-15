@@ -190,7 +190,15 @@ def _build_reader_page(file_path: str, req_host: str, req_port: int, secret: str
         mtime = int(os.path.getmtime(file_path))
     except OSError:
         mtime = 0
-    cache_key = f"{os.path.realpath(file_path)}|{mtime}|{req_host}|{req_port}|{secret}|2"
+    # 开屏密码开关/密码变更后必须让页面缓存失效，否则仍按旧密码校验
+    try:
+        _sg_cfg = ConfigManager.get_instance().get_config().get("browser_server", {}) or {}
+    except Exception:
+        _sg_cfg = {}
+    _sg_enabled = bool(_sg_cfg.get("startup_password_enabled", False))
+    _sg_pwd = str(_sg_cfg.get("startup_password", "") or "")
+    cache_key = (f"{os.path.realpath(file_path)}|{mtime}|{req_host}|{req_port}|{secret}|"
+                 f"{_sg_enabled}|{_sg_pwd}|3")
     with _reader_page_cache_lock:
         cached = _reader_page_cache.get(cache_key)
     if cached:
@@ -216,6 +224,8 @@ def _build_reader_page(file_path: str, req_host: str, req_port: int, secret: str
             api_base_url=base,
             api_secret=secret,
             progress_sync_enabled=True,
+            startup_password_enabled=_sg_enabled,
+            startup_password=_sg_pwd,
         )
     except Exception as e:
         logger.error(f"生成局域网阅读页失败: {e}")
@@ -263,7 +273,19 @@ def _handle_web_get(handler: Any, path: str, query: Dict[str, Any], secret: str)
         return True
 
     if path == "/":
-        _send_web_response(handler, build_portal_html(secret=secret))
+        # 局域网书库入口页同样受开屏密码保护（与离线版 /reader 页共用门禁）
+        try:
+            from src.config.config_manager import ConfigManager
+            _sg_cfg = ConfigManager.get_instance().get_config().get("browser_server", {}) or {}
+            _sg_enabled = bool(_sg_cfg.get("startup_password_enabled", False))
+            _sg_pwd = str(_sg_cfg.get("startup_password", "") or "")
+        except Exception:
+            _sg_enabled, _sg_pwd = False, ""
+        _send_web_response(handler, build_portal_html(
+            secret=secret,
+            startup_password_enabled=_sg_enabled,
+            startup_password=_sg_pwd,
+        ))
         return True
 
     # /reader?path=<书库中已登记的书籍路径>
