@@ -2052,7 +2052,8 @@ class BrowserReader:
                         api_secret: Optional[str] = None,
                         progress_sync_enabled: Optional[bool] = None,
                         startup_password_enabled: bool = False,
-                        startup_password: str = "") -> str:
+                        startup_password: str = "",
+                        download_txt_enabled: bool = False) -> str:
         """
         创建浏览器阅读器HTML
         
@@ -2199,6 +2200,14 @@ class BrowserReader:
         # 将文件路径安全地序列化为 JS 字符串（用于「查看文件」功能）
         import json as _json
         file_path_js = _json.dumps(file_path or "")
+
+        # 局域网阅读页专用：工具栏/文件信息弹窗的「下载 TXT」入口。
+        # 文案占位符由下方的 t(...) 正则统一替换，保持多语言一致。
+        download_toolbar_html = (
+            '<button type="button" id="downloadBookBtn" onclick="downloadBookAsTxt()" '
+            'title="{t(\'browser_reader.download_txt\')}">{t(\'browser_reader.download_txt\')}</button>'
+        ) if download_txt_enabled else ""
+        download_txt_js = "true" if download_txt_enabled else "false"
 
         # 生成HTML
         html = f"""<!DOCTYPE html>
@@ -5126,6 +5135,7 @@ class BrowserReader:
         <button onclick="toggleBookLibrary()" id="bookLibraryBtn"><script>document.write(t('browser_reader.book_library'));</script></button>
         <button onclick="toggleVocabPanel()" id="vocabBtn"><script>document.write(t('common.vocab'));</script></button>
         <button onclick="if(checkPermission('book.read')) showFileView()" id="viewFileBtn"><script>document.write(t('common.view_file'));</script></button>
+        {download_toolbar_html}
     </div>
 
     <!-- 工具栏收缩/展开按钮 -->
@@ -5661,6 +5671,10 @@ class BrowserReader:
         
         // 后端接口密钥：所有数据传输接口需携带此密钥（开放模式为空则不使用）
         let READER_SECRET = {f'"{api_secret}"' if api_secret else '""'};
+
+        // 局域网阅读页才提供 TXT 下载（file:// 离线版无 /download_book 服务）
+        const LAN_DOWNLOAD_ENABLED = {download_txt_js};
+        window.__BR_LAN_DOWNLOAD__ = LAN_DOWNLOAD_ENABLED;
         
         // 当前实例标识：只有返回该标识的服务才是"我这个实例"的后端（多实例隔离）
         let READER_INSTANCE_ID = {f'"{_get_reader_instance_id()}"'};
@@ -11584,15 +11598,62 @@ class BrowserReader:
             if (modal) modal.style.display = 'none';
         }}
         
-        function downloadCurrentFile() {{
-            const path = BOOK_FILE_PATH || '';
-            if (!path) {{ showNotification(t('browser_reader.view_file_no_path')); return; }}
-            // 浏览器无法直接访问本地文件，尝试通过进度同步服务器下载
-            if (typeof DOWNLOAD_URL !== 'undefined' && DOWNLOAD_URL) {{
-                window.open(DOWNLOAD_URL, '_blank');
-            }} else {{
-                showNotification(t('browser_reader.view_file_cannot_open'));
+        function txtFilenameFromDisposition(cd) {{
+            const marker = "filename*=UTF-8''";
+            const i = (cd || '').indexOf(marker);
+            if (i < 0) return '';
+            const raw = cd.slice(i + marker.length).split(';')[0].trim();
+            try {{ return decodeURIComponent(raw); }} catch (e) {{ return ''; }}
+        }}
+
+        // 局域网版：通过后端把当前书导出为 TXT 并触发浏览器下载，
+        // 手机在离开局域网前下载后即可用系统文本阅读器继续看。
+        function downloadBookAsTxt() {{
+            if (!window.__BR_LAN_DOWNLOAD__) {{
+                showNotification(t('browser_reader.download_lan_only'));
+                return;
             }}
+            const path = (typeof BOOK_FILE_PATH !== 'undefined' && BOOK_FILE_PATH) || '';
+            if (!path) {{ showNotification(t('browser_reader.view_file_no_path')); return; }}
+            let base = window.__BR_API_BASE__ || '';
+            if (!base && typeof SAVE_PROGRESS_URL !== 'undefined' && SAVE_PROGRESS_URL) {{
+                base = SAVE_PROGRESS_URL.replace(/\\/save_progress$/, '');
+            }}
+            base = String(base).replace(/\\/+$/, '');
+            if (!base) {{ showNotification(t('browser_reader.download_failed')); return; }}
+            let key = '';
+            try {{ key = localStorage.getItem('br_api_secret') || READER_SECRET || ''; }} catch (e) {{ key = READER_SECRET || ''; }}
+            const headers = {{}};
+            if (key) headers['X-API-Key'] = key;
+            const btn = document.getElementById('downloadBookBtn');
+            if (btn) btn.disabled = true;
+            showNotification(t('browser_reader.downloading'));
+            fetch(base + '/download_book?path=' + encodeURIComponent(path), {{ headers: headers, cache: 'no-store' }})
+                .then(function (r) {{
+                    if (!r.ok) {{ throw new Error('HTTP ' + r.status); }}
+                    return r.blob().then(function (blob) {{
+                        return {{ blob: blob, cd: r.headers.get('Content-Disposition') || '' }};
+                    }});
+                }})
+                .then(function (res) {{
+                    const a = document.createElement('a');
+                    const url = URL.createObjectURL(res.blob);
+                    a.href = url;
+                    a.download = txtFilenameFromDisposition(res.cd)
+                        || ((document.title || 'book').replace(/[:*?"<>|]/g, '_') + '.txt');
+                    document.body.appendChild(a);
+                    a.click();
+                    document.body.removeChild(a);
+                    setTimeout(function () {{ URL.revokeObjectURL(url); }}, 2000);
+                    showNotification(t('browser_reader.download_done'));
+                }})
+                .catch(function (e) {{ showNotification(t('browser_reader.download_failed') + ': ' + e.message); }})
+                .finally(function () {{ if (btn) btn.disabled = false; }});
+        }}
+
+        function downloadCurrentFile() {{
+            if (window.__BR_LAN_DOWNLOAD__) {{ downloadBookAsTxt(); return; }}
+            showNotification(t('browser_reader.view_file_cannot_open'));
         }}
         
         function formatFileSize(bytes) {{

@@ -7,6 +7,7 @@ import threading
 import time
 import re
 import uuid
+from html.parser import HTMLParser
 from typing import Optional, Dict, Any, Callable
 from src.utils.logger import get_logger
 from src.utils.browser_reader import BrowserReader
@@ -174,6 +175,85 @@ def _is_known_book_path(file_path: str) -> bool:
     return False
 
 
+class _BookTextExtractor(HTMLParser):
+    """把阅读器 HTML 还原为适合手机文本阅读器打开的纯文本。"""
+
+    _BLOCK_TAGS = {"p", "div", "h1", "h2", "h3", "h4", "h5", "h6", "li", "br", "tr", "section", "article"}
+
+    def __init__(self):
+        super().__init__(convert_charrefs=True)
+        self._parts = []
+        self._skip_depth = 0
+
+    def handle_starttag(self, tag, attrs):
+        if tag in ("script", "style"):
+            self._skip_depth += 1
+        elif tag in self._BLOCK_TAGS:
+            self._parts.append("\n")
+
+    def handle_endtag(self, tag):
+        if tag in ("script", "style"):
+            if self._skip_depth:
+                self._skip_depth -= 1
+        elif tag in self._BLOCK_TAGS:
+            self._parts.append("\n")
+
+    def handle_data(self, data):
+        if not self._skip_depth:
+            self._parts.append(data)
+
+    def text(self) -> str:
+        lines = [line.rstrip() for line in "".join(self._parts).splitlines()]
+        out = []
+        blank_pending = False
+        for line in lines:
+            if not line.strip():
+                if out and not blank_pending:
+                    out.append("")
+                blank_pending = True
+            else:
+                out.append(line)
+                blank_pending = False
+        return "\n".join(out).strip() + "\n"
+
+
+def _read_plain_text(file_path: str) -> str:
+    """按阅读器相同的编码兜底顺序读取纯文本书籍。"""
+    for encoding in ("utf-8", "gbk", "gb18030"):
+        try:
+            with open(file_path, "r", encoding=encoding) as f:
+                return f.read()
+        except UnicodeDecodeError:
+            continue
+    raise UnicodeDecodeError("unknown", b"", 0, 1, "无法识别书籍编码")
+
+
+def _book_to_txt(file_path: str) -> Optional[str]:
+    """把书库中的书籍导出为 UTF-8 纯文本；加密且未解锁的书籍返回 None。"""
+    import os
+    from src.utils.browser_reader import _BROWSER_READER_BINARY_FORMATS
+
+    ext = os.path.splitext(file_path)[1].lower()
+    if ext not in _BROWSER_READER_BINARY_FORMATS:
+        return _read_plain_text(file_path)
+
+    html = BrowserReader.read_file_content(file_path)
+    if 'data-needs-password="1"' in html:
+        return None
+    extractor = _BookTextExtractor()
+    extractor.feed(html)
+    return extractor.text()
+
+
+def _txt_content_disposition(filename: str) -> str:
+    """生成带中文文件名支持的 Content-Disposition（RFC 5987）。"""
+    import re
+    from urllib.parse import quote
+
+    fallback = re.sub(r"[^\x20-\x7e]", "_", filename).replace('"', "_").replace("\\", "_").replace("/", "_")
+    return f'attachment; filename="{fallback}"; filename*=UTF-8\'\'{quote(filename)}'
+
+
 def _build_reader_page(file_path: str, req_host: str, req_port: int, secret: str) -> Optional[str]:
     """生成可通过 HTTP 访问的阅读页；与 file:// 版本是同一套页面与功能。"""
     import os
@@ -200,7 +280,7 @@ def _build_reader_page(file_path: str, req_host: str, req_port: int, secret: str
     # 末尾为前端资源版本号：响应式 CSS / Web JS / Service Worker 有变更时递增，
     # 让进程内缓存的旧 /reader 页面失效，否则局域网版会一直返回修复前的 HTML。
     cache_key = (f"{os.path.realpath(file_path)}|{mtime}|{req_host}|{req_port}|{secret}|"
-                 f"{_sg_enabled}|{_sg_pwd}|4")
+                 f"{_sg_enabled}|{_sg_pwd}|5")
     with _reader_page_cache_lock:
         cached = _reader_page_cache.get(cache_key)
     if cached:
@@ -228,6 +308,7 @@ def _build_reader_page(file_path: str, req_host: str, req_port: int, secret: str
             progress_sync_enabled=True,
             startup_password_enabled=_sg_enabled,
             startup_password=_sg_pwd,
+            download_txt_enabled=True,
         )
     except Exception as e:
         logger.error(f"生成局域网阅读页失败: {e}")
@@ -243,6 +324,35 @@ def _build_reader_page(file_path: str, req_host: str, req_port: int, secret: str
 def _handle_web_get(handler: Any, path: str, query: Dict[str, Any], secret: str) -> bool:
     """处理局域网 Web 页面 GET 请求；返回 False 表示交由原有接口逻辑处理。"""
     import json
+
+    # 局域网离线阅读：把书库中的书籍导出为 TXT 下载到本机/手机。
+    # 必须在通用路径判断之前处理（它不属于 _WEB_PAGE_PATHS）。
+    if path == "/download_book":
+        if not _verify_request(handler.headers, query, secret):
+            _send_web_response(handler, "接口密钥无效", "text/plain; charset=utf-8", status=401)
+            return True
+        file_path = (query.get("path") or [""])[0]
+        if not file_path or not _is_known_book_path(file_path):
+            _send_web_response(handler, "书籍不在书库中", "text/plain; charset=utf-8", status=404)
+            return True
+        try:
+            text = _book_to_txt(file_path)
+            if text is None:
+                _send_web_response(handler, "加密书籍需先在阅读页解锁后再下载", "text/plain; charset=utf-8", status=409)
+                return True
+            import os
+            stem = os.path.splitext(os.path.basename(file_path))[0] or "book"
+            _send_web_response(
+                handler, text, "text/plain; charset=utf-8",
+                extra_headers={
+                    "Content-Disposition": _txt_content_disposition(stem + ".txt"),
+                    "X-Content-Type-Options": "nosniff",
+                },
+            )
+        except Exception as e:
+            logger.error(f"导出书籍 TXT 失败: {e}", exc_info=True)
+            _send_web_response(handler, f"导出失败: {e}", "text/plain; charset=utf-8", status=500)
+        return True
 
     if path not in _WEB_PAGE_PATHS:
         return False

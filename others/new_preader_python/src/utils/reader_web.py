@@ -326,6 +326,7 @@ MOBILE_HTML = r"""
             <button type="button" id="brSetPosition" data-br-label="jump">位置跳转</button>
             <button type="button" id="brSetAutoScroll" data-br-label="auto_scroll">自动滚动</button>
             <button type="button" id="brSetSpeech" data-br-label="speech">朗读</button>
+            <button type="button" id="brSetDownload" data-br-label="download_txt" hidden>下载 TXT</button>
         </div>
     </div>
 
@@ -572,6 +573,12 @@ READER_WEB_JS = r"""
             var btn = $(id);
             if (btn) { btn.addEventListener('click', function () { closeSettings(); callGlobal(actions[id]); }); }
         });
+        /* 下载入口只在局域网阅读页出现（file:// 离线版没有 /download_book 服务） */
+        var downloadBtn = $('brSetDownload');
+        if (downloadBtn) {
+            if (safe(function () { return window.__BR_LAN_DOWNLOAD__; })) { downloadBtn.hidden = false; }
+            downloadBtn.addEventListener('click', function () { closeSettings(); callGlobal('downloadBookAsTxt'); });
+        }
         var portal = $('brSetPortal');
         if (portal) { portal.addEventListener('click', function () { if (isHttp()) { location.href = withKey('/'); } }); }
         var saveConn = $('brSetSaveConn');
@@ -705,6 +712,8 @@ self.addEventListener('fetch', function (e) {
     var url = new URL(req.url);
     if (url.origin !== self.location.origin) { return; }
     if (url.pathname === '/sw.js' || url.pathname === '/health_check' || url.pathname === '/manifest.webmanifest') { return; }
+    /* 书籍下载必须每次回源，不能被离线缓存污染 */
+    if (url.pathname === '/download_book') { return; }
     if (url.pathname.indexOf('/api/') === 0) { return; }
 
     if (req.mode === 'navigate' || url.pathname === '/' || url.pathname === '/reader') {
@@ -747,6 +756,8 @@ LABELS: Dict[str, Dict[str, str]] = {
         "jump": "位置跳转", "auto_scroll": "自动滚动", "speech": "朗读",
         "backend": "后端地址", "api_key": "接口密钥", "status": "状态",
         "save": "保存并检测", "sync_now": "立即同步", "book_library": "返回书库",
+        "download_txt": "下载 TXT", "downloading": "正在生成 TXT…",
+        "download_done": "TXT 已开始下载", "download_failed": "下载失败",
         "offline_hint": "后端关闭后仍可继续阅读：正文已保存在本机，进度暂存本地，恢复连接后自动同步。",
         "online": "在线", "offline": "离线",
         "portal_title": "书库", "portal_search": "搜索书名 / 作者",
@@ -770,6 +781,8 @@ LABELS: Dict[str, Dict[str, str]] = {
         "jump": "Jump to position", "auto_scroll": "Auto scroll", "speech": "Read aloud",
         "backend": "Backend URL", "api_key": "API key", "status": "Status",
         "save": "Save & check", "sync_now": "Sync now", "book_library": "Back to library",
+        "download_txt": "Download TXT", "downloading": "Preparing TXT…",
+        "download_done": "TXT download started", "download_failed": "Download failed",
         "offline_hint": "You can keep reading when the backend is down: content is cached on this device and progress is stored locally until the connection returns.",
         "online": "Online", "offline": "Offline",
         "portal_title": "Library", "portal_search": "Search title / author",
@@ -1172,6 +1185,13 @@ html.br-dark{
   flex:0 0 auto; font-size:25px; line-height:1; color:var(--br-accent); opacity:.32;
   margin-left:2px; transition:transform .18s ease, opacity .18s ease; user-select:none;
 }
+.book-download{
+  flex:0 0 auto; min-width:46px; min-height:34px; padding:0 10px; margin-left:2px;
+  border-radius:9px; border:1px solid var(--br-nav-border); background:var(--br-card-bg);
+  color:var(--br-accent); font-size:12px; font-weight:650; white-space:nowrap; cursor:pointer;
+}
+.book-download:hover{ border-color:var(--br-accent); background:var(--br-accent-soft); }
+.book-download:disabled{ opacity:.5; cursor:default; }
 
 /* ---- 空状态 ---- */
 .br-portal-empty{
@@ -1639,6 +1659,38 @@ _PORTAL_JS = r"""
         if (s.font_family) { body.style.fontFamily = s.font_family; }
     }
 
+    /* 书库卡片：把书导出为 TXT 下载到本机/手机，脱离局域网后也能继续看 */
+    function downloadBookTxt(path, title) {
+        if (!path) { alert(L.download_failed); return; }
+        var h = {};
+        var k = key();
+        if (k) { h['X-API-Key'] = k; }
+        fetch(withKey(backend() + '/download_book?path=' + encodeURIComponent(path)), { headers: h, cache: 'no-store' })
+            .then(function (r) {
+                if (!r.ok) { throw new Error('HTTP ' + r.status); }
+                return r.blob().then(function (blob) {
+                    return { blob: blob, cd: r.headers.get('Content-Disposition') || '' };
+                });
+            })
+            .then(function (res) {
+                var a = document.createElement('a');
+                var url = URL.createObjectURL(res.blob);
+                var marker = "filename*=UTF-8''";
+                var i = res.cd.indexOf(marker);
+                var name = '';
+                if (i >= 0) {
+                    try { name = decodeURIComponent(res.cd.slice(i + marker.length).split(';')[0].trim()); } catch (e) {}
+                }
+                a.href = url;
+                a.download = name || (String(title || 'book').replace(/[:*?"<>|]/g, '_') + '.txt');
+                document.body.appendChild(a);
+                a.click();
+                document.body.removeChild(a);
+                setTimeout(function () { URL.revokeObjectURL(url); }, 2000);
+            })
+            .catch(function (e) { alert(L.download_failed + ': ' + e.message); });
+    }
+
     /* 书名决定封面配色：同一本书在任何设备上颜色一致 */
     function coverTone(text) {
         var sum = 0;
@@ -1686,6 +1738,19 @@ _PORTAL_JS = r"""
         arrow.className = 'book-arrow';
         arrow.setAttribute('aria-hidden', 'true');
         arrow.textContent = '›';
+
+        if (mode === 'online' && b.path) {
+            var download = document.createElement('button');
+            download.type = 'button';
+            download.className = 'book-download';
+            download.title = L.download_txt;
+            download.textContent = L.download_txt || 'TXT';
+            download.addEventListener('click', function (e) {
+                e.stopPropagation();
+                downloadBookTxt(b.path, title);
+            });
+            card.appendChild(download);
+        }
 
         card.appendChild(cover);
         card.appendChild(meta);
