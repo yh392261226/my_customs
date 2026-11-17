@@ -95,6 +95,7 @@ class ConfigManager:
                     
                 # 合并用户配置和默认配置，确保所有必要的配置项都存在
                 config = self._merge_configs(DEFAULT_CONFIG, user_config)
+                self._migrate_idle_interval(config, user_config)
                 logger.debug("配置已从文件加载")
                 return config
             else:
@@ -107,6 +108,26 @@ class ConfigManager:
             logger.info("使用默认配置")
             return DEFAULT_CONFIG.copy()
     
+    def _migrate_idle_interval(self, config: Dict[str, Any], user_config: Dict[str, Any]) -> None:
+        """把旧的单一静置间隔迁移为随机区间配置。"""
+        user_idle = user_config.get("idle", {}) if isinstance(user_config, dict) else {}
+        if not isinstance(user_idle, dict):
+            return
+        if "auto_one_click_crawl_interval" not in user_idle:
+            return
+        try:
+            old_interval = int(user_idle["auto_one_click_crawl_interval"])
+        except (TypeError, ValueError):
+            old_interval = None
+
+        idle = config.setdefault("idle", {})
+        if old_interval is not None:
+            if "auto_one_click_crawl_interval_min" not in user_idle:
+                idle["auto_one_click_crawl_interval_min"] = old_interval
+            if "auto_one_click_crawl_interval_max" not in user_idle:
+                idle["auto_one_click_crawl_interval_max"] = old_interval
+        idle.pop("auto_one_click_crawl_interval", None)
+
     def _merge_configs(self, default_config: Dict[str, Any], user_config: Dict[str, Any]) -> Dict[str, Any]:
         """
         递归合并两个配置字典，确保所有默认配置项都存在

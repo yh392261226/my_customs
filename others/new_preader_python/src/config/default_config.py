@@ -103,6 +103,13 @@ DEFAULT_CONFIG = {
         "monitor_no_id_timeout": 10,  # 监听浏览器获取书籍ID时，若超过该秒数仍未获取到ID则自动停止监听（0表示不自动停止）
     },
     
+    # 静置设置
+    "idle": {
+        "auto_one_click_crawl_enabled": False,  # 系统静置达到随机间隔后是否自动执行一键爬取
+        "auto_one_click_crawl_interval_min": 1800,  # 静置自动一键爬取随机间隔下限（秒）
+        "auto_one_click_crawl_interval_max": 3600,  # 静置自动一键爬取随机间隔上限（秒）
+    },
+
     # 快捷键设置
     "keybindings": {
         # 阅读操作

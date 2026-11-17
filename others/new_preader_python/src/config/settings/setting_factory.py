@@ -773,6 +773,49 @@ def create_browser_settings() -> SettingSection:
 
     return section
 
+def create_idle_settings() -> SettingSection:
+    """创建静置自动任务相关设置项"""
+    section = SettingSection(
+        name="idle",
+        display_name="静置",
+        description="系统静置时自动执行的任务",
+        icon="⏱️",
+        order=7
+    )
+
+    # 静置自动一键爬取开关
+    section.add_setting(BooleanSetting(
+        key="idle.auto_one_click_crawl_enabled",
+        default_value=False,
+        display_name="启用静置自动一键爬取",
+        description="Python 端持续静置超过随机间隔后，自动执行一次一键爬取；终端中的任何人为操作都会重新计时",
+        category="idle"
+    ))
+
+    # 静置自动一键爬取随机间隔下限
+    section.add_setting(IntegerSetting(
+        key="idle.auto_one_click_crawl_interval_min",
+        default_value=1800,
+        display_name="静置自动一键爬取间隔下限（秒）",
+        description="每次静置触发前在该区间内随机取一个等待时间，此为下限（最小 60 秒）",
+        min_value=60,
+        max_value=86400,
+        category="idle"
+    ))
+
+    # 静置自动一键爬取随机间隔上限
+    section.add_setting(IntegerSetting(
+        key="idle.auto_one_click_crawl_interval_max",
+        default_value=3600,
+        display_name="静置自动一键爬取间隔上限（秒）",
+        description="每次静置触发前在该区间内随机取一个等待时间，此为上限（最大 86400 秒）",
+        min_value=60,
+        max_value=86400,
+        category="idle"
+    ))
+
+    return section
+
 def create_path_settings() -> SettingSection:
     """创建路径相关设置项"""
     section = SettingSection(
@@ -826,7 +869,8 @@ def create_all_settings() -> List[SettingSection]:
         create_translation_settings(),
         create_advanced_settings(),
         create_browser_settings(),
-        create_path_settings()
+        create_path_settings(),
+        create_idle_settings()
     ]
 
 def initialize_settings_registry(registry: 'SettingRegistry') -> None:

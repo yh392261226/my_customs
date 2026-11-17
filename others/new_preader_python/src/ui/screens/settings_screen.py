@@ -145,7 +145,11 @@ class SettingsScreen(Screen[Any]):
                 # 浏览器设置标签页
                 with TabPane(get_global_i18n().t("common.browser"), id="browser-tab"):
                     yield from self._compose_browser_settings()
-                
+
+                # 静置设置标签页
+                with TabPane(get_global_i18n().t("settings.idle"), id="idle-tab"):
+                    yield from self._compose_idle_settings()
+
                 # 高级设置标签页
                 with TabPane(get_global_i18n().t("settings.advanced"), id="advanced-tab"):
                     yield from self._compose_advanced_settings()
@@ -866,6 +870,37 @@ class SettingsScreen(Screen[Any]):
                 )
             yield Label(get_global_i18n().t("settings.crawl_format_enabled_help"), classes="setting-description")
 
+    def _compose_idle_settings(self) -> ComposeResult:
+        """组合静置设置"""
+        with ScrollableContainer(id="idle-settings", classes="settings-scrollable"):
+            enabled_setting = self.setting_registry.get_setting("idle.auto_one_click_crawl_enabled")
+            yield Label(get_global_i18n().t("settings.idle_auto_crawl_enabled"), classes="setting-label")
+            if enabled_setting:
+                yield Switch(
+                    value=enabled_setting.value,
+                    id="idle-auto-crawl-enabled-switch"
+                )
+            yield Label(get_global_i18n().t("settings.idle_auto_crawl_enabled_help"), classes="setting-description")
+
+            interval_min_setting = self.setting_registry.get_setting("idle.auto_one_click_crawl_interval_min")
+            yield Label(get_global_i18n().t("settings.idle_auto_crawl_interval_min"), classes="setting-label")
+            if interval_min_setting:
+                yield Input(
+                    value=str(interval_min_setting.value),
+                    id="idle-auto-crawl-interval-min-input",
+                    placeholder=str(interval_min_setting.default_value)
+                )
+
+            interval_max_setting = self.setting_registry.get_setting("idle.auto_one_click_crawl_interval_max")
+            yield Label(get_global_i18n().t("settings.idle_auto_crawl_interval_max"), classes="setting-label")
+            if interval_max_setting:
+                yield Input(
+                    value=str(interval_max_setting.value),
+                    id="idle-auto-crawl-interval-max-input",
+                    placeholder=str(interval_max_setting.default_value)
+                )
+            yield Label(get_global_i18n().t("settings.idle_auto_crawl_interval_help"), classes="setting-description")
+
     def _compose_database_settings(self) -> ComposeResult:
         """组合数据库管理设置"""
         with ScrollableContainer(id="database-settings"):
@@ -1576,6 +1611,34 @@ class SettingsScreen(Screen[Any]):
             pass
         except Exception:
             pass
+
+        # 静置自动一键爬取设置
+        try:
+            idle_enabled_switch = self.query_one("#idle-auto-crawl-enabled-switch", Switch)
+            self.setting_registry.set_value(
+                "idle.auto_one_click_crawl_enabled", idle_enabled_switch.value
+            )
+        except Exception as e:
+            logger.debug(f"保存静置自动爬取开关失败（可忽略）: {e}")
+        try:
+            idle_interval_min_input = self.query_one("#idle-auto-crawl-interval-min-input", Input)
+            idle_interval_max_input = self.query_one("#idle-auto-crawl-interval-max-input", Input)
+            interval_min = int((idle_interval_min_input.value or "").strip())
+            interval_max = int((idle_interval_max_input.value or "").strip())
+
+            min_setting = self.setting_registry.get_setting("idle.auto_one_click_crawl_interval_min")
+            max_setting = self.setting_registry.get_setting("idle.auto_one_click_crawl_interval_max")
+            allowed_min = getattr(min_setting, "min_value", 60) or 60
+            allowed_max = getattr(max_setting, "max_value", 86400) or 86400
+            interval_min = min(max(interval_min, allowed_min), allowed_max)
+            interval_max = min(max(interval_max, allowed_min), allowed_max)
+            if interval_min > interval_max:
+                interval_min, interval_max = interval_max, interval_min
+
+            self.setting_registry.set_value("idle.auto_one_click_crawl_interval_min", interval_min)
+            self.setting_registry.set_value("idle.auto_one_click_crawl_interval_max", interval_max)
+        except Exception as e:
+            logger.debug(f"保存静置自动爬取间隔区间失败（可忽略）: {e}")
 
         # 局域网访问开关（修改后需重启浏览器阅读器服务才生效）
         try:

@@ -390,7 +390,31 @@ class NewReaderApp(App[None]):
             
         except Exception as e:
             logger.error(f"{get_global_i18n().t("app.loaded_settings_failed")}: {e}")
-    
+
+    def _report_python_user_activity(self) -> None:
+        """记录本实例的一次终端人为操作（浏览器端与其它实例不经过这里）。"""
+        try:
+            from src.core.idle_auto_crawl_manager import get_idle_auto_crawl_manager
+            get_idle_auto_crawl_manager(self).notify_activity("tui")
+        except Exception:
+            pass
+
+    async def on_event(self, event: events.Event) -> None:
+        """在所有终端输入事件向下分发前记录人为操作。
+
+        即使某个页面/控件调用了 ``event.stop()``，这里也能收到原始输入事件，
+        因此静置计时不会因为当前所在页面不同而漏重置。
+        """
+        try:
+            if (
+                isinstance(event, (events.Key, events.MouseEvent, events.Paste))
+                and not getattr(event, "is_forwarded", False)
+            ):
+                self._report_python_user_activity()
+        except Exception:
+            pass
+        await super().on_event(event)
+
     def compose(self) -> ComposeResult:
         """
         组合应用程序界面
@@ -556,7 +580,14 @@ class NewReaderApp(App[None]):
             self._memory_monitor.start(interval_sec=2.0)
         except Exception as e:
             logger.debug(f"内存监控启动失败（可忽略）：{e}")
-        
+
+        # 启动静置自动一键爬取检测（仅统计 Python 端人为操作）
+        try:
+            from src.core.idle_auto_crawl_manager import get_idle_auto_crawl_manager
+            get_idle_auto_crawl_manager(self).start()
+        except Exception as e:
+            logger.debug(f"静置自动爬取检测启动失败（可忽略）：{e}")
+
         # 若通过 CLI 指定了书籍文件，直接打开阅读器并跳过登录/欢迎流程
         try:
             if getattr(self, "book_file", None):
@@ -634,7 +665,15 @@ class NewReaderApp(App[None]):
 
         # 启动全局内存日志面板（非文件日志模式下自动显示）
         self._setup_mem_log_overlay()
-    
+
+    def on_unmount(self) -> None:
+        """应用退出时停止静置检测器。"""
+        try:
+            from src.core.idle_auto_crawl_manager import stop_idle_auto_crawl_manager
+            stop_idle_auto_crawl_manager(self)
+        except Exception:
+            pass
+
     # ------------------------------------------------------------------
     # 全局内存日志面板：非文件日志模式下自动显示处理进度/步骤
     # （挂载到当前活动屏幕上的浮动覆盖层，切屏时自动重建）
