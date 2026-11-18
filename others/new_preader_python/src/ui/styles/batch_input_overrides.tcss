@@ -90,3 +90,9 @@
     align: center middle;
     text-align: center;
 }
+
+.batchinput-component #batch-input-select {
+    width: 60;
+    height: 3;
+    align: center middle;
+}

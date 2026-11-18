@@ -159,6 +159,7 @@
     "merge": "合并",
     "merge_author_description": "设置合并后书籍的作者",
     "merge_author_placeholder": "请输入新书籍作者（可选）",
+    "merge_site_auto": "已自动将合并后书籍的作者设为书籍网站「{site}」",
     "merge_description": "将选中的书籍合并为一个新文件",
     "merge_enter_author": "输入合并后的书籍作者",
     "merge_enter_tags": "输入合并后的书籍标签",

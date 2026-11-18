@@ -21,6 +21,7 @@ from src.locales.i18n import I18n
 from src.locales.i18n_manager import get_global_i18n
 from src.themes.theme_manager import ThemeManager
 from src.core.bookshelf import Bookshelf
+from src.core.library_filter import UNKNOWN_AUTHORS
 from src.ui.dialogs.confirm_dialog import ConfirmDialog
 from src.ui.dialogs.duplicate_books_dialog import DuplicateBooksDialog
 from src.config.default_config import SUPPORTED_FORMATS
@@ -416,17 +417,26 @@ class LogViewerPopup(ModalScreen[None]):
         except Exception as e:
             logger.error(f"Scroll to bottom failed: {e}")
 
-class BatchInputDialog(ModalScreen[str]):
-    """批量输入对话框"""
+class BatchInputDialog(ModalScreen[Optional[str]]):
+    """批量输入对话框；传入 options 时改为下拉选择框。"""
     
     CSS_PATH = "../styles/batch_input_overrides.tcss"
     
-    def __init__(self, title: str, placeholder: str, description: str = "") -> None:
+    def __init__(
+        self,
+        title: str,
+        placeholder: str,
+        description: str = "",
+        options: Optional[List[Tuple[str, str]]] = None,
+        default_value: Optional[str] = None,
+    ) -> None:
         super().__init__()
         self.title = title
         self.placeholder = placeholder
         # 保证描述为字符串，避免 None 传入 Label
         self.description = str(description) if description else ""
+        self.options = list(options) if options else []
+        self.default_value = default_value
     
     def compose(self) -> ComposeResult:
         """组合对话框界面"""
@@ -436,7 +446,16 @@ class BatchInputDialog(ModalScreen[str]):
                 yield Label(str(self.title), id="batch-input-title")
                 if self.description and self.description != "":
                     yield Label(str(self.description), id="batch-input-description")
-                yield Center(Input(placeholder=self.placeholder, id="batch-input"))
+                if self.options:
+                    yield Center(
+                        Select(
+                            options=self.options,
+                            value=self.default_value if self.default_value is not None else Select.BLANK,
+                            id="batch-input-select",
+                        )
+                    )
+                else:
+                    yield Center(Input(placeholder=self.placeholder, id="batch-input"))
                 with Horizontal(id="batch-input-buttons"):
                     yield Button(get_global_i18n().t("common.ok"), id="ok-btn", variant="primary")
                     yield Button(get_global_i18n().t("common.cancel"), id="cancel-btn")
@@ -445,14 +464,24 @@ class BatchInputDialog(ModalScreen[str]):
         """组件挂载时应用样式隔离"""
         # 借鉴旧版本的样式隔离实现
         apply_universal_style_isolation(self)
-        input_widget = self.query_one("#batch-input", Input)
-        input_widget.focus()
+        if self.options:
+            self.query_one("#batch-input-select", Select).focus()
+        else:
+            input_widget = self.query_one("#batch-input", Input)
+            input_widget.focus()
+    
+    def _current_value(self) -> Optional[str]:
+        if self.options:
+            value = self.query_one("#batch-input-select", Select).value
+            if value is None or value == Select.BLANK:
+                return None
+            return str(value)
+        return self.query_one("#batch-input", Input).value.strip()
     
     def on_button_pressed(self, event: Button.Pressed) -> None:
         """按钮按下时的回调"""
         if event.button.id == "ok-btn":
-            input_widget = self.query_one("#batch-input", Input)
-            self.dismiss(input_widget.value.strip())
+            self.dismiss(self._current_value())
         elif event.button.id == "cancel-btn":
             self.dismiss(None)
     
@@ -3155,6 +3184,82 @@ class BatchOpsDialog(ModalScreen[Dict[str, Any]]):
         
         self.notify(get_global_i18n().t("batch_ops.books_moved_down"), severity="information")
     
+    def _resolve_merge_sites(
+        self, book_paths: List[str]
+    ) -> Tuple[Dict[int, Dict[str, Any]], List[int], Optional[int]]:
+        """解析待合并书籍的来源网站。
+
+        优先使用 crawl_history 反查出的 site_id；查不到时再用作者名匹配 novel_sites.name。
+        "未知作者"只是占位符，不代表任何网站，不参与匹配。
+
+        Returns:
+            (网站字典, 去重后的网站 ID 列表, 默认网站 ID)
+        """
+        db = getattr(self.bookshelf, "db_manager", None)
+        if not db:
+            return {}, [], None
+
+        sites_by_id: Dict[int, Dict[str, Any]] = {}
+        try:
+            for site in db.get_novel_sites() or []:
+                if site.get("id") is not None:
+                    sites_by_id[int(site["id"])] = site
+        except Exception as e:
+            logger.debug(f"读取书籍网站配置失败: {e}")
+            return {}, [], None
+        if not sites_by_id:
+            return {}, [], None
+
+        by_name = {
+            (site.get("name") or "").strip(): site
+            for site in sites_by_id.values()
+            if (site.get("name") or "").strip()
+        }
+
+        try:
+            source_map = db.get_crawl_history_source_map(book_paths) or {}
+        except Exception as e:
+            logger.debug(f"反查爬取历史来源失败: {e}")
+            source_map = {}
+
+        path_to_site: Dict[str, int] = {}
+        for path in book_paths:
+            site_id: Optional[int] = None
+            record = source_map.get(os.path.abspath(path)) or {}
+            raw_id = record.get("site_id")
+            if raw_id is not None:
+                try:
+                    candidate = int(raw_id)
+                    if candidate in sites_by_id:
+                        site_id = candidate
+                except (TypeError, ValueError):
+                    pass
+
+            if site_id is None:
+                try:
+                    book = self.bookshelf.get_book(path)
+                except Exception:
+                    book = None
+                author = (getattr(book, "author", "") or "").strip() if book else ""
+                if author and author.lower() not in UNKNOWN_AUTHORS and author in by_name:
+                    site_id = int(by_name[author]["id"])
+
+            if site_id is not None:
+                path_to_site[path] = site_id
+
+        counts: Dict[int, int] = {}
+        ordered: List[int] = []
+        for path in book_paths:
+            site_id = path_to_site.get(path)
+            if site_id is None:
+                continue
+            counts[site_id] = counts.get(site_id, 0) + 1
+            if site_id not in ordered:
+                ordered.append(site_id)
+
+        default_id = sorted(ordered, key=lambda sid: counts[sid], reverse=True)[0] if ordered else None
+        return sites_by_id, ordered, default_id
+
     async def _merge_selected_books(self) -> None:
         """合并选中的书籍"""
         if not self.selected_books:
@@ -3173,92 +3278,135 @@ class BatchOpsDialog(ModalScreen[Dict[str, Any]]):
             # 如果没有排序，使用原始选中顺序
             books_to_merge = list(self.selected_books)
         
+        t = get_global_i18n().t
+        sites_by_id, site_ids, default_site_id = self._resolve_merge_sites(books_to_merge)
+        
+        def execute_merge(title: str, author: str, site_id: Optional[int], new_tags: Optional[str]) -> None:
+            """执行合并；确定了书籍网站时补写一条对应网站的爬取历史。"""
+            try:
+                from src.core.recycle_bin import OP_MERGE, get_recycle_bin
+                batch_id = get_recycle_bin(self.bookshelf.db_manager).create_batch(
+                    OP_MERGE, f"合并为 {title}"
+                )
+                new_book = self.bookshelf.merge_books(
+                    books_to_merge,
+                    title,
+                    author,
+                    new_tags.strip() if new_tags else "",
+                    batch_id=batch_id,
+                    operation=OP_MERGE,
+                )
+                
+                if new_book:
+                    if site_id:
+                        try:
+                            timestamp = datetime.now().strftime("%Y%m%d_%H%M%S")
+                            self.bookshelf.db_manager.add_crawl_history(
+                                site_id=site_id,
+                                novel_id=f"merged_{timestamp}",
+                                novel_title=title,
+                                status="success",
+                                file_path=new_book.path,
+                                error_message="",
+                            )
+                        except Exception as e:
+                            logger.error(f"写入合并爬取历史失败 [{title}]: {e}")
+                    
+                    self._last_recycle_batch_id = batch_id
+                    self.notify(t("batch_ops.merge_success", title=title), severity="information")
+                    self.notify(t("recycle_bin.undo_hint"), severity="information", timeout=6)
+                    
+                    self._load_books()
+                    self.selected_books.clear()
+                    self._sorted_books.clear()
+                    self._clear_table_selection()
+                    self._update_status()
+                    self._mark_changed()
+                else:
+                    self.notify(t("batch_ops.merge_failed"), severity="error")
+            except Exception as e:
+                logger.error(f"合并书籍失败: {e}")
+                self.notify(t("batch_ops.merge_failed"), severity="error")
+        
         # 弹出输入对话框获取新书籍标题
         def on_title_input(new_title: Optional[str]) -> None:
             if not new_title or not new_title.strip():
-                self.notify(get_global_i18n().t("batch_ops.merge_title_required"), severity="warning")
+                self.notify(t("batch_ops.merge_title_required"), severity="warning")
                 return
+            title = new_title.strip()
             
-            # 弹出输入对话框获取新书籍作者
-            def on_author_input(new_author: Optional[str]) -> None:
-                # 弹出输入对话框获取新书籍标签
+            def ask_tags(author: str, site_id: Optional[int]) -> None:
                 def on_tags_input(new_tags: Optional[str]) -> None:
-                    # 执行合并操作（登记回收站批次，便于整体撤销）
-                    try:
-                        from src.core.recycle_bin import OP_MERGE, get_recycle_bin
-                        batch_id = get_recycle_bin(self.bookshelf.db_manager).create_batch(
-                            OP_MERGE, f"合并为 {new_title}"
-                        )
-                        new_book = self.bookshelf.merge_books(
-                            books_to_merge,
-                            new_title.strip(),
-                            new_author.strip() if new_author else "",
-                            new_tags.strip() if new_tags else "",
-                            batch_id=batch_id,
-                            operation=OP_MERGE,
-                        )
-                        
-                        if new_book:
-                            self._last_recycle_batch_id = batch_id
-                            self.notify(
-                                get_global_i18n().t("batch_ops.merge_success", title=new_title),
-                                severity="information"
-                            )
-                            self.notify(
-                                get_global_i18n().t("recycle_bin.undo_hint"),
-                                severity="information", timeout=6,
-                            )
-                            
-                            # 重新加载书籍列表
-                            self._load_books()
-                            self.selected_books.clear()
-                            self._sorted_books.clear()
-                            self._clear_table_selection()
-                            self._update_status()
-                            
-                            # 标记数据已变更：停留在批量操作弹窗，最终关闭时再刷新书库
-                            self._mark_changed()
-                        else:
-                            self.notify(
-                                get_global_i18n().t("batch_ops.merge_failed"),
-                                severity="error"
-                            )
-                            
-                    except Exception as e:
-                        logger.error(f"合并书籍失败: {e}")
-                        self.notify(
-                            get_global_i18n().t("batch_ops.merge_failed"),
-                            severity="error"
-                        )
+                    execute_merge(title, author, site_id, new_tags)
                 
-                # 弹出标签输入对话框
                 self.app.push_screen(
                     BatchInputDialog(
-                        get_global_i18n().t("batch_ops.merge_enter_tags"),
-                        get_global_i18n().t("batch_ops.merge_tags_placeholder"),
-                        get_global_i18n().t("batch_ops.merge_tags_description")
+                        t("batch_ops.merge_enter_tags"),
+                        t("batch_ops.merge_tags_placeholder"),
+                        t("batch_ops.merge_tags_description"),
                     ),
-                    callback=on_tags_input
+                    callback=on_tags_input,
                 )
             
-            # 弹出作者输入对话框
+            # 只有一个书籍网站：直接把作者设为该网站名，不再询问
+            if len(site_ids) == 1:
+                site_id = site_ids[0]
+                site_name = (sites_by_id[site_id].get("name") or "").strip()
+                self.notify(t("batch_ops.merge_site_auto", site=site_name), severity="information")
+                ask_tags(site_name, site_id)
+                return
+            
+            # 多个书籍网站：作者输入改为下拉框，由用户选择归入哪个网站
+            if len(site_ids) > 1:
+                options: List[Tuple[str, str]] = [
+                    ((sites_by_id[sid].get("name") or f"site {sid}"), str(sid))
+                    for sid in site_ids
+                ]
+                
+                def on_site_input(value: Optional[str]) -> None:
+                    if not value:
+                        return
+                    try:
+                        chosen_id = int(value)
+                    except (TypeError, ValueError):
+                        self.notify(t("batch_ops.merge_failed"), severity="error")
+                        return
+                    chosen_name = (sites_by_id.get(chosen_id, {}).get("name") or "").strip()
+                    ask_tags(chosen_name, chosen_id)
+                
+                self.app.push_screen(
+                    BatchInputDialog(
+                        t("dedup_merge.site_label"),
+                        "",
+                        t("dedup_merge.site_hint_multi"),
+                        options=options,
+                        default_value=str(default_site_id) if default_site_id is not None else None,
+                    ),
+                    callback=on_site_input,
+                )
+                return
+            
+            # 没有识别到书籍网站：沿用原来的手动输入作者
+            def on_author_input(new_author: Optional[str]) -> None:
+                ask_tags(new_author.strip() if new_author else "", None)
+            
             self.app.push_screen(
                 BatchInputDialog(
-                    get_global_i18n().t("batch_ops.merge_enter_author"),
-                    get_global_i18n().t("batch_ops.merge_author_placeholder"),
-                    get_global_i18n().t("batch_ops.merge_author_description")
+                    t("batch_ops.merge_enter_author"),
+                    t("batch_ops.merge_author_placeholder"),
+                    t("batch_ops.merge_author_description"),
                 ),
-                callback=on_author_input
+                callback=on_author_input,
             )
         
         # 弹出标题输入对话框
         self.app.push_screen(
             BatchInputDialog(
-                get_global_i18n().t("batch_ops.merge_enter_title"),
-                get_global_i18n().t("batch_ops.merge_title_placeholder"),
-                get_global_i18n().t("batch_ops.merge_description")
+                t("batch_ops.merge_enter_title"),
+                t("batch_ops.merge_title_placeholder"),
+                t("batch_ops.merge_description"),
             ),
-            callback=on_title_input
+            callback=on_title_input,
         )
     
     async def _find_duplicate_books(self) -> None:

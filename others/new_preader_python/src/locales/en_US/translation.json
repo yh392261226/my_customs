@@ -159,6 +159,7 @@
     "merge": "Merge",
     "merge_author_description": "Set author for merged book",
     "merge_author_placeholder": "Please enter new book author (optional)",
+    "merge_site_auto": "Merged book author has been set to book site \"{site}\" automatically",
     "merge_description": "Merge selected books into a new file",
     "merge_enter_author": "Enter merged book author",
     "merge_enter_tags": "Enter merged book tags",
