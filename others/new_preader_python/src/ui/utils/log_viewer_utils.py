@@ -56,7 +56,7 @@ def open_log_viewer(app) -> str:
             "missing"  日志文件不存在
             "error"    打开失败
     """
-    from src.ui.dialogs.batch_ops_dialog import LogViewerPopup
+    from src.ui.dialogs.log_viewer_popup import LogViewerPopup
 
     try:
         # 去重：已有日志查看器则不重复打开
