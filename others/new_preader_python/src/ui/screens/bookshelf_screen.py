@@ -858,7 +858,7 @@ class BookshelfScreen(Screen[None]):
                 'title': display_title,
                 'author': book.author,
                 'format': book.format.upper(),
-                'size_display': size_display,
+                'size': size_display,
                 'last_read': last_read,
                 'progress': f"{progress:.1f}%",
                 'tags': tags_display,
@@ -868,6 +868,7 @@ class BookshelfScreen(Screen[None]):
                 'rename_action': '',
                 'preview_action': '',
                 'delete_action': '',
+                'details_action': f"[{get_global_i18n().t('book_details.view_details')}]",
                 '_row_key': row_key,  # 添加行键信息用于虚拟滚动组件
                 '_global_index': global_index  # 添加全局索引用于显示
             }
@@ -893,20 +894,8 @@ class BookshelfScreen(Screen[None]):
         table.clear()
         for row_data in virtual_data:
             table.add_row(
-                row_data['id'],
-                row_data['title'],
-                row_data['author'],
-                row_data['format'],
-                row_data['size_display'],
-                row_data['last_read'],
-                row_data['progress'],
-                row_data['tags'],
-                row_data['read_action'],
-                row_data['browser_read_action'],
-                row_data['view_action'],
-                row_data['rename_action'],
-                row_data['preview_action'],
-                row_data['delete_action']
+                *[row_data[k] for k in self._visible_column_keys(table)],
+                key=row_data['_row_key']
             )
         
         # 更新书籍统计信息
