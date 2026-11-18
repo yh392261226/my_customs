@@ -492,6 +492,9 @@ class BatchOpsDialog(ModalScreen[Dict[str, Any]]):
             if path not in filtered_sorted_books:
                 filtered_sorted_books.append(path)
         
+        # 写回，避免已过滤掉的书籍路径长期残留在排序列表中
+        self._sorted_books = filtered_sorted_books
+
         # 使用过滤后的排序列表
         if filtered_sorted_books:
             # 使用排序列表中的位置作为序号
@@ -814,9 +817,6 @@ class BatchOpsDialog(ModalScreen[Dict[str, Any]]):
                 
                 if book_id in self.selected_books:
                     self.selected_books.discard(book_id)
-                    # 从排序列表中移除
-                    if book_id in self._sorted_books:
-                        self._sorted_books.remove(book_id)
                     if column_key:
                         try:
                             table.update_cell(row_key, column_key, "□")
@@ -828,9 +828,6 @@ class BatchOpsDialog(ModalScreen[Dict[str, Any]]):
                         self._load_books()
                 else:
                     self.selected_books.add(book_id)
-                    # 添加到排序列表
-                    if book_id not in self._sorted_books:
-                        self._sorted_books.append(book_id)
                     if column_key:
                         try:
                             table.update_cell(row_key, column_key, "✓")
@@ -973,11 +970,11 @@ class BatchOpsDialog(ModalScreen[Dict[str, Any]]):
                 get_global_i18n().t("batch_ops.selected_count", count=selected_count)
             )
 
-        # 合并后的全选按钮随当前选中状态切换文案，与 a 键行为保持一致
+        # 全选按钮文案只取决于当前页是否有选中项，与爬取管理页一致
         try:
             toggle_button = self.query_one("#toggle-select-all-btn", Button)
             toggle_button.label = get_global_i18n().t(
-                "common.deselect" if selected_count else "common.select_all"
+                "common.deselect" if self._current_page_has_selection() else "common.select_all"
             )
         except Exception:
             pass
@@ -1430,9 +1427,19 @@ class BatchOpsDialog(ModalScreen[Dict[str, Any]]):
         """打开日志查看器弹窗"""
         self._open_log_viewer()
 
+    def _current_page_book_paths(self) -> List[str]:
+        """获取当前页书籍路径列表，直接由数据源切片得到（与爬取管理页一致）。"""
+        start_index = (self._current_page - 1) * self._books_per_page
+        end_index = min(start_index + self._books_per_page, len(self._all_books))
+        return [book.path for book in self._all_books[start_index:end_index]]
+
+    def _current_page_has_selection(self) -> bool:
+        """当前页是否存在已选中的书籍。"""
+        return any(path in self.selected_books for path in self._current_page_book_paths())
+
     def action_toggle_select_all(self) -> None:
-        """a键 - 切换全选/取消全选（无选中项时全选，有选中项时取消全选）"""
-        if self.selected_books:
+        """a键 - 切换全选/取消全选（仅依据当前页的选中状态）"""
+        if self._current_page_has_selection():
             self._deselect_all_books()
         else:
             self._select_all_books()
@@ -1801,79 +1808,31 @@ class BatchOpsDialog(ModalScreen[Dict[str, Any]]):
         elif event.button.id == "cancel-btn":
             self.dismiss({"refresh": self._needs_refresh})
     
+    def _set_current_page_selection(self, selected: bool) -> None:
+        """按当前页数据切片统一设置选中状态，并刷新表格与状态。"""
+        current_paths = self._current_page_book_paths()
+        if selected:
+            self.selected_books.update(current_paths)
+        else:
+            self.selected_books.difference_update(current_paths)
+        self._load_books()
+
     def _select_all_books(self) -> None:
-        """选择当前显示的所有书籍（搜索过滤后的书籍）"""
-        table = self.query_one("#batch-ops-table", DataTable)
-        
-        # 只选择当前显示的书籍（搜索过滤后的书籍）
-        for row_key in table.rows.keys():
-            # 从表格行键中获取书籍路径（使用value属性）
-            if hasattr(row_key, 'value') and row_key.value:
-                book_path = str(row_key.value)
-                self.selected_books.add(book_path)
-                # 添加到排序列表
-                if book_path not in self._sorted_books:
-                    self._sorted_books.append(book_path)
-        
-        # 获取列键对象（最后一列，选中状态列）
-        column_key = table.ordered_columns[-1].key
-        
-        # 更新所有行的选中状态
-        for row_index, row_key in enumerate(table.rows.keys()):
-            table.update_cell(row_key, column_key, "✓")
-        
-        self._update_status()
+        """全选当前页"""
+        self._set_current_page_selection(True)
     
     def _invert_selection(self) -> None:
-        """反选当前显示的所有书籍（搜索过滤后的书籍）"""
-        table = self.query_one("#batch-ops-table", DataTable)
-        
-        # 获取列键对象（最后一列，选中状态列）
-        column_key = table.ordered_columns[-1].key
-        
-        # 反选当前显示的书籍（搜索过滤后的书籍）
-        for row_key in table.rows.keys():
-            # 从表格行键中获取书籍路径（RowKey转换为字符串）
-            book_path = str(row_key)
-            
-            if book_path in self.selected_books:
-                # 如果已选中，则取消选中
-                self.selected_books.discard(book_path)
-                # 从排序列表中移除
-                if book_path in self._sorted_books:
-                    self._sorted_books.remove(book_path)
-                table.update_cell(row_key, column_key, "□")
-            else:
-                # 如果未选中，则选中
-                self.selected_books.add(book_path)
-                # 添加到排序列表
-                if book_path not in self._sorted_books:
-                    self._sorted_books.append(book_path)
-                table.update_cell(row_key, column_key, "✓")
-        
-        self._update_status()
+        """反选当前页"""
+        current_paths = self._current_page_book_paths()
+        to_select = [path for path in current_paths if path not in self.selected_books]
+        to_deselect = [path for path in current_paths if path in self.selected_books]
+        self.selected_books.difference_update(to_deselect)
+        self.selected_books.update(to_select)
+        self._load_books()
     
     def _deselect_all_books(self) -> None:
-        """取消选择当前显示的所有书籍（搜索过滤后的书籍）"""
-        table = self.query_one("#batch-ops-table", DataTable)
-        
-        # 只取消选择当前显示的书籍（搜索过滤后的书籍）
-        for row_key in table.rows.keys():
-            # 从表格行键中获取书籍路径（RowKey转换为字符串）
-            book_path = str(row_key)
-            self.selected_books.discard(book_path)
-            # 从排序列表中移除
-            if book_path in self._sorted_books:
-                self._sorted_books.remove(book_path)
-        
-        # 获取列键对象（最后一列，选中状态列）
-        column_key = table.ordered_columns[-1].key
-        
-        # 更新所有行的选中状态
-        for row_index, row_key in enumerate(table.rows.keys()):
-            table.update_cell(row_key, column_key, "□")
-        
-        self._update_status()
+        """取消选择当前页"""
+        self._set_current_page_selection(False)
     
     def _delete_selected_books(self) -> None:
         """删除选中的书籍（整批进回收站，可按批次撤销）"""
@@ -2404,8 +2363,8 @@ class BatchOpsDialog(ModalScreen[Dict[str, Any]]):
         
         # 更新所有行的选中状态
         for row_index, row_key in enumerate(table.rows.keys()):
-            # 从表格行键中获取书籍路径
-            book_path = str(row_key)
+            # RowKey 必须取 .value，str(row_key) 只是对象 repr
+            book_path = str(row_key.value) if hasattr(row_key, 'value') and row_key.value else str(row_key)
             
             # 根据选中状态更新显示
             if book_path in self.selected_books:
