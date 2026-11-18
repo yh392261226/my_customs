@@ -203,9 +203,8 @@ class BatchOpsDialog(ModalScreen[Dict[str, Any]]):
                 
                 # 操作按钮区域
                 Horizontal(
-                    Button(get_global_i18n().t("common.select_all"), id="select-all-btn"),
+                    Button(get_global_i18n().t("common.select_all"), id="toggle-select-all-btn"),
                     Button(get_global_i18n().t("common.invert_select"), id="invert-selection-btn"),
-                    Button(get_global_i18n().t("common.deselect"), id="deselect-all-btn"),
                     Button(get_global_i18n().t("common.move_up"), id="move-up-btn"),
                     Button(get_global_i18n().t("common.move_down"), id="move-down-btn"),
                     Button(get_global_i18n().t("batch_ops.merge"), id="merge-btn", variant="warning"),
@@ -974,6 +973,15 @@ class BatchOpsDialog(ModalScreen[Dict[str, Any]]):
                 get_global_i18n().t("batch_ops.selected_count", count=selected_count)
             )
 
+        # 合并后的全选按钮随当前选中状态切换文案，与 a 键行为保持一致
+        try:
+            toggle_button = self.query_one("#toggle-select-all-btn", Button)
+            toggle_button.label = get_global_i18n().t(
+                "common.deselect" if selected_count else "common.select_all"
+            )
+        except Exception:
+            pass
+
     @on(DataTable.HeaderSelected, "#batch-ops-table")
     def on_data_table_header_selected(self, event: DataTable.HeaderSelected) -> None:
         """数据表格表头点击事件 - 处理排序"""
@@ -1736,12 +1744,10 @@ class BatchOpsDialog(ModalScreen[Dict[str, Any]]):
         Args:
             event: 按钮按下事件
         """
-        if event.button.id == "select-all-btn":
-            self._select_all_books()
+        if event.button.id == "toggle-select-all-btn":
+            self.action_toggle_select_all()
         elif event.button.id == "invert-selection-btn":
             self._invert_selection()
-        elif event.button.id == "deselect-all-btn":
-            self._deselect_all_books()
         elif event.button.id == "move-up-btn":
             self._move_selected_book_up()
         elif event.button.id == "move-down-btn":
