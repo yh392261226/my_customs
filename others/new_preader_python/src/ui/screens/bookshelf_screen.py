@@ -52,8 +52,8 @@ class BookshelfScreen(Screen[None]):
     BINDINGS: ClassVar[list[tuple[str, str, str]]] = [
         ("a", "add_book", get_global_i18n().t('common.add')),
         ("D", "scan_directory", get_global_i18n().t('common.scan_dir')),
-        ("s", "search_book", get_global_i18n().t('common.search')),
-        ("r", "sort_books", get_global_i18n().t('common.sort')),
+        # ("s", "search_book", get_global_i18n().t('common.search')),
+        # ("r", "sort_books", get_global_i18n().t('common.sort')),
         ("l", "batch_ops", get_global_i18n().t('common.batch_ops')),
         ("G", "get_books", get_global_i18n().t('common.get_books')),
         ("R", "refresh_bookshelf", get_global_i18n().t('common.refresh')),
@@ -225,8 +225,8 @@ class BookshelfScreen(Screen[None]):
                     Horizontal(
                         Button(get_global_i18n().t("common.add_book"), id="add-book-btn", classes="btn"),
                         Button(get_global_i18n().t("common.scan_dir"), id="scan-directory-btn", classes="btn"),
-                        Button(get_global_i18n().t("common.search"), id="search-btn", classes="btn"),
-                        Button(get_global_i18n().t("common.sort"), id="sort-btn", classes="btn"),
+                        # Button(get_global_i18n().t("common.search"), id="search-btn", classes="btn"),
+                        # Button(get_global_i18n().t("common.sort"), id="sort-btn", classes="btn"),
                         Button(get_global_i18n().t("common.batch_ops"), id="batch-ops-btn", classes="btn"),
                         Button(get_global_i18n().t("recycle_bin.open"), id="recycle-bin-btn", classes="btn"),
                         Button(get_global_i18n().t("common.get_books"), id="get-books-btn", classes="btn"),
