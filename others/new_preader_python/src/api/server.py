@@ -128,7 +128,21 @@ def dispatch_api(handler: BaseHTTPRequestHandler) -> None:
             send_error(handler, 405, "Method Not Allowed")
         return
 
-    # 必须放在通用 /api/{collection}/{pk} 路由之前，否则 "index" 会被当成书籍主键
+    # 浏览器书库专用接口：不下发 path/metadata，避免书库页面拿到真实目录。
+    # 必须放在通用 /api/{collection}/{pk} 路由之前，否则 "index" 会被当成书籍主键。
+    if raw_path == "/api/portal/books/index":
+        if method == "GET":
+            send_json(handler, 200, routes.route_portal_book_index())
+        else:
+            send_error(handler, 405, "Method Not Allowed")
+        return
+    if raw_path == "/api/portal/books":
+        if method == "GET":
+            send_json(handler, 200, routes.route_portal_book_list(query))
+        else:
+            send_error(handler, 405, "Method Not Allowed")
+        return
+
     if raw_path == "/api/books/index":
         if method == "GET":
             send_json(handler, 200, routes.route_book_index())

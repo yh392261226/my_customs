@@ -14,6 +14,7 @@ from typing import Any, Dict, List, Optional
 
 from . import db
 from .http_utils import send_error, get_str, parse_pagination
+from src.utils.book_identity import book_id_for_path, book_key_for_path, resolve_path_by_book_key
 
 
 def _now() -> str:
@@ -40,6 +41,28 @@ def _parse_meta(raw) -> Dict[str, Any]:
         return json.loads(raw)
     except Exception:
         return {}
+
+
+def _with_public_ids(items: List[Dict[str, Any]]) -> List[Dict[str, Any]]:
+    """为书籍记录附加公开标识 book_key，以及供离线缓存兼容的 book_id。"""
+    for item in items:
+        path = item.get("path") or ""
+        if not path:
+            continue
+        item["book_key"] = book_key_for_path(str(path))
+        item["book_id"] = book_id_for_path(str(path))
+    return items
+
+
+# 浏览器书库只拿这些字段；尤其不能把物理路径 path 下发给浏览器。
+_PORTAL_BOOK_FIELDS = (
+    "book_key", "book_id", "title", "novel_title", "name", "author",
+    "format", "status", "pinyin", "tags", "add_date", "file_size",
+)
+
+
+def _portal_book(item: Dict[str, Any]) -> Dict[str, Any]:
+    return {field: item[field] for field in _PORTAL_BOOK_FIELDS if field in item}
 
 
 # ---------------------------------------------------------------------------
@@ -73,22 +96,26 @@ def _enrich_crawls_with_sites(items: List[Dict[str, Any]]) -> List[Dict[str, Any
     if not items:
         return items
     site_ids = sorted({it.get("site_id") for it in items if it.get("site_id") is not None})
-    if not site_ids:
-        return items
-    conn = db.get_conn()
-    try:
-        placeholders = ",".join("?" * len(site_ids))
-        rows = conn.execute(
-            "SELECT id, name, url FROM novel_sites WHERE id IN (%s)" % placeholders, site_ids
-        ).fetchall()
-    finally:
-        conn.close()
-    site_map = {r["id"]: {"site_name": r["name"] or "", "site_url": r["url"] or ""} for r in rows}
+    site_map = {}
+    if site_ids:
+        conn = db.get_conn()
+        try:
+            placeholders = ",".join("?" * len(site_ids))
+            rows = conn.execute(
+                "SELECT id, name, url FROM novel_sites WHERE id IN (%s)" % placeholders, site_ids
+            ).fetchall()
+        finally:
+            conn.close()
+        site_map = {r["id"]: {"site_name": r["name"] or "", "site_url": r["url"] or ""} for r in rows}
     for it in items:
         sid = it.get("site_id")
         if sid in site_map:
             it["site_name"] = site_map[sid]["site_name"]
             it["site_url"] = site_map[sid]["site_url"]
+        # 爬取记录也带公开标识，离线版打开书籍时无需下发真实路径
+        book_path = it.get("file_path") or it.get("path") or ""
+        if book_path:
+            it["book_key"] = book_key_for_path(str(book_path))
     return items
 
 
@@ -151,6 +178,8 @@ def route_list(collection: str, query: Dict[str, List[str]]) -> Dict[str, Any]:
     )
     if collection == "crawls":
         items = _enrich_crawls_with_sites(items)
+    if collection == "books":
+        items = _with_public_ids(items)
     return {
         "success": True,
         "collection": collection,
@@ -168,14 +197,31 @@ def route_book_index() -> Dict[str, Any]:
     主列表走 :func:`route_list` 的服务端分页；这里只提供轻量索引，
     不含 metadata/章节正文，避免为离线缓存反复翻页请求。
     """
-    items = db.list_book_index()
+    items = _with_public_ids(db.list_book_index())
     return {"success": True, "collection": "books", "items": items, "total": len(items)}
+
+
+def route_portal_book_list(query: Dict[str, List[str]]) -> Dict[str, Any]:
+    """浏览器书库分页列表：只返回公开字段，彻底不下发真实路径。"""
+    result = route_list("books", query)
+    result["items"] = [_portal_book(item) for item in result["items"] if item.get("book_key")]
+    return result
+
+
+def route_portal_book_index() -> Dict[str, Any]:
+    """浏览器离线书单：只返回公开字段，彻底不下发真实路径。"""
+    result = route_book_index()
+    result["items"] = [_portal_book(item) for item in result["items"] if item.get("book_key")]
+    result["total"] = len(result["items"])
+    return result
 
 
 def route_get(collection: str, pk: Any) -> Optional[Dict[str, Any]]:
     item = db.get_one(collection, pk)
     if item is None:
         return None
+    if collection == "books":
+        item = _with_public_ids([item])[0]
     return {"success": True, "item": item}
 
 
@@ -410,15 +456,22 @@ def route_merge(body: Dict[str, Any], handler) -> Optional[Dict[str, Any]]:
 # ---------------------------------------------------------------------------
 # 打开书籍：经回调让服务端在浏览器中打开一本书用于阅读
 # ---------------------------------------------------------------------------
+def _book_path_for_key(book_key: str) -> str:
+    """把公开 book key 反查为白名单路径，避免在客户端与网络上传递真实目录。"""
+    return resolve_path_by_book_key(book_key)
+
+
 def route_open_book(body: Dict[str, Any], open_cb) -> Dict[str, Any]:
-    """通过上层注入的 open_cb(path) 打开书籍。open_cb 返回 (success, message) 或 bool。"""
+    """通过上层注入的 open_cb(path) 打开书籍；优先使用公开 book 标识。"""
     if not open_cb:
         return {"success": False, "error": "服务端未启用打开书籍能力"}
     path = (body.get("path") or "").strip()
+    if not path and body.get("book"):
+        path = _book_path_for_key(body["book"])
     if not path and body.get("book_id"):
         path = str(body["book_id"]).strip()
     if not path:
-        return {"success": False, "error": "缺少 path / book_id"}
+        return {"success": False, "error": "缺少 book / path / book_id"}
     try:
         res = open_cb(path)
         if isinstance(res, tuple):

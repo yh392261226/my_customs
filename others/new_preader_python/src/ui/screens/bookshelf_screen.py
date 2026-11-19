@@ -1976,7 +1976,7 @@ class BookshelfScreen(Screen[None]):
         reveal_book_file(self, book_path)
     
     def _open_book_in_browser(self, book_path: str) -> None:
-        """使用浏览器打开书籍"""
+        """使用浏览器打开书籍（离线版：生成本地 HTML 文件）。"""
         try:
             from src.utils.browser_reader import BrowserReader
             

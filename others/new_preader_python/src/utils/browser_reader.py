@@ -21,6 +21,7 @@ from urllib.parse import parse_qs, urlparse
 from html import escape as _html_escape
 
 from src.utils.logger import get_logger
+from src.utils.book_identity import book_key_for_path, resolve_path_by_book_key
 
 logger = get_logger(__name__)
 
@@ -31,10 +32,10 @@ _BROWSER_READER_BINARY_FORMATS = {".epub", ".mobi", ".azw", ".azw3", ".pdf"}
 ENCRYPTED_PDF_JS = r"""
 (function(){
   'use strict';
-  function brBookPath(){
+  function brBookKey(){
     var ph = document.getElementById('br-encrypted-book');
-    if (ph && ph.getAttribute('data-book-path')) return ph.getAttribute('data-book-path');
-    if (window.__BR_BOOK_FILE_PATH__) return window.__BR_BOOK_FILE_PATH__;
+    if (ph && ph.getAttribute('data-book-key')) return ph.getAttribute('data-book-key');
+    if (window.__BR_BOOK_KEY__) return window.__BR_BOOK_KEY__;
     return '';
   }
   function brShowPwd(message, onSubmit){
@@ -69,10 +70,10 @@ ENCRYPTED_PDF_JS = r"""
     input.onkeydown = function(e){ if (e.key === 'Enter'){ var v = input.value; cleanup(); onSubmit(v); } };
   }
   function brLoadEncrypted(password){
-    var path = brBookPath();
-    if (!path) return;
+    var bookKey = brBookKey();
+    if (!bookKey) return;
     if (typeof apiPost !== 'function'){ brShowPwd('未连接后端服务，无法解锁', brLoadEncrypted); return; }
-    apiPost('/open_book_content', { path: path, password: password || '' })
+    apiPost('/open_book_content', { book: bookKey, password: password || '' })
       .then(function(res){
         if (!res || res.success === false){
           brShowPwd('无法打开：' + ((res && res.error) || '未知错误'), brLoadEncrypted);
@@ -1402,10 +1403,10 @@ SYNC_JS = r"""
       var it = items[i];
       var idx = (state.page-1)*PAGE_SIZE + i + 1;
       if(state.col==='books'){
-        var btitle = it.title || it.name || it.path || ('#'+it.id);
+        var btitle = it.title || it.name || ('#'+(it.book_key || it.id));
         var sub = [it.author, it.format].filter(Boolean).join(' · ');
         var meta = [it.add_date, it.tags?('标签:'+it.tags):'', it.file_size?fmtSize(it.file_size):''].filter(Boolean).join(' · ');
-        html += '<div class="br-sync-item" data-open="book" data-path="'+escAttr(it.path||'')+'">'
+        html += '<div class="br-sync-item" data-open="book" data-book-key="'+escAttr(it.book_key||'')+'">'
               + '<span class="idx">'+idx+'</span>'
               + '<div class="c">'
               + '<div class="t br-t" data-copy="'+escAttr(btitle)+'" title="点击复制书名">'+esc(btitle)+'</div>'
@@ -1422,7 +1423,6 @@ SYNC_JS = r"""
               + '<div class="s link">'+(wurl?esc(wurl):'(无链接)')+'</div>'
               + '</div></div>';
       } else {
-        var bpath = it.file_path || it.path || '';
         var bid = it.novel_id || it.book_id || it.bookId || '';
         var ctime = it.crawl_time || it.created_at || '';
         var site = it.site_name || it.site_url || it.website || it.book_type || '—';
@@ -1435,7 +1435,7 @@ SYNC_JS = r"""
         metaParts.push('类型: '+esc(it.book_type||'—'));
         metaParts.push('章节: '+esc(it.chapter_count!=null?it.chapter_count:'-'));
         metaParts.push('时间: '+esc(ctime));
-        html += '<div class="br-sync-item" data-open="book" data-path="'+escAttr(String(bpath))+'">'
+        html += '<div class="br-sync-item" data-open="book" data-book-key="'+escAttr(it.book_key||'')+'">'
               + '<span class="idx">'+idx+'</span>'
               + '<div class="c">'
               + '<div class="t br-t" data-copy="'+escAttr(ctitle)+'" title="点击复制书名">'+esc(ctitle)+'</div>'
@@ -1465,9 +1465,9 @@ SYNC_JS = r"""
       .catch(function(){ toast('接口不可用或密钥错误，已保存到本地'); });
   }
 
-  function brOpenBook(path){
-    if(!path){ toast('该书籍暂无本地文件，无法打开'); return; }
-    brApi('POST','/api/open_book', {path:path}).then(function(r){
+  function brOpenBook(bookKey){
+    if(!bookKey){ toast('该书籍暂无可用标识，无法打开'); return; }
+    brApi('POST','/api/open_book', {book:bookKey}).then(function(r){
       if(r.status===200 && r.data && r.data.success){ toast('已请求在服务端打开本书'); }
       else if(r.status===401){ toast('密钥错误，访问被拒绝'); }
       else { var m = (r.data && (r.data.error || r.data.message)) || '未知错误'; toast('打开失败：' + m); }
@@ -1564,7 +1564,7 @@ SYNC_JS = r"""
       if(!row) return;
       var open = row.getAttribute('data-open');
       if(open==='link'){ var u=row.getAttribute('data-url'); if(u) window.open(u,'_blank'); }
-      else if(open==='book'){ var p=row.getAttribute('data-path'); if(p) brOpenBook(p); }
+      else if(open==='book'){ var k=row.getAttribute('data-book-key'); if(k) brOpenBook(k); }
     }); }
     var tb=el('brSyncToolbar');
     if(tb){ tb.addEventListener('change', function(e){
@@ -1587,7 +1587,7 @@ SYNC_JS = r"""
 
   window.brSync = {
     api: function(m,p,b){ return brApi(m,p,b); },
-    openBook: function(p){ brOpenBook(p); },
+    openBook: function(k){ brOpenBook(k); },
     base: function(){ return apiBase(); },
     secret: getSecret
   };
@@ -2053,7 +2053,8 @@ class BrowserReader:
                         progress_sync_enabled: Optional[bool] = None,
                         startup_password_enabled: bool = False,
                         startup_password: str = "",
-                        download_txt_enabled: bool = False) -> str:
+                        download_txt_enabled: bool = False,
+                        book_key: Optional[str] = None) -> str:
         """
         创建浏览器阅读器HTML
         
@@ -11613,8 +11614,8 @@ class BrowserReader:
                 showNotification(t('browser_reader.download_lan_only'));
                 return;
             }}
-            const path = (typeof BOOK_FILE_PATH !== 'undefined' && BOOK_FILE_PATH) || '';
-            if (!path) {{ showNotification(t('browser_reader.view_file_no_path')); return; }}
+            const bookKey = (typeof window !== 'undefined' && window.__BR_BOOK_KEY__) || '';
+            if (!bookKey) {{ showNotification(t('browser_reader.view_file_no_path')); return; }}
             let base = window.__BR_API_BASE__ || '';
             if (!base && typeof SAVE_PROGRESS_URL !== 'undefined' && SAVE_PROGRESS_URL) {{
                 base = SAVE_PROGRESS_URL.replace(/\\/save_progress$/, '');
@@ -11628,7 +11629,8 @@ class BrowserReader:
             const btn = document.getElementById('downloadBookBtn');
             if (btn) btn.disabled = true;
             showNotification(t('browser_reader.downloading'));
-            fetch(base + '/download_book?path=' + encodeURIComponent(path), {{ headers: headers, cache: 'no-store' }})
+            const downloadQuery = 'book=' + encodeURIComponent(bookKey);
+            fetch(base + '/download_book?' + downloadQuery, {{ headers: headers, cache: 'no-store' }})
                 .then(function (r) {{
                     if (!r.ok) {{ throw new Error('HTTP ' + r.status); }}
                     return r.blob().then(function (blob) {{
@@ -11870,7 +11872,7 @@ class BrowserReader:
                     const t = e.target.closest ? e.target.closest('.br-t') : null;
                     if (t) {{ copyApiTitle(t.getAttribute('data-copy') || t.textContent); return; }}
                     const row = e.target.closest ? e.target.closest('.book-item') : null;
-                    if (row) {{ const p = row.getAttribute('data-path'); if (p && window.brSync && window.brSync.openBook) window.brSync.openBook(p); }}
+                    if (row) {{ const k = row.getAttribute('data-book-key'); if (k && window.brSync && window.brSync.openBook) window.brSync.openBook(k); }}
                 }});
             }}
             if (!items || !items.length) {{
@@ -11879,13 +11881,13 @@ class BrowserReader:
             }}
             list.innerHTML = '';
             items.forEach(function (it, i) {{
-                const title = it.title || it.name || it.path || ('#' + it.id);
-                const sub = it.author ? ('作者: ' + it.author) : (it.path || '');
+                const title = it.title || it.name || ('#' + (it.book_key || it.id));
+                const sub = it.author ? ('作者: ' + it.author) : '';
                 const idx = (apiPage - 1) * API_PS + i + 1;
                 const row = document.createElement('div');
                 row.className = 'book-item';
                 row.style.cursor = 'pointer';
-                row.setAttribute('data-path', it.path || '');
+                row.setAttribute('data-book-key', it.book_key || '');
                 row.innerHTML = '<span class="idx">' + idx + '</span>' +
                     '<div class="book-title br-t" data-copy="' + escapeHtml(title) + '" title="点击复制书名">' + escapeHtml(title) + '</div>' +
                     (sub ? '<div class="book-meta">' + escapeHtml(sub) + '</div>' : '');
@@ -13253,6 +13255,7 @@ class BrowserReader:
         try:
             _br_book_id = book_id or title
             _br_book_id_json = json.dumps(_br_book_id)
+            _br_book_key_json = json.dumps(book_key or "")
             _lock_literal = "true" if lock_enabled else "false"
             _api_base_json = json.dumps(api_base_url or "")
             # 真实的硬盘文件路径（用于「加入书库」「查看文件」「单词本同步」等需要绝对路径的场景）
@@ -13262,6 +13265,7 @@ class BrowserReader:
                 '(function(){\n'
                 '  try {\n'
                 '    window.__BR_BOOK_ID__ = ' + _br_book_id_json + ';\n'
+                '    window.__BR_BOOK_KEY__ = ' + _br_book_key_json + ';\n'
                 '    window.__BR_BOOK_FILE_PATH__ = ' + _file_path_json + ';\n'
                 '    window.__BR_LOCK_ENABLED__ = ' + _lock_literal + ';\n'
                 '    window.__BR_API_BASE__ = ' + _api_base_json + ';\n'
@@ -13524,7 +13528,7 @@ class BrowserReader:
         """加密 PDF 占位符：隐藏标记供前端检测，并给出友好提示。"""
         return (
             '<div id="br-encrypted-book" data-needs-password="1" '
-            f'data-book-path="{_html_escape(file_path)}" style="display:none"></div>'
+            f'data-book-key="{_html_escape(book_key_for_path(file_path))}" style="display:none"></div>'
             '<div class="br-encrypted-msg" style="padding:48px;text-align:center;color:inherit;opacity:.8;">'
             '🔒 本书已加密，正在请求解锁…</div>'
         )
@@ -13982,6 +13986,9 @@ class BrowserReader:
             except Exception:
                 _api_secret = ""
 
+            # 公开书籍标识：同时用于页面内 book 操作与离线 HTML 文件名，避免暴露真实书名/目录
+            book_key = book_key_for_path(file_path)
+
             # 创建HTML
             html = BrowserReader.create_reader_html(
                 content, title, theme, custom_settings, save_url, load_url,
@@ -13990,12 +13997,13 @@ class BrowserReader:
                 file_path, lock_enabled=_lock_enabled, api_base_url=_api_base_url,
                 api_secret=_api_secret,
                 startup_password_enabled=_startup_password_enabled,
-                startup_password=_startup_password
+                startup_password=_startup_password,
+                book_key=book_key
             )
             
-            # 创建临时HTML文件
+            # 创建临时HTML文件：文件名只含公开书籍标识，不再是真实书名/路径派生名
             temp_dir = tempfile.gettempdir()
-            html_filename = f"{title}_reader.html"
+            html_filename = f"{book_key}_reader.html"
             html_path = os.path.join(temp_dir, html_filename)
 
             # 注入「在浏览器中编辑」浮动按钮：启动本地编辑器服务并加入入口
@@ -14395,6 +14403,8 @@ class BrowserReader:
                         clen = int(self.headers['Content-Length'])
                         _data = json.loads(self.rfile.read(clen).decode('utf-8'))
                         _path = (_data.get('path') or '').strip()
+                        if not _path and _data.get('book'):
+                            _path = resolve_path_by_book_key(_data['book'])
                         _pwd = _data.get('password') or None
                         result = BrowserReader.open_book_content_json(_path, _pwd)
                         self.send_response(200)

@@ -3,14 +3,20 @@
 负责在应用启动时自动启动后端服务器，并管理其生命周期
 """
 
+import gzip
 import threading
 import time
 import re
 import uuid
 from html.parser import HTMLParser
-from typing import Optional, Dict, Any, Callable
+from typing import Optional, Dict, Any, Callable, Tuple
 from src.utils.logger import get_logger
 from src.utils.browser_reader import BrowserReader
+from src.utils.book_identity import (
+    book_key_for_path,
+    is_known_book_path as _identity_is_known_book_path,
+    resolve_path_by_book_key,
+)
 
 logger = get_logger(__name__)
 
@@ -79,6 +85,14 @@ def get_runtime_secret() -> str:
             return ''
 
 
+def get_book_reader_url(book_key: str) -> Optional[str]:
+    """供终端书库/爬取管理调用：生成 /reader?book=... 的浏览器阅读地址。"""
+    try:
+        return BrowserReaderServerManager.get_instance().get_book_reader_url(book_key)
+    except Exception:
+        return None
+
+
 # --------------------------------------------------------------------------- #
 # 局域网 Web 页面支持
 # --------------------------------------------------------------------------- #
@@ -87,8 +101,13 @@ def get_runtime_secret() -> str:
 # 页面与 file:// 版本共用同一份 HTML 生成逻辑与前端资源。
 _WEB_PAGE_PATHS = ("/", "/reader", "/sw.js", "/manifest.webmanifest")
 _reader_page_cache: Dict[str, str] = {}
+_reader_page_gzip_cache: Dict[str, bytes] = {}
 _reader_page_cache_lock = threading.Lock()
 _READER_PAGE_CACHE_MAX = 6
+# 阅读页内嵌了整本书正文，体积通常远大于普通网页；大于 1KB 才 gzip，
+# 避免把短错误页也压缩得得不偿失。
+_GZIP_MIN_BYTES = 1024
+_GZIP_LEVEL = 6
 
 
 def _is_private_ipv4(ip: str) -> bool:
@@ -141,38 +160,85 @@ def get_lan_ip() -> str:
     return "127.0.0.1"
 
 
+def _accepts_gzip(headers: Any) -> bool:
+    """解析 Accept-Encoding；显式 gzip;q=0 优先于通配符。"""
+    raw = str(headers.get("Accept-Encoding") or "").lower()
+    if not raw:
+        return False
+    saw_gzip = False
+    gzip_allowed = False
+    wildcard_allowed = False
+    for part in raw.split(","):
+        pieces = [p.strip() for p in part.split(";")]
+        token = pieces[0]
+        quality = 1.0
+        for param in pieces[1:]:
+            if param.startswith("q="):
+                try:
+                    quality = float(param[2:])
+                except ValueError:
+                    quality = 0.0
+        if token in ("gzip", "x-gzip"):
+            saw_gzip = True
+            gzip_allowed = quality > 0
+        elif token == "*":
+            wildcard_allowed = quality > 0
+    return gzip_allowed if saw_gzip else wildcard_allowed
+
+
 def _send_web_response(handler: Any, body: str, content_type: str = "text/html; charset=utf-8",
-                       status: int = 200, extra_headers: Optional[Dict[str, str]] = None) -> None:
-    """向浏览器写出 Web 页面资源。"""
+                       status: int = 200, extra_headers: Optional[Dict[str, str]] = None,
+                       precompressed_gzip: Optional[bytes] = None,
+                       compress: bool = True) -> None:
+    """向浏览器写出 Web 页面资源；支持的客户端自动收到 gzip 压缩正文。"""
     data = body.encode("utf-8")
+    response_data = data
+    response_headers: Dict[str, str] = {"Vary": "Accept-Encoding"}
+    if compress and _accepts_gzip(handler.headers):
+        if precompressed_gzip:
+            response_data = precompressed_gzip
+        elif len(data) >= _GZIP_MIN_BYTES:
+            response_data = gzip.compress(data, compresslevel=_GZIP_LEVEL, mtime=0)
+        if response_data is not data:
+            response_headers["Content-Encoding"] = "gzip"
     handler.send_response(status)
     handler.send_header("Content-type", content_type)
-    handler.send_header("Content-Length", str(len(data)))
+    handler.send_header("Content-Length", str(len(response_data)))
     handler.send_header("Cache-Control", "no-cache")
     handler.send_header("Access-Control-Allow-Origin", "*")
+    for name, value in response_headers.items():
+        handler.send_header(name, value)
     for name, value in (extra_headers or {}).items():
         handler.send_header(name, value)
     handler.end_headers()
     try:
-        handler.wfile.write(data)
+        handler.wfile.write(response_data)
     except (BrokenPipeError, ConnectionResetError):
         pass
 
 
 def _is_known_book_path(file_path: str) -> bool:
-    """路径白名单：只允许打开书库中登记的书籍，防止局域网设备借 /reader 读取任意文件。"""
-    import os
-    try:
-        from src.core.bookshelf import Bookshelf
-        target = os.path.realpath(file_path)
-        for book in Bookshelf().get_all_books() or []:
-            # Bookshelf 返回 Book 数据对象；兼容 dict 形式以防后续实现变化
-            candidate = book.get("path") if isinstance(book, dict) else getattr(book, "path", "")
-            if candidate and os.path.realpath(candidate) == target:
-                return True
-    except Exception as e:
-        logger.debug(f"书库路径白名单校验失败: {e}")
-    return False
+    """路径白名单：书库或爬取记录登记过的文件才允许浏览器打开。"""
+    return _identity_is_known_book_path(file_path)
+
+
+def _find_book_path_by_key(book_key: str) -> str:
+    """把公开的 book key 反查为白名单内路径。"""
+    return resolve_path_by_book_key(book_key)
+
+
+def _resolve_requested_book_path(query: Dict[str, Any]) -> str:
+    """解析 /reader、/download_book 的书目标识，兼容旧的 ?path= 链接。"""
+    key = (query.get("book") or [""])[0]
+    if key:
+        resolved = _find_book_path_by_key(key)
+        if resolved:
+            return resolved
+        # 兼容早期版本或手工请求把真实路径塞进 book 参数的情况
+        if _is_known_book_path(key):
+            return key
+        return ""
+    return (query.get("path") or [""])[0]
 
 
 class _BookTextExtractor(HTMLParser):
@@ -254,8 +320,9 @@ def _txt_content_disposition(filename: str) -> str:
     return f'attachment; filename="{fallback}"; filename*=UTF-8\'\'{quote(filename)}'
 
 
-def _build_reader_page(file_path: str, req_host: str, req_port: int, secret: str) -> Optional[str]:
-    """生成可通过 HTTP 访问的阅读页；与 file:// 版本是同一套页面与功能。"""
+def _build_reader_page(file_path: str, req_host: str, req_port: int, secret: str,
+                       book_key: str = "") -> Optional[Tuple[str, bytes]]:
+    """生成阅读页，返回 (HTML, 预压缩 gzip)；与 file:// 版本共用页面与功能。"""
     import os
     from pathlib import Path
     from src.config.config_manager import ConfigManager
@@ -280,11 +347,12 @@ def _build_reader_page(file_path: str, req_host: str, req_port: int, secret: str
     # 末尾为前端资源版本号：响应式 CSS / Web JS / Service Worker 有变更时递增，
     # 让进程内缓存的旧 /reader 页面失效，否则局域网版会一直返回修复前的 HTML。
     cache_key = (f"{os.path.realpath(file_path)}|{mtime}|{req_host}|{req_port}|{secret}|"
-                 f"{_sg_enabled}|{_sg_pwd}|5")
+                 f"{_sg_enabled}|{_sg_pwd}|6")
     with _reader_page_cache_lock:
         cached = _reader_page_cache.get(cache_key)
+        cached_gzip = _reader_page_gzip_cache.get(cache_key, b"")
     if cached:
-        return cached
+        return cached, cached_gzip
 
     try:
         cfg = ConfigManager.get_instance().get_config()
@@ -298,6 +366,7 @@ def _build_reader_page(file_path: str, req_host: str, req_port: int, secret: str
             save_progress_url=f"{base}/save_progress",
             load_progress_url=f"{base}/load_progress",
             book_id=Path(file_path).stem,
+            book_key=book_key or book_key_for_path(file_path),
             browser_server_host=req_host,
             browser_server_port=req_port,
             browser_server_base_port=req_port,
@@ -314,11 +383,21 @@ def _build_reader_page(file_path: str, req_host: str, req_port: int, secret: str
         logger.error(f"生成局域网阅读页失败: {e}")
         return None
 
+    # 阅读页内嵌整本书正文，预压缩一次后所有手机/浏览器请求都复用，避免每请求重复 gzip。
+    try:
+        compressed = gzip.compress(html.encode("utf-8"), compresslevel=_GZIP_LEVEL, mtime=0)
+    except Exception as e:
+        logger.warning(f"预压缩阅读页失败，将按原文返回: {e}")
+        compressed = b""
+
     with _reader_page_cache_lock:
         if len(_reader_page_cache) >= _READER_PAGE_CACHE_MAX:
-            _reader_page_cache.pop(next(iter(_reader_page_cache)))
+            oldest = next(iter(_reader_page_cache))
+            _reader_page_cache.pop(oldest, None)
+            _reader_page_gzip_cache.pop(oldest, None)
         _reader_page_cache[cache_key] = html
-    return html
+        _reader_page_gzip_cache[cache_key] = compressed
+    return html, compressed
 
 
 def _handle_web_get(handler: Any, path: str, query: Dict[str, Any], secret: str) -> bool:
@@ -331,7 +410,7 @@ def _handle_web_get(handler: Any, path: str, query: Dict[str, Any], secret: str)
         if not _verify_request(handler.headers, query, secret):
             _send_web_response(handler, "接口密钥无效", "text/plain; charset=utf-8", status=401)
             return True
-        file_path = (query.get("path") or [""])[0]
+        file_path = _resolve_requested_book_path(query)
         if not file_path or not _is_known_book_path(file_path):
             _send_web_response(handler, "书籍不在书库中", "text/plain; charset=utf-8", status=404)
             return True
@@ -348,6 +427,7 @@ def _handle_web_get(handler: Any, path: str, query: Dict[str, Any], secret: str)
                     "Content-Disposition": _txt_content_disposition(stem + ".txt"),
                     "X-Content-Type-Options": "nosniff",
                 },
+                compress=False,
             )
         except Exception as e:
             logger.error(f"导出书籍 TXT 失败: {e}", exc_info=True)
@@ -400,8 +480,9 @@ def _handle_web_get(handler: Any, path: str, query: Dict[str, Any], secret: str)
         ))
         return True
 
-    # /reader?path=<书库中已登记的书籍路径>
-    file_path = (query.get("path") or [""])[0]
+    # /reader?book=<书籍公开标识>；旧链接 ?path=<已登记路径> 继续兼容。
+    file_path = _resolve_requested_book_path(query)
+    book_key = book_key_for_path(file_path) if file_path else ""
     host_header = (handler.headers.get("Host") or "").split(":")[0] or "localhost"
     try:
         req_port = int(handler.server.server_address[1])
@@ -466,8 +547,8 @@ def _handle_web_get(handler: Any, path: str, query: Dict[str, Any], secret: str)
         except Exception as _e:
             logger.warning(f"为局域网阅读页注册进度回调失败: {_e}")
 
-    html = _build_reader_page(file_path, host_header, req_port, secret)
-    if html is None:
+    page = _build_reader_page(file_path, host_header, req_port, secret, book_key=book_key)
+    if page is None:
         _send_web_response(
             handler,
             "<!doctype html><meta charset='utf-8'><p style='font:16px/1.8 sans-serif;padding:24px'>"
@@ -475,7 +556,8 @@ def _handle_web_get(handler: Any, path: str, query: Dict[str, Any], secret: str)
             status=404,
         )
     else:
-        _send_web_response(handler, html)
+        html, compressed = page
+        _send_web_response(handler, html, precompressed_gzip=compressed)
     return True
 
 
@@ -1124,6 +1206,8 @@ class BrowserReaderServerManager:
                         post_data = self.rfile.read(content_length)
                         data = json.loads(post_data.decode('utf-8'))
                         path = (data.get('path') or '').strip()
+                        if not path and data.get('book'):
+                            path = _find_book_path_by_key(data['book'])
                         password = data.get('password') or None
                         from src.utils.browser_reader import BrowserReader
                         result = BrowserReader.open_book_content_json(path, password)
@@ -1339,7 +1423,26 @@ class BrowserReaderServerManager:
         if secret:
             url += "?key=" + quote(secret, safe="")
         return url
-    
+
+    def get_book_reader_url(self, book_key: str) -> Optional[str]:
+        """返回桌面端“浏览器阅读”应打开的 URL：只含公开 book 标识，不含物理路径。"""
+        if not book_key or not self._save_url:
+            return None
+        from urllib.parse import quote, urlparse
+        try:
+            port = urlparse(self._save_url).port
+        except Exception:
+            port = None
+        if not port:
+            return None
+        host = get_lan_ip() if getattr(self, "_lan_enabled", False) else "127.0.0.1"
+        url = f"http://{host}:{port}/reader?book={quote(str(book_key), safe='')}"
+        secret = get_runtime_secret()
+        self._secret = secret
+        if secret:
+            url += "&key=" + quote(secret, safe="")
+        return url
+
     def register_callbacks(self, book_id: str, 
                           on_progress_save: Optional[Callable] = None,
                           on_progress_load: Optional[Callable] = None,

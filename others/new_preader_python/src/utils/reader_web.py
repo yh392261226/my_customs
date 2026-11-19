@@ -450,11 +450,15 @@ READER_WEB_JS = r"""
     function cacheCurrentBook() {
         var el = $('content');
         if (!el || !el.innerHTML) { return; }
-        var id = safe(function () { return window.__BR_BOOK_ID__; }) || document.title || 'book';
+        var legacyId = safe(function () { return window.__BR_BOOK_ID__; }) || document.title || 'book';
+        var bookKey = safe(function () { return window.__BR_BOOK_KEY__; }) || '';
+        /* 新缓存用不可逆的 book key 作主键；旧缓存仍按 book_id / path 兼容读取。 */
+        var id = bookKey || legacyId;
         openCacheDB().then(function (db) {
             var tx = db.transaction(CACHE_STORE, 'readwrite');
             tx.objectStore(CACHE_STORE).put({
-                id: String(id), title: document.title,
+                id: String(id), book_key: String(bookKey), book_id: String(legacyId),
+                title: document.title,
                 html: el.innerHTML,
                 path: safe(function () { return window.__BR_BOOK_FILE_PATH__; }) || '',
                 savedAt: Date.now()
@@ -656,7 +660,7 @@ READER_WEB_JS = r"""
 #    后端关闭后依然能打开已访问过的页面。
 #  - /sw.js、/health_check 等不缓存，避免把「离线」误判成「在线」。
 SERVICE_WORKER_JS = r"""
-const CACHE = 'br-reader-v1';
+const CACHE = 'br-reader-v2';
 /* ---- 旧缓存页面迁移 ----
    早期窄屏 CSS 把正文字号写成 `font-size: 17px !important`，且设置页滑块还会再调
    `changeFontSize(0)`（按 getComputedStyle 反推字号，配合 body 的 transition 会把
@@ -692,12 +696,28 @@ function patchCachedPages() {
         });
     }).catch(function () {});
 }
-/* 缓存键去掉 ?key=（密钥变化不应导致缓存失效），但保留 /reader 的 path（每本书独立缓存） */
+/* 缓存键去掉 ?key=（密钥变化不应导致缓存失效），但保留 /reader 的书籍标识（每本书独立缓存）。
+   新链接用 ?book=<公开标识>，旧链接 ?path=<物理路径> 仍可缓存，避免老书签失效。 */
 function cacheKey(raw) {
     var u = new URL(raw);
     var k = u.origin + u.pathname;
-    if (u.pathname === '/reader') { k += '?path=' + encodeURIComponent(u.searchParams.get('path') || ''); }
+    if (u.pathname === '/reader') {
+        var id = u.searchParams.get('book') || u.searchParams.get('path') || '';
+        k += '?id=' + encodeURIComponent(id);
+    }
     return k;
+}
+/* gzip 响应在 fetch() 后已被浏览器解码，缓存时去掉 Content-Encoding/Length，
+   避免离线命中缓存时再次按 gzip 解码导致乱码。 */
+function cacheableResponse(res) {
+    var headers = new Headers(res.headers);
+    headers.delete('Content-Encoding');
+    headers.delete('Content-Length');
+    return res.clone().text().then(function (text) {
+        return new Response(text, {
+            status: res.status, statusText: res.statusText, headers: headers
+        });
+    });
 }
 /* 不做 install 预缓存：配置了接口密钥时匿名请求 '/' 会拿到 401 页面并污染缓存 */
 self.addEventListener('install', function (e) { self.skipWaiting(); });
@@ -721,8 +741,9 @@ self.addEventListener('fetch', function (e) {
         e.respondWith(
             fetch(req).then(function (res) {
                 if (res && res.ok) {
-                    var copy = res.clone();
-                    caches.open(CACHE).then(function (c) { c.put(key, copy); }).catch(function () {});
+                    cacheableResponse(res).then(function (copy) {
+                        return caches.open(CACHE).then(function (c) { return c.put(key, copy); });
+                    }).catch(function () {});
                 }
                 return res;
             }).catch(function () {
@@ -854,7 +875,10 @@ def render_startup_gate_early_js(enabled: bool, password_hash: str = "") -> str:
         '  try {\n'
         '    window.__BR_STARTUP_PASSWORD_ENABLED__ = ' + ('true' if enabled else 'false') + ';\n'
         '    window.__BR_STARTUP_PASSWORD_HASH__ = ' + _js_json(password_hash or "") + ';\n'
-        '    if (window.__BR_STARTUP_PASSWORD_ENABLED__) {\n'
+        '    function brCookie(){ var parts=document.cookie.split(";"), name="br_startup_unlocked_hash="; for(var i=0;i<parts.length;i++){ var p=parts[i].trim(); if(p.indexOf(name)===0) return decodeURIComponent(p.slice(name.length)); } return ""; }\n'
+        '    var unlocked = !!window.__BR_STARTUP_PASSWORD_HASH__ &&\n'
+        '      brCookie() === window.__BR_STARTUP_PASSWORD_HASH__;\n'
+        '    if (window.__BR_STARTUP_PASSWORD_ENABLED__ && !unlocked) {\n'
         '      document.documentElement.classList.add("br-startup-locked");\n'
         '    }\n'
         '  } catch(e) {}\n'
@@ -1016,6 +1040,9 @@ STARTUP_GATE_JS = r"""
       return;
     }
     brMsg('');
+    /* 同源所有页面共享已验证的密码摘要（会话 cookie），书库/阅读页/新标签页都不再重复输入。 */
+    document.cookie = 'br_startup_unlocked_hash=' + encodeURIComponent(expected) + '; Path=/; SameSite=Lax';
+    try { sessionStorage.removeItem('br_startup_unlocked_hash'); } catch(e) {}
     document.documentElement.classList.remove('br-startup-locked');
     try { window.dispatchEvent(new Event('br-startup-unlocked')); } catch(e) {}
   }
@@ -1419,7 +1446,8 @@ _PORTAL_JS = r"""
     'use strict';
     var L = window.__BR_LABELS__ || {};
     var KEY_STORE = 'br_api_secret', BACK_STORE = 'br_backend_override';
-    var CACHE_KEY = 'br_portal_books', CACHE_TIME_KEY = 'br_portal_books_synced_at';
+    /* v2：旧缓存里含真实 path，整体弃用，避免继续在浏览器本地暴露目录。 */
+    var CACHE_KEY = 'br_portal_books_v2', CACHE_TIME_KEY = 'br_portal_books_v2_synced_at';
     var DB_NAME = 'br_offline_books', STORE = 'books', INDEX_STORE = 'book_index';
     var PAGE_SIZE = 20;
     var mode = 'online', books = [], offlineBooks = [], netOnline = false;
@@ -1486,7 +1514,7 @@ _PORTAL_JS = r"""
     }
     function matchLocal(b, kw) {
         if (!kw) { return true; }
-        var hay = [b.title, b.novel_title, b.name, b.book_name, b.author, b.pinyin, b.tags, b.path]
+        var hay = [b.title, b.novel_title, b.name, b.book_name, b.author, b.pinyin, b.tags]
             .map(function (v) { return v == null ? '' : String(v); }).join(' ').toLowerCase();
         return hay.indexOf(kw.toLowerCase()) >= 0;
     }
@@ -1501,7 +1529,8 @@ _PORTAL_JS = r"""
         /* 保留拼音/标签，让离线搜索与后端 q 的匹配范围尽量一致；
            metadata（章节正文）体积过大，不写入 localStorage。 */
         return {
-            path: b.path || '', title: b.title || b.novel_title || b.name || '',
+            book_key: b.book_key || '', book_id: b.book_id || '',
+            title: b.title || b.novel_title || b.name || '',
             author: b.author || '', format: b.format || '', status: b.status || '',
             pinyin: b.pinyin || '', tags: b.tags || ''
         };
@@ -1510,9 +1539,9 @@ _PORTAL_JS = r"""
         if (!items || !items.length) { return; }
         safe(function () {
             var all = cachedBooks(), index = {};
-            all.forEach(function (b, i) { index[String(b.path || b.title || i)] = i; });
+            all.forEach(function (b, i) { index[String(b.book_key || b.title || i)] = i; });
             items.forEach(function (b) {
-                var slim = slimBook(b), k = String(slim.path || slim.title);
+                var slim = slimBook(b), k = String(slim.book_key || slim.title);
                 if (index[k] === undefined) { index[k] = all.length; all.push(slim); }
                 else { all[index[k]] = slim; }
             });
@@ -1521,14 +1550,14 @@ _PORTAL_JS = r"""
     }
     /* 后台一次拉取全量「精简书单」写入 IndexedDB：主列表仍是每页 20 条的
        服务端分页，这一步只保证后端关闭后离线书库/离线搜索覆盖全部书籍。
-       走 /api/books/index（后端只 SELECT 轻量列，不含 metadata），10 分钟节流；
+       走 /api/portal/books/index（后端只返回公开字段，不含 path/metadata），10 分钟节流；
        localStorage 只留少量「已浏览页」兜底，避免上万本书超出配额。 */
     function syncOfflineIndex() {
         if (syncing || !netOnline) { return; }
         var last = parseInt(safe(function () { return localStorage.getItem(CACHE_TIME_KEY); }) || '0', 10) || 0;
         if (Date.now() - last < 10 * 60 * 1000) { return; }
         syncing = true;
-        fetch(withKey(backend() + '/api/books/index'), { headers: headers(), cache: 'no-store' })
+        fetch(withKey(backend() + '/api/portal/books/index'), { headers: headers(), cache: 'no-store' })
             .then(function (r) { return r.ok ? r.json() : null; })
             .then(function (d) {
                 var items = pickItems(d);
@@ -1557,7 +1586,7 @@ _PORTAL_JS = r"""
                 netOnline = false; paintNet();
                 return renderOfflineFallback(seq);
             }
-            var url = backend() + '/api/books?page=' + page + '&page_size=' + PAGE_SIZE +
+            var url = backend() + '/api/portal/books?page=' + page + '&page_size=' + PAGE_SIZE +
                       (keyword ? '&q=' + encodeURIComponent(keyword) : '');
             return fetch(withKey(url), { headers: headers(), cache: 'no-store' })
                 .then(function (r) { if (!r.ok) { throw new Error('http ' + r.status); } return r.json(); })
@@ -1583,13 +1612,15 @@ _PORTAL_JS = r"""
     function openDB() {
         return new Promise(function (resolve, reject) {
             if (!window.indexedDB) { reject(new Error('no-idb')); return; }
-            /* v2 增加 book_index：全量书单放 localStorage 会超 5MB 配额，
-               IndexedDB 才能容纳上万本书的离线索引。 */
-            var req = indexedDB.open(DB_NAME, 2);
+            /* v3：旧 book_index 记录里带真实 path，升级时清空后从公开接口重建。 */
+            var req = indexedDB.open(DB_NAME, 3);
             req.onupgradeneeded = function () {
                 var db = req.result;
                 if (!db.objectStoreNames.contains(STORE)) { db.createObjectStore(STORE, { keyPath: 'id' }); }
                 if (!db.objectStoreNames.contains(INDEX_STORE)) { db.createObjectStore(INDEX_STORE, { keyPath: 'id' }); }
+                else if (req.oldVersion < 3) {
+                    try { req.transaction.objectStore(INDEX_STORE).clear(); } catch (e) {}
+                }
             };
             req.onsuccess = function () { resolve(req.result); };
             req.onerror = function () { reject(req.error); };
@@ -1597,7 +1628,7 @@ _PORTAL_JS = r"""
     }
     function indexRecord(b) {
         var s = slimBook(b);
-        s.id = String(s.path || s.title || Math.random());
+        s.id = String(s.book_key || s.title || Math.random());
         return s;
     }
     function saveBookIndex(items) {
@@ -1633,13 +1664,27 @@ _PORTAL_JS = r"""
             if (mode === 'offline') { render(sliceLocal(offlineBooks), total); }
         });
     }
-    function openOfflineBook(id) {
+    function openOfflineBook(id, b) {
+        b = b || {};
+        /* 依次尝试：新缓存主键(book_key)、旧缓存主键(book_id)。 */
+        var candidates = [], seen = {};
+        function addCandidate(v) {
+            v = v == null ? '' : String(v);
+            if (v && !seen[v]) { seen[v] = 1; candidates.push(v); }
+        }
+        addCandidate(b.book_key || id);
+        addCandidate(b.book_id);
+        addCandidate(id);
         return openDB().then(function (db) {
             return new Promise(function (resolve) {
                 var tx = db.transaction(STORE, 'readonly');
-                var req = tx.objectStore(STORE).get(id);
-                req.onsuccess = function () { db.close(); resolve(req.result || null); };
-                req.onerror = function () { db.close(); resolve(null); };
+                var store = tx.objectStore(STORE), found = null;
+                candidates.forEach(function (key) {
+                    var req = store.get(key);
+                    req.onsuccess = function () { if (!found && req.result) { found = req.result; } };
+                });
+                tx.oncomplete = function () { db.close(); resolve(found); };
+                tx.onerror = function () { db.close(); resolve(found); };
             });
         }).then(function (rec) {
             if (!rec) { return; }
@@ -1660,12 +1705,14 @@ _PORTAL_JS = r"""
     }
 
     /* 书库卡片：把书导出为 TXT 下载到本机/手机，脱离局域网后也能继续看 */
-    function downloadBookTxt(path, title) {
-        if (!path) { alert(L.download_failed); return; }
+    function downloadBookTxt(book, title) {
+        book = book || {};
+        var bookKey = book.book_key || '';
+        if (!bookKey) { alert(L.download_failed); return; }
         var h = {};
         var k = key();
         if (k) { h['X-API-Key'] = k; }
-        fetch(withKey(backend() + '/download_book?path=' + encodeURIComponent(path)), { headers: h, cache: 'no-store' })
+        fetch(withKey(backend() + '/download_book?book=' + encodeURIComponent(bookKey)), { headers: h, cache: 'no-store' })
             .then(function (r) {
                 if (!r.ok) { throw new Error('HTTP ' + r.status); }
                 return r.blob().then(function (blob) {
@@ -1700,7 +1747,7 @@ _PORTAL_JS = r"""
     function makeCard(b) {
         var card = document.createElement('div');
         card.className = 'book-card';
-        var title = String(b.title || b.novel_title || b.name || b.path || L.portal_title);
+        var title = String(b.title || b.novel_title || b.name || L.portal_title);
 
         var cover = document.createElement('div');
         cover.className = 'book-cover book-cover--' + coverTone(title);
@@ -1739,7 +1786,7 @@ _PORTAL_JS = r"""
         arrow.setAttribute('aria-hidden', 'true');
         arrow.textContent = '›';
 
-        if (mode === 'online' && b.path) {
+        if (mode === 'online' && b.book_key) {
             var download = document.createElement('button');
             download.type = 'button';
             download.className = 'book-download';
@@ -1747,7 +1794,7 @@ _PORTAL_JS = r"""
             download.textContent = L.download_txt || 'TXT';
             download.addEventListener('click', function (e) {
                 e.stopPropagation();
-                downloadBookTxt(b.path, title);
+                downloadBookTxt(b, title);
             });
             card.appendChild(download);
         }
@@ -1756,10 +1803,10 @@ _PORTAL_JS = r"""
         card.appendChild(meta);
         card.appendChild(arrow);
         card.addEventListener('click', function () {
-            if (mode === 'offline') { openOfflineBook(b.id); return; }
-            var path = b.path || '';
-            if (!path) { return; }
-            location.href = withKey('/reader?path=' + encodeURIComponent(path));
+            if (mode === 'offline') { openOfflineBook(b.id, b); return; }
+            /* 只使用公开标识，URL 与前端数据里都不再出现物理路径 */
+            if (!b.book_key) { return; }
+            location.href = withKey('/reader?book=' + encodeURIComponent(b.book_key));
         });
         return card;
     }
@@ -1949,6 +1996,11 @@ _PORTAL_JS = r"""
 
     function init() {
         document.body.classList.add('br-web');
+        /* 清掉 v1 书库缓存：里面保存过真实物理路径 */
+        safe(function () {
+            localStorage.removeItem('br_portal_books');
+            localStorage.removeItem('br_portal_books_synced_at');
+        });
         bind();
         paintNet();
         loadBooks(1);
