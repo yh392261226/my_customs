@@ -117,11 +117,13 @@ RESPONSIVE_CSS = r"""
     #importFloatingIndicator { bottom: calc(var(--br-nav-offset) + 16px) !important; }
 
     /* --- 其余浮层改为贴边小按钮，偏移统一走变量（位置与原先一致） --- */
+    /* 章节/书签按钮须高于右下角进度按钮(.progress-info: bottom nav+16px, 高约30px)，
+       否则会被 z-index 更高的进度按钮盖住下半部分；这里上移到 nav+56px 留出间隙。 */
     .br-compact .toc-toggle-btn, .br-web .toc-toggle-btn {
-        top: auto !important; bottom: calc(var(--br-nav-offset) + 20px) !important; right: 14px !important;
+        top: auto !important; bottom: calc(var(--br-nav-offset) + 56px) !important; right: 14px !important;
     }
     .br-compact .bookmark-btn, .br-web .bookmark-btn {
-        top: auto !important; bottom: calc(var(--br-nav-offset) + 20px) !important; right: 68px !important;
+        top: auto !important; bottom: calc(var(--br-nav-offset) + 56px) !important; right: 68px !important;
     }
     .br-compact .auto-scroll-controls, .br-web .auto-scroll-controls,
     .br-compact .speech-controls, .br-web .speech-controls {
@@ -660,7 +662,7 @@ READER_WEB_JS = r"""
 #    后端关闭后依然能打开已访问过的页面。
 #  - /sw.js、/health_check 等不缓存，避免把「离线」误判成「在线」。
 SERVICE_WORKER_JS = r"""
-const CACHE = 'br-reader-v9';
+const CACHE = 'br-reader-v42';
 /* ---- 旧缓存页面迁移 ----
    早期窄屏 CSS 把正文字号写成 `font-size: 17px !important`，且设置页滑块还会再调
    `changeFontSize(0)`（按 getComputedStyle 反推字号，配合 body 的 transition 会把
@@ -1413,6 +1415,942 @@ SCROLL_NAV_JS = r"""
 })();
 """
 
+# 统一运行时：网络版 / 离线版共用同一份 URL、密钥与 API 地址逻辑。
+# 上层组件只调用 window.BRAppRuntime，不再散落判断 location.protocol / OFFLINE。
+APP_RUNTIME_JS = r"""
+(function () {
+  'use strict';
+  var KEY_STORE = 'br_api_secret', BACK_STORE = 'br_backend_override';
+  function safe(fn) { try { return fn(); } catch (e) { return null; } }
+  function isFile() { return location.protocol === 'file:'; }
+  function key() {
+    return safe(function () { return localStorage.getItem(KEY_STORE); }) ||
+      window.__BR_BOOT_SECRET__ || '';
+  }
+  function defaultBackend() {
+    return window.__BR_DEFAULT_BACKEND__ || 'http://127.0.0.1:54321';
+  }
+  function backend() {
+    var override = safe(function () { return localStorage.getItem(BACK_STORE); });
+    var base = override || (isFile() ? defaultBackend() : location.origin);
+    return String(base || '').replace(/\/+$/, '');
+  }
+  function withKey(url) {
+    var k = key();
+    return k ? url + (url.indexOf('?') >= 0 ? '&' : '?') + 'key=' + encodeURIComponent(k) : url;
+  }
+  function apiHeaders() {
+    var h = { 'Content-Type': 'application/json' };
+    var k = key();
+    if (k) { h['X-API-Key'] = k; }
+    return h;
+  }
+  function apiUrl(path) { return backend() + (path.charAt(0) === '/' ? path : '/' + path); }
+  function readerUrl(bookKey) {
+    if (!bookKey) { return ''; }
+    if (isFile()) {
+      var suffix = key() ? '&key=' + encodeURIComponent(key()) : '';
+      return backend() + '/reader?book=' + encodeURIComponent(bookKey) + suffix;
+    }
+    return withKey('/reader?book=' + encodeURIComponent(bookKey));
+  }
+  function libraryUrl() {
+    if (isFile()) { return location.href.split('?')[0].split('#')[0]; }
+    return withKey('/');
+  }
+  window.BRAppRuntime = {
+    isFile: isFile,
+    key: key,
+    backend: backend,
+    withKey: withKey,
+    apiHeaders: apiHeaders,
+    apiUrl: apiUrl,
+    readerUrl: readerUrl,
+    libraryUrl: libraryUrl
+  };
+})();
+"""
+
+# 数据适配层：上层 UI 只调用 BRDataSource，不再直接使用 fetch / IndexedDB 细节。
+DATA_SOURCE_JS = r"""
+(function () {
+  'use strict';
+  var rt = window.BRAppRuntime;
+  var DB_NAME = 'br_offline_books', STORE = 'books', HISTORY_KEY = 'readingHistory';
+
+  function jsonFetch(url, options) {
+    return fetch(url, options).then(function (r) {
+      if (!r.ok) { throw new Error('HTTP ' + r.status); }
+      return r.json();
+    });
+  }
+  function openDB() {
+    return new Promise(function (resolve, reject) {
+      if (!window.indexedDB) { reject(new Error('no-idb')); return; }
+      var req = indexedDB.open(DB_NAME, 3);
+      req.onupgradeneeded = function () {
+        var db = req.result;
+        if (!db.objectStoreNames.contains(STORE)) { db.createObjectStore(STORE, { keyPath: 'id' }); }
+      };
+      req.onsuccess = function () { resolve(req.result); };
+      req.onerror = function () { reject(req.error); };
+    });
+  }
+  function txDone(tx) {
+    return new Promise(function (resolve) {
+      tx.oncomplete = function () { resolve(true); };
+      tx.onerror = function () { resolve(false); };
+    });
+  }
+
+  var HttpDataSource = {
+    health: function () {
+      return jsonFetch(rt.apiUrl('/health_check'), { cache: 'no-store' })
+        .then(function (d) { return !!(d && d.status === 'ok'); })
+        .catch(function () { return false; });
+    },
+    listBooks: function (page, pageSize, keyword) {
+      var url = rt.apiUrl('/api/portal/books') + '?page=' + encodeURIComponent(page) +
+        '&page_size=' + encodeURIComponent(pageSize) +
+        (keyword ? '&q=' + encodeURIComponent(keyword) : '');
+      return jsonFetch(rt.withKey(url), { headers: rt.apiHeaders(), cache: 'no-store' });
+    },
+    bookIndex: function () {
+      return jsonFetch(rt.withKey(rt.apiUrl('/api/portal/books/index')), {
+        headers: rt.apiHeaders(), cache: 'no-store'
+      });
+    },
+    downloadBook: function (bookKey) {
+      var url = rt.withKey(rt.apiUrl('/download_book') + '?book=' + encodeURIComponent(bookKey));
+      return fetch(url, { headers: rt.apiHeaders(), cache: 'no-store' }).then(function (r) {
+        if (!r.ok) { throw new Error('HTTP ' + r.status); }
+        return r.blob().then(function (blob) {
+          return { blob: blob, cd: r.headers.get('Content-Disposition') || '' };
+        });
+      });
+    },
+    uploadBook: function (blob, fileName, title) {
+      var h = {
+        'Content-Type': 'application/octet-stream',
+        'X-File-Name': encodeURIComponent(fileName),
+        'X-File-Title': encodeURIComponent(title || fileName.replace(/\.[^.]+$/, ''))
+      };
+      var k = rt.key();
+      if (k) { h['X-API-Key'] = k; }
+      var url = rt.withKey(rt.apiUrl('/api/upload_book'));
+      return jsonFetch(url, { method: 'POST', headers: h, body: blob, cache: 'no-store' });
+    }
+  };
+
+  var LocalDataSource = {
+    openDB: openDB,
+    listBooks: function () {
+      return openDB().then(function (db) {
+        return new Promise(function (resolve) {
+          var tx = db.transaction(STORE, 'readonly');
+          var req = tx.objectStore(STORE).getAll();
+          req.onsuccess = function () { db.close(); resolve(req.result || []); };
+          req.onerror = function () { db.close(); resolve([]); };
+        });
+      }).catch(function () { return []; });
+    },
+    getBook: function (key) {
+      return openDB().then(function (db) {
+        return new Promise(function (resolve) {
+          var req = db.transaction(STORE, 'readonly').objectStore(STORE).get(key);
+          req.onsuccess = function () { db.close(); resolve(req.result || null); };
+          req.onerror = function () { db.close(); resolve(null); };
+        });
+      }).catch(function () { return null; });
+    },
+    saveBook: function (record) {
+      return openDB().then(function (db) {
+        var tx = db.transaction(STORE, 'readwrite');
+        tx.objectStore(STORE).put(record);
+        return txDone(tx).then(function (ok) { db.close(); return ok; });
+      }).catch(function () { return false; });
+    },
+    history: function () {
+      try { return JSON.parse(localStorage.getItem(HISTORY_KEY) || '[]'); } catch (e) { return []; }
+    },
+    saveHistory: function (items) {
+      try { localStorage.setItem(HISTORY_KEY, JSON.stringify(items || [])); return true; }
+      catch (e) { return false; }
+    }
+  };
+
+  window.BRDataSource = { http: HttpDataSource, local: LocalDataSource };
+})();
+"""
+
+# 统一 App Shell：书库视图与阅读视图容器。阅读器旧页面暂时用 iframe 承载，
+# 后续 Phase 3 再把阅读功能逐个搬进统一壳，保证功能不丢失。
+APP_SHELL_CSS = r"""
+.app-view { display: none; }
+.app-view.active { display: block; }
+#appReaderView {
+  position: fixed; inset: 0; z-index: 5000;
+  background: var(--br-page-bg, #fff);
+}
+#appReaderFrame { width: 100%; height: 100%; border: 0; display: block; }
+#appReaderBackBtn {
+  position: fixed; left: 14px; top: 50%; transform: translateY(-50%);
+  z-index: 5200; padding: 9px 12px; border-radius: 20px; cursor: pointer;
+  color: var(--br-page-fg, #222); background: var(--br-card-bg, #fff);
+  border: 1px solid rgba(128,128,128,.35); box-shadow: 0 2px 10px rgba(0,0,0,.18);
+}
+#appPanelBackdrop { position: absolute; inset: 0; z-index: 5203; background: rgba(0,0,0,.28); }
+#appPanelBackdrop[hidden] { display: none; }
+.br-app-toolbar {
+  position: absolute; left: 50%; top: 12px; transform: translateX(-50%);
+  z-index: 5204; display: flex; gap: 6px; padding: 6px 8px; border-radius: 24px;
+  background: var(--br-card-bg, #fff); border: 1px solid rgba(128,128,128,.35);
+  box-shadow: 0 3px 14px rgba(0,0,0,.2); max-width: calc(100vw - 90px); overflow-x: auto;
+}
+.br-app-toolbar button {
+  cursor: pointer; white-space: nowrap; padding: 5px 10px; border-radius: 16px;
+  border: 1px solid rgba(128,128,128,.25); background: transparent;
+  color: var(--br-page-fg, #222); font-size: 13px;
+}
+.br-app-toolbar button:hover { background: rgba(128,128,128,.12); }
+.br-app-settings {
+  position: absolute; right: 16px; top: 58px; z-index: 5205;
+  width: 260px; padding: 14px; border-radius: 12px;
+  background: var(--br-card-bg, #fff); color: var(--br-page-fg, #222);
+  border: 1px solid rgba(128,128,128,.35); box-shadow: 0 6px 24px rgba(0,0,0,.24);
+}
+.br-app-settings[hidden] { display: none; }
+.br-app-settings h3 { margin: 0 0 10px; font-size: 15px; }
+.br-app-settings .br-app-setting-row { display: flex; flex-wrap: wrap; gap: 6px; margin-bottom: 10px; }
+.br-app-settings button { cursor: pointer; padding: 5px 9px; border-radius: 8px; border: 1px solid rgba(128,128,128,.3); background: transparent; color: inherit; }
+.br-app-settings button.active { background: rgba(79,172,254,.22); border-color: rgba(79,172,254,.65); }
+#appTocPanel { left: 16px; right: auto; width: 300px; max-height: calc(100vh - 90px); overflow-y: auto; }
+#appTocPanel input { width: 100%; padding: 6px 8px; margin-bottom: 8px; border-radius: 8px; border: 1px solid rgba(128,128,128,.3); background: transparent; color: inherit; }
+#appTocList { list-style: none; padding: 0; margin: 0; }
+#appTocList li { padding: 6px 8px; cursor: pointer; border-radius: 6px; font-size: 13px; }
+#appTocList li:hover { background: rgba(128,128,128,.12); }
+#appTocList li.h2 { padding-left: 18px; }
+#appTocList li.h3 { padding-left: 30px; }
+#appSearchPanel { right: 16px; left: auto; width: 360px; max-height: calc(100vh - 90px); overflow-y: auto; }
+#appSearchPanel input { width: 100%; padding: 6px 8px; margin-bottom: 8px; border-radius: 8px; border: 1px solid rgba(128,128,128,.3); background: transparent; color: inherit; }
+#appSearchList { list-style: none; padding: 0; margin: 0; }
+#appSearchList li { padding: 6px 8px; cursor: pointer; border-radius: 6px; font-size: 13px; line-height: 1.5; }
+#appSearchList li:hover { background: rgba(128,128,128,.12); }
+#appBookmarkPanel, #appNotePanel, #appHighlightPanel, #appVocabPanel, #appSpeechPanel, #appProgressPanel, #appViewModePanel, #appJumpPanel, #appUnlockPanel { right: 16px; left: auto; width: 360px; max-height: calc(100vh - 90px); overflow-y: auto; }
+#appNotePanel textarea, #appVocabPanel input, #appSpeechPanel select, #appProgressPanel input, #appJumpPanel input, #appUnlockPanel input, #appThemeSelect { width: 100%; box-sizing: border-box; padding: 6px 8px; margin-bottom: 8px; border-radius: 8px; border: 1px solid rgba(128,128,128,.3); background: transparent; color: inherit; resize: vertical; }
+#appSpeechPanel input[type="range"] { width: 100%; }
+#appSpeechStatus { min-height: 18px; margin-bottom: 8px; font-size: 12px; opacity: .75; }
+#appProgressTrack { height: 8px; border-radius: 6px; background: rgba(128,128,128,.2); overflow: hidden; margin-bottom: 6px; }
+#appProgressFill { height: 100%; width: 0; background: #4facfe; transition: width .2s ease; }
+#appProgressMeta { margin-bottom: 8px; font-size: 12px; opacity: .75; }
+#appToast { position: absolute; left: 50%; bottom: 24px; transform: translateX(-50%); z-index: 5300; padding: 8px 14px; border-radius: 10px; background: rgba(20,20,20,.88); color: #fff; font-size: 13px; pointer-events: none; }
+#appToast[hidden] { display: none; }
+.app-annotation-list { list-style: none; padding: 0; margin: 0 0 8px; }
+.app-annotation-list li { position: relative; padding: 7px 28px 7px 8px; cursor: pointer; border-radius: 6px; font-size: 13px; line-height: 1.5; border-bottom: 1px solid rgba(128,128,128,.12); }
+.app-annotation-list li:hover { background: rgba(128,128,128,.12); }
+.app-annotation-list .app-annotation-title { font-weight: 600; }
+.app-annotation-list .app-annotation-quote { margin-top: 3px; opacity: .75; font-size: 12px; }
+.app-annotation-list .app-annotation-meta { margin-top: 3px; opacity: .6; font-size: 11px; }
+.app-annotation-list .app-annotation-delete { position: absolute; right: 6px; top: 6px; border: 0; padding: 1px 6px; font-size: 16px; line-height: 1.2; }
+#appReaderFrame { padding-top: 52px; }
+body.app-reader-active .br-scroll-nav { display: none; }
+.br-app-settings { animation: brPanelIn .14s ease-out; }
+@keyframes brPanelIn { from { opacity: 0; transform: translateY(-6px); } to { opacity: 1; transform: translateY(0); } }
+@media (max-width: 720px) {
+  .br-app-toolbar { left: 8px; right: 8px; transform: none; max-width: none; justify-content: flex-start; }
+  .br-app-toolbar button { padding: 5px 8px; font-size: 12px; }
+  #appReaderBackBtn { top: auto; bottom: 12px; left: 8px; transform: none; padding: 7px 10px; }
+  .br-app-settings, #appTocPanel, #appSearchPanel,
+  #appBookmarkPanel, #appNotePanel, #appHighlightPanel, #appVocabPanel,
+  #appSpeechPanel, #appProgressPanel, #appViewModePanel, #appJumpPanel,
+  #appUnlockPanel { left: 8px !important; right: 8px !important; width: auto !important; top: 58px; max-height: calc(100vh - 120px); }
+}
+"""
+
+APP_ROUTER_JS = r"""
+(function () {
+  'use strict';
+  var current = 'library', currentSrc = '';
+  function params() {
+    var out = {};
+    new URLSearchParams(location.search).forEach(function (v, k) { out[k] = v; });
+    var hash = String(location.hash || '').replace(/^#\/?/, '');
+    if (hash) { new URLSearchParams(hash).forEach(function (v, k) { out[k] = v; }); }
+    return out;
+  }
+  function updateUrl(view, book, src, push) {
+    if (location.protocol === 'file:') {
+      var h = '#view=' + encodeURIComponent(view);
+      if (book) { h += '&book=' + encodeURIComponent(book); }
+      if (src) { h += '&src=' + encodeURIComponent(src); }
+      if (push) { location.hash = h; }
+      else {
+        try { history.replaceState(null, '', location.pathname + h); }
+        catch (e) { location.hash = h; }
+      }
+      return;
+    }
+    var p = new URLSearchParams(location.search);
+    p.set('view', view);
+    if (book) { p.set('book', book); } else { p.delete('book'); }
+    if (src) { p.set('src', src); } else { p.delete('src'); }
+    var url = location.pathname + '?' + p.toString();
+    if (push) { history.pushState(null, '', url); }
+    else { history.replaceState(null, '', url); }
+  }
+  function showLibrary(push) {
+    current = 'library';
+    currentSrc = '';
+    document.body.classList.remove('app-reader-active');
+    var lib = document.getElementById('appLibraryView');
+    var reader = document.getElementById('appReaderView');
+    if (lib) { lib.classList.add('active'); }
+    if (reader) { reader.classList.remove('active'); }
+    hideAllAppPanels();
+    updateUrl('library', '', '', push !== false);
+  }
+  function showReader(bookKey, src, push) {
+    if (!bookKey && !src) { return; }
+    current = 'reader';
+    currentSrc = src || currentSrc;
+    document.body.classList.add('app-reader-active');
+    var lib = document.getElementById('appLibraryView');
+    var reader = document.getElementById('appReaderView');
+    var frame = document.getElementById('appReaderFrame');
+    if (lib) { lib.classList.remove('active'); }
+    if (reader) { reader.classList.add('active'); }
+    if (frame) {
+      frame.src = currentSrc || window.BRAppRuntime.readerUrl(bookKey);
+    }
+    updateUrl('reader', bookKey, currentSrc, push !== false);
+  }
+  function start() {
+    var p = params();
+    if (p.view === 'reader' || p.book) {
+      showReader(p.book || '', p.src || currentSrc, false);
+      return true;
+    }
+    showLibrary(false);
+    return false;
+  }
+  window.addEventListener('popstate', function () { start(); });
+  window.addEventListener('hashchange', function () { start(); });
+  var tocItems = [];
+  function requestToc() {
+    var frame = document.getElementById('appReaderFrame');
+    if (frame && frame.contentWindow) {
+      frame.contentWindow.postMessage({ source: 'br-app-shell', action: 'toc-request' }, '*');
+    }
+  }
+  function renderToc(items) {
+    tocItems = items || [];
+    var list = document.getElementById('appTocList');
+    if (!list) { return; }
+    list.innerHTML = '';
+    tocItems.forEach(function (item, index) {
+      var li = document.createElement('li');
+      li.className = item.tag || '';
+      li.textContent = item.title || ('章节 ' + (index + 1));
+      li.setAttribute('data-index', String(index));
+      li.addEventListener('click', function () {
+        sendReaderAction('toc-jump', String(index));
+      });
+      list.appendChild(li);
+    });
+  }
+  function renderSearchResults(items) {
+    var list = document.getElementById('appSearchList');
+    if (!list) { return; }
+    list.innerHTML = '';
+    (items || []).forEach(function (item) {
+      var li = document.createElement('li');
+      li.textContent = item.text || '';
+      li.addEventListener('click', function () {
+        sendReaderAction('search-goto', String(item.index || 0));
+      });
+      list.appendChild(li);
+    });
+    if (!(items || []).length) {
+      var li = document.createElement('li');
+      li.textContent = '未找到匹配内容';
+      list.appendChild(li);
+    }
+  }
+  function requestBookmarks() { sendReaderAction('bookmarks-request'); }
+  function requestNotes() { sendReaderAction('notes-request'); }
+  function formatAnnotationTime(value) {
+    if (!value) { return ''; }
+    var n = Number(value);
+    return isFinite(n) && n > 0 ? new Date(n).toLocaleString() : String(value);
+  }
+  function renderAnnotationList(list, items, type) {
+    if (!list) { return; }
+    list.innerHTML = '';
+    (items || []).forEach(function (item, index) {
+      var li = document.createElement('li');
+      var title = document.createElement('div');
+      title.className = 'app-annotation-title';
+      title.textContent = type === 'bookmark'
+        ? (item.name || ('书签 ' + (index + 1)))
+        : (item.text || ('笔记 ' + (index + 1)));
+      li.appendChild(title);
+      if (type === 'note' && item.quote) {
+        var quote = document.createElement('div');
+        quote.className = 'app-annotation-quote';
+        quote.textContent = '“' + item.quote + '”';
+        li.appendChild(quote);
+      }
+      var meta = document.createElement('div');
+      meta.className = 'app-annotation-meta';
+      meta.textContent = formatAnnotationTime(item.time) + (item.position != null ? ' · 位置 ' + item.position : '');
+      li.appendChild(meta);
+      var del = document.createElement('button');
+      del.type = 'button';
+      del.className = 'app-annotation-delete';
+      del.textContent = '×';
+      del.title = '删除';
+      del.addEventListener('click', function (e) {
+        e.stopPropagation();
+        sendReaderAction(type + '-delete', String(item.id != null ? item.id : index));
+      });
+      li.appendChild(del);
+      li.addEventListener('click', function () {
+        sendReaderAction(type + '-jump', String(item.position || 0));
+      });
+      list.appendChild(li);
+    });
+    if (!(items || []).length) {
+      var empty = document.createElement('li');
+      empty.textContent = type === 'bookmark' ? '暂无书签' : '暂无笔记';
+      list.appendChild(empty);
+    }
+  }
+  function renderBookmarks(items) { renderAnnotationList(document.getElementById('appBookmarkList'), items, 'bookmark'); }
+  function renderNotes(items) { renderAnnotationList(document.getElementById('appNoteList'), items, 'note'); }
+  function requestHighlights() { sendReaderAction('highlights-request'); }
+  function renderHighlights(items) {
+    var list = document.getElementById('appHighlightList');
+    if (!list) { return; }
+    list.innerHTML = '';
+    (items || []).forEach(function (item, index) {
+      var li = document.createElement('li');
+      var text = document.createElement('div');
+      text.className = 'app-annotation-title';
+      text.textContent = item.text || ('高亮 ' + (index + 1));
+      li.appendChild(text);
+      var meta = document.createElement('div');
+      meta.className = 'app-annotation-meta';
+      meta.textContent = formatAnnotationTime(item.time) + (item.position != null ? ' · 位置 ' + item.position : '');
+      li.appendChild(meta);
+      var del = document.createElement('button');
+      del.type = 'button';
+      del.className = 'app-annotation-delete';
+      del.textContent = '×';
+      del.title = '删除';
+      del.addEventListener('click', function (e) {
+        e.stopPropagation();
+        sendReaderAction('highlight-delete', String(item.id != null ? item.id : index));
+      });
+      li.appendChild(del);
+      li.addEventListener('click', function () {
+        sendReaderAction('highlight-jump', String(item.id != null ? item.id : index));
+      });
+      list.appendChild(li);
+    });
+    if (!(items || []).length) {
+      var empty = document.createElement('li');
+      empty.textContent = '暂无高亮';
+      list.appendChild(empty);
+    }
+  }
+  function requestVocab() { sendReaderAction('vocab-request'); }
+  function renderVocab(items) {
+    var list = document.getElementById('appVocabList');
+    if (!list) { return; }
+    list.innerHTML = '';
+    (items || []).forEach(function (item, index) {
+      var li = document.createElement('li');
+      var title = document.createElement('div');
+      title.className = 'app-annotation-title';
+      title.textContent = item.word || '';
+      li.appendChild(title);
+      if (item.translation) {
+        var trans = document.createElement('div');
+        trans.className = 'app-annotation-quote';
+        trans.textContent = item.translation;
+        li.appendChild(trans);
+      }
+      var meta = document.createElement('div');
+      meta.className = 'app-annotation-meta';
+      meta.textContent = String(item.time || '') + (item.position != null ? ' · 位置 ' + item.position : '');
+      li.appendChild(meta);
+      var del = document.createElement('button');
+      del.type = 'button';
+      del.className = 'app-annotation-delete';
+      del.textContent = '×';
+      del.title = '删除';
+      del.addEventListener('click', function (e) {
+        e.stopPropagation();
+        sendReaderAction('vocab-delete', String(index));
+      });
+      li.appendChild(del);
+      li.addEventListener('click', function () {
+        sendReaderAction('vocab-jump', String(item.position || 0));
+      });
+      list.appendChild(li);
+    });
+    if (!(items || []).length) {
+      var empty = document.createElement('li');
+      empty.textContent = '暂无生词';
+      list.appendChild(empty);
+    }
+  }
+  function requestSpeech() { sendReaderAction('speech-request'); }
+  function renderSpeechState(state) {
+    state = state || {};
+    var select = document.getElementById('appSpeechVoice');
+    if (select) {
+      var current = String(state.voice != null ? state.voice : select.value || '');
+      select.innerHTML = '';
+      var def = document.createElement('option');
+      def.value = '';
+      def.textContent = '选择语音';
+      select.appendChild(def);
+      (state.voices || []).forEach(function (voice) {
+        var option = document.createElement('option');
+        option.value = String(voice.value);
+        option.textContent = voice.label;
+        select.appendChild(option);
+      });
+      select.value = current;
+    }
+    var status = document.getElementById('appSpeechStatus');
+    if (status) { status.textContent = state.status || ''; }
+    var playbackBtn = document.getElementById('appSpeechToggle');
+    if (playbackBtn) { playbackBtn.textContent = state.speaking ? '停止朗读' : '开始朗读'; }
+    var rate = document.getElementById('appSpeechRate');
+    if (rate && state.rate) { rate.value = String(state.rate); }
+    var pitch = document.getElementById('appSpeechPitch');
+    if (pitch && state.pitch) { pitch.value = String(state.pitch); }
+  }
+  function requestProgress() { sendReaderAction('progress-request'); }
+  function renderProgress(state) {
+    state = state || {};
+    var pct = Number(state.percent || 0);
+    var fill = document.getElementById('appProgressFill');
+    if (fill) { fill.style.width = Math.max(0, Math.min(100, pct)) + '%'; }
+    var meta = document.getElementById('appProgressMeta');
+    if (meta) {
+      meta.textContent = '当前 ' + pct.toFixed(1) + '%' +
+        (state.syncEnabled ? ' · 同步已开启' : ' · 同步已关闭') +
+        (state.lastSync ? ' · 上次同步 ' + state.lastSync : '');
+    }
+    var jump = document.getElementById('appProgressJump');
+    if (jump && document.activeElement !== jump) { jump.value = pct.toFixed(1); }
+    var toggle = document.getElementById('appProgressSyncToggle');
+    if (toggle) { toggle.textContent = state.syncEnabled ? '关闭同步' : '开启同步'; }
+  }
+  function requestViewState() { sendReaderAction('view-request'); }
+  function appFullscreenEl() {
+    return document.fullscreenElement || document.webkitFullscreenElement || document.msFullscreenElement || null;
+  }
+  function renderViewState(state) {
+    state = state || {};
+    var fullscreen = !!appFullscreenEl() || !!state.fullscreen;
+    var focus = !!state.focus;
+    var wide = !!state.wide;
+    var setLabel = function (id, label, active) {
+      var el = document.getElementById(id);
+      if (el) {
+        el.textContent = label;
+        el.classList.toggle('active', !!active);
+      }
+    };
+    setLabel('appFocusToggle', focus ? '退出专注模式' : '进入专注模式', focus);
+    setLabel('appFullWidthToggle', wide ? '退出宽屏阅读' : '开启宽屏阅读', wide);
+    setLabel('appFullscreenToggle', fullscreen ? '退出全屏' : '进入全屏', fullscreen);
+    var meta = document.getElementById('appViewModeMeta');
+    if (meta) {
+      meta.textContent = '专注：' + (focus ? '开' : '关') + ' · 宽屏：' + (wide ? '开' : '关') + ' · 全屏：' + (fullscreen ? '开' : '关');
+    }
+  }
+  function toggleAppFullscreen() {
+    try {
+      if (appFullscreenEl()) {
+        var exit = document.exitFullscreen || document.webkitExitFullscreen || document.msExitFullscreen;
+        if (exit) { exit.call(document); }
+      } else {
+        var el = document.documentElement;
+        var req = el.requestFullscreen || el.webkitRequestFullscreen || el.msRequestFullscreen;
+        if (req) { req.call(el); }
+      }
+    } catch (e) {}
+    setTimeout(function () { renderViewState({}); }, 120);
+  }
+  function requestJumpState() { sendReaderAction('jump-request'); }
+  function renderJumpState(state) {
+    state = state || {};
+    var pct = Number(state.percent || 0);
+    var input = document.getElementById('appJumpInput');
+    if (input && document.activeElement !== input) { input.value = pct.toFixed(2); }
+    var meta = document.getElementById('appJumpMeta');
+    if (meta) { meta.textContent = '当前位置 ' + pct.toFixed(2) + '%'; }
+    var toggle = document.getElementById('appMinimapToggle');
+    if (toggle) {
+      toggle.textContent = state.minimapVisible ? '隐藏缩略图' : '显示缩略图';
+      toggle.classList.toggle('active', !!state.minimapVisible);
+    }
+  }
+  var appToastTimer = null;
+  function showAppToast(text) {
+    var toast = document.getElementById('appToast');
+    if (!toast) {
+      toast = document.createElement('div');
+      toast.id = 'appToast';
+      document.getElementById('appReaderView').appendChild(toast);
+    }
+    toast.textContent = text;
+    toast.hidden = false;
+    clearTimeout(appToastTimer);
+    appToastTimer = setTimeout(function () { toast.hidden = true; }, 3000);
+  }
+  function requestThemeState() { sendReaderAction('theme-request'); }
+  function renderThemeState(state) {
+    state = state || {};
+    var select = document.getElementById('appThemeSelect');
+    if (!select) { return; }
+    var current = String(state.value != null ? state.value : select.value || '');
+    select.innerHTML = '';
+    (state.options || []).forEach(function (item) {
+      var option = document.createElement('option');
+      option.value = String(item.value);
+      option.textContent = item.label;
+      select.appendChild(option);
+    });
+    if (current) { select.value = current; }
+  }
+  function requestEncryptedState() { sendReaderAction('encrypted-request'); }
+  function renderEncryptedState(state) {
+    state = state || {};
+    var btn = document.getElementById('appUnlockBtn');
+    if (btn) { btn.hidden = !state.encrypted; }
+    var meta = document.getElementById('appUnlockMeta');
+    if (meta) { meta.textContent = state.message || (state.encrypted ? '本书已加密，请输入密码' : '本书未加密或已解锁'); }
+  }
+  var APP_PANEL_IDS = ['appReaderSettings', 'appSearchPanel', 'appTocPanel',
+    'appBookmarkPanel', 'appNotePanel', 'appHighlightPanel', 'appVocabPanel',
+    'appSpeechPanel', 'appProgressPanel', 'appViewModePanel', 'appJumpPanel', 'appUnlockPanel'];
+  function hideAllAppPanels() {
+    APP_PANEL_IDS.forEach(function (id) {
+      var panel = document.getElementById(id);
+      if (panel) { panel.hidden = true; panel.setAttribute('aria-hidden', 'true'); }
+    });
+    var backdrop = document.getElementById('appPanelBackdrop');
+    if (backdrop) { backdrop.hidden = true; }
+  }
+  function openAppPanel(id) {
+    APP_PANEL_IDS.forEach(function (pid) {
+      var panel = document.getElementById(pid);
+      if (!panel) { return; }
+      panel.hidden = pid !== id;
+      panel.setAttribute('aria-hidden', pid === id ? 'false' : 'true');
+    });
+    var active = document.getElementById(id);
+    var backdrop = document.getElementById('appPanelBackdrop');
+    if (backdrop) { backdrop.hidden = false; }
+    if (active) {
+      active.setAttribute('role', 'dialog');
+      active.setAttribute('aria-modal', 'true');
+      setTimeout(function () {
+        var focusable = active.querySelector('input:not([type="hidden"]), select, textarea, button');
+        if (focusable) { try { focusable.focus(); } catch (e) {} }
+      }, 0);
+    }
+  }
+  function sendReaderAction(action, value) {
+    var frame = document.getElementById('appReaderFrame');
+    if (frame && frame.contentWindow) {
+      frame.contentWindow.postMessage({ source: 'br-app-shell', action: action, value: value || '' }, '*');
+    }
+  }
+  window.addEventListener('DOMContentLoaded', function () {
+    var back = document.getElementById('appReaderBackBtn');
+    if (back) { back.addEventListener('click', function () { showLibrary(true); }); }
+    var backdrop = document.getElementById('appPanelBackdrop');
+    if (backdrop) { backdrop.addEventListener('click', hideAllAppPanels); }
+    ['fullscreenchange', 'webkitfullscreenchange', 'MSFullscreenChange'].forEach(function (evt) {
+      document.addEventListener(evt, function () { renderViewState({}); });
+    });
+    document.addEventListener('click', function (e) {
+      var readerView = document.getElementById('appReaderView');
+      if (!readerView || !readerView.classList.contains('active')) { return; }
+      if (!e.target || !e.target.closest) { return; }
+      var btn = e.target.closest('button');
+      if (!btn) { return; }
+        var shellAction = btn.getAttribute('data-shell-action');
+        if (shellAction && shellAction.indexOf('close') === 0) { hideAllAppPanels(); return; }
+        if (shellAction === 'library') { showLibrary(true); return; }
+        if (shellAction === 'settings') { openAppPanel('appReaderSettings'); requestThemeState(); return; }
+        if (shellAction === 'editor') {
+          hideAllAppPanels();
+          showAppToast('正在打开编辑器…');
+          sendReaderAction('editor');
+          return;
+        }
+        if (shellAction === 'unlockPanel') {
+          openAppPanel('appUnlockPanel');
+          requestEncryptedState();
+          return;
+        }
+        if (shellAction === 'unlockBook') {
+          var unlockInput = document.getElementById('appUnlockInput');
+          var pwd = unlockInput ? unlockInput.value : '';
+          if (!pwd) { window.alert('请输入密码'); return; }
+          sendReaderAction('unlock-book', pwd);
+          return;
+        }
+        if (shellAction === 'toc') {
+          openAppPanel('appTocPanel');
+          requestToc();
+          return;
+        }
+        if (shellAction === 'search') {
+          openAppPanel('appSearchPanel');
+          var appSearchInput = document.getElementById('appSearchInput');
+          if (appSearchInput) { appSearchInput.focus(); }
+          return;
+        }
+        if (shellAction === 'bookmarks') {
+          openAppPanel('appBookmarkPanel');
+          requestBookmarks();
+          return;
+        }
+        if (shellAction === 'bookmarkAdd') {
+          var bookmarkName = window.prompt('书签名称（可留空）:', '');
+          if (bookmarkName !== null) { sendReaderAction('bookmark-add', bookmarkName); }
+          return;
+        }
+        if (shellAction === 'notes') {
+          openAppPanel('appNotePanel');
+          requestNotes();
+          return;
+        }
+        if (shellAction === 'noteAdd') {
+          var appNoteInput = document.getElementById('appNoteInput');
+          var noteText = appNoteInput ? appNoteInput.value.trim() : '';
+          if (!noteText) { window.alert('请输入笔记内容'); return; }
+          sendReaderAction('note-add', noteText);
+          appNoteInput.value = '';
+          return;
+        }
+        if (shellAction === 'highlights') {
+          openAppPanel('appHighlightPanel');
+          requestHighlights();
+          return;
+        }
+        if (shellAction === 'highlightAdd') { sendReaderAction('highlight-add'); return; }
+        if (shellAction === 'vocab') {
+          openAppPanel('appVocabPanel');
+          requestVocab();
+          return;
+        }
+        if (shellAction === 'vocabAdd') {
+          var vocabWord = document.getElementById('appVocabWord');
+          var vocabTrans = document.getElementById('appVocabTranslation');
+          var word = vocabWord ? vocabWord.value.trim() : '';
+          if (!word) { window.alert('请输入生词'); return; }
+          sendReaderAction('vocab-add', JSON.stringify({ word: word, translation: vocabTrans ? vocabTrans.value.trim() : '' }));
+          vocabWord.value = '';
+          if (vocabTrans) { vocabTrans.value = ''; }
+          return;
+        }
+        if (shellAction === 'vocabSync') { requestVocab(); return; }
+        if (shellAction === 'speech') {
+          openAppPanel('appSpeechPanel');
+          requestSpeech();
+          return;
+        }
+        if (shellAction === 'speechToggle') { sendReaderAction('speech-toggle'); return; }
+        if (shellAction === 'speechStop') { sendReaderAction('speech-stop'); return; }
+        if (shellAction === 'progress') {
+          openAppPanel('appProgressPanel');
+          requestProgress();
+          return;
+        }
+        if (shellAction === 'progressSave') { sendReaderAction('progress-save'); return; }
+        if (shellAction === 'progressReload') { sendReaderAction('progress-reload'); return; }
+        if (shellAction === 'progressSyncToggle') { sendReaderAction('progress-sync-toggle'); return; }
+        if (shellAction === 'progressJump') {
+          var progressJump = document.getElementById('appProgressJump');
+          var pct = progressJump ? parseFloat(progressJump.value) : 0;
+          if (!isFinite(pct)) { window.alert('请输入有效百分比'); return; }
+          sendReaderAction('progress-jump', String(pct));
+          return;
+        }
+        if (shellAction === 'viewMode') {
+          openAppPanel('appViewModePanel');
+          requestViewState();
+          return;
+        }
+        if (shellAction === 'focusToggle') {
+          sendReaderAction('focus');
+          setTimeout(requestViewState, 120);
+          return;
+        }
+        if (shellAction === 'fullWidthToggle') {
+          sendReaderAction('fullWidth');
+          setTimeout(requestViewState, 120);
+          return;
+        }
+        if (shellAction === 'fullscreenToggle') { toggleAppFullscreen(); return; }
+        if (shellAction === 'jumpPanel') {
+          openAppPanel('appJumpPanel');
+          requestJumpState();
+          return;
+        }
+        if (shellAction === 'jumpTo') {
+          var jumpInput = document.getElementById('appJumpInput');
+          var pct2 = jumpInput ? parseFloat(jumpInput.value) : 0;
+          if (!isFinite(pct2)) { window.alert('请输入有效百分比'); return; }
+          sendReaderAction('jump-to', String(Math.max(0, Math.min(100, pct2))));
+          setTimeout(requestJumpState, 350);
+          return;
+        }
+        if (shellAction === 'jumpQuick') {
+          sendReaderAction('jump-to', btn.getAttribute('data-value') || '0');
+          setTimeout(requestJumpState, 350);
+          return;
+        }
+        if (shellAction === 'minimapToggle') {
+          sendReaderAction('minimap-toggle');
+          setTimeout(requestJumpState, 150);
+          return;
+        }
+        var action = btn.getAttribute('data-reader-action');
+        if (action) { sendReaderAction(action, btn.getAttribute('data-value') || ''); }
+    });
+    var frame = document.getElementById('appReaderFrame');
+    if (frame) {
+      frame.addEventListener('load', function () {
+        setTimeout(function () {
+          requestToc();
+          requestBookmarks();
+          requestNotes();
+          requestHighlights();
+          requestVocab();
+          requestSpeech();
+          requestProgress();
+          requestViewState();
+          requestJumpState();
+          requestThemeState();
+          requestEncryptedState();
+        }, 600);
+      });
+    }
+    document.addEventListener('keydown', function (e) {
+      if (e.key !== 'Escape') { return; }
+      hideAllAppPanels();
+    });
+    var tocSearch = document.getElementById('appTocSearch');
+    if (tocSearch) {
+      tocSearch.addEventListener('input', function () {
+        var q = tocSearch.value.trim().toLowerCase();
+        var list = document.getElementById('appTocList');
+        if (!list) { return; }
+        Array.prototype.forEach.call(list.children, function (li) {
+          li.style.display = li.textContent.toLowerCase().indexOf(q) >= 0 ? '' : 'none';
+        });
+      });
+    }
+    var appSearchInput = document.getElementById('appSearchInput');
+    if (appSearchInput) {
+      var searchTimer = null;
+      appSearchInput.addEventListener('input', function () {
+        clearTimeout(searchTimer);
+        searchTimer = setTimeout(function () {
+          sendReaderAction('search-run', appSearchInput.value);
+        }, 250);
+      });
+    }
+    var appSpeechVoice = document.getElementById('appSpeechVoice');
+    if (appSpeechVoice) {
+      appSpeechVoice.addEventListener('change', function () {
+        sendReaderAction('speech-voice', appSpeechVoice.value);
+      });
+    }
+    var appSpeechRate = document.getElementById('appSpeechRate');
+    if (appSpeechRate) {
+      appSpeechRate.addEventListener('input', function () {
+        sendReaderAction('speech-rate', appSpeechRate.value);
+      });
+    }
+    var appSpeechPitch = document.getElementById('appSpeechPitch');
+    if (appSpeechPitch) {
+      appSpeechPitch.addEventListener('input', function () {
+        sendReaderAction('speech-pitch', appSpeechPitch.value);
+      });
+    }
+    var appThemeSelect = document.getElementById('appThemeSelect');
+    if (appThemeSelect) {
+      appThemeSelect.addEventListener('change', function () {
+        sendReaderAction('theme', appThemeSelect.value);
+      });
+    }
+  });
+  window.addEventListener('message', function (ev) {
+    var d = ev && ev.data;
+    if (!d || d.source !== 'br-reader') { return; }
+    if (d.type === 'toc') { renderToc(d.items || []); }
+    if (d.type === 'search-results') { renderSearchResults(d.items || []); }
+    if (d.type === 'bookmarks') { renderBookmarks(d.items || []); }
+    if (d.type === 'notes') { renderNotes(d.items || []); }
+    if (d.type === 'highlights') { renderHighlights(d.items || []); }
+    if (d.type === 'vocab') { renderVocab(d.items || []); }
+    if (d.type === 'speech-state') { renderSpeechState(d.state || {}); }
+    if (d.type === 'progress-state') { renderProgress(d.state || {}); }
+    if (d.type === 'view-state') { renderViewState(d.state || {}); }
+    if (d.type === 'jump-state') { renderJumpState(d.state || {}); }
+    if (d.type === 'theme-state') { renderThemeState(d.state || {}); }
+    if (d.type === 'editor-state') {
+      showAppToast(d.message || (d.available ? '编辑器已打开' : '编辑器入口不可用，请重新打开本书'));
+    }
+    if (d.type === 'encrypted-state') { renderEncryptedState(d.state || {}); }
+  });
+  window.BRAppReaderToolbar = {
+    send: sendReaderAction,
+    requestToc: requestToc,
+    renderToc: renderToc,
+    requestBookmarks: requestBookmarks,
+    renderBookmarks: renderBookmarks,
+    requestNotes: requestNotes,
+    renderNotes: renderNotes,
+    requestHighlights: requestHighlights,
+    renderHighlights: renderHighlights,
+    requestVocab: requestVocab,
+    renderVocab: renderVocab,
+    requestSpeech: requestSpeech,
+    renderSpeechState: renderSpeechState,
+    requestProgress: requestProgress,
+    renderProgress: renderProgress,
+    requestViewState: requestViewState,
+    renderViewState: renderViewState,
+    toggleAppFullscreen: toggleAppFullscreen,
+    requestJumpState: requestJumpState,
+    renderJumpState: renderJumpState,
+    requestThemeState: requestThemeState,
+    renderThemeState: renderThemeState,
+    requestEncryptedState: requestEncryptedState,
+    renderEncryptedState: renderEncryptedState
+  };
+  window.BRAppRouter = {
+    showLibrary: showLibrary,
+    showReader: showReader,
+    start: start,
+    current: function () { return current; }
+  };
+})();
+"""
+
 _PORTAL_TEMPLATE = r"""<!DOCTYPE html>
 <html lang="__LANG__">
 <head>
@@ -1432,9 +2370,11 @@ __RESPONSIVE_CSS__
 __PORTAL_CSS__
 __STARTUP_GATE_CSS__
 __SCROLL_NAV_CSS__
+__APP_SHELL_CSS__
 </style>
 </head>
 <body>
+<div id="appLibraryView" class="app-view active">
 <div class="br-portal" id="portalRoot">
   <header class="br-portal-hero">
     <div class="br-portal-hero-main">
@@ -1455,7 +2395,7 @@ __SCROLL_NAV_CSS__
           <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M12 16V4M6 10l6-6 6 6"/><path d="M4 18v2h16v-2"/></svg>
           <span>__PORTAL_UPLOAD__</span>
         </button>
-        <input type="file" id="uploadInput" accept=".txt,.md,.epub,.pdf,.mobi,.azw,.azw3" multiple hidden>
+        <input type="file" id="uploadInput" accept=".txt,.md,.html,.htm,.epub,.pdf,.mobi,.azw,.azw3" multiple hidden>
         <button type="button" id="portalSettingsBtn" class="br-portal-icon-btn br-portal-settings-btn" title="__PORTAL_SETTINGS__" aria-label="__PORTAL_SETTINGS__">
           <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" aria-hidden="true"><path d="M4 7h9M17 7h3M4 17h3M11 17h9"/><circle cx="15" cy="7" r="2"/><circle cx="9" cy="17" r="2"/></svg>
           <span>__PORTAL_SETTINGS__</span>
@@ -1528,8 +2468,179 @@ __SCROLL_NAV_CSS__
   </div>
   <div class="br-offline-body" id="offlineBody"></div>
 </div>
+</div><!-- /appLibraryView -->
+
+<div id="appReaderView" class="app-view">
+  <div id="appPanelBackdrop" hidden aria-hidden="true"></div>
+  <button type="button" id="appReaderBackBtn" title="返回书库 / Library">&#8592; 书库</button>
+  <div class="br-app-toolbar" id="appReaderToolbar" aria-label="阅读工具栏">
+    <button type="button" data-shell-action="library" title="书库">书库</button>
+    <button type="button" data-shell-action="toc" title="目录">目录</button>
+    <button type="button" data-shell-action="search" title="搜索">搜索</button>
+    <button type="button" data-shell-action="bookmarks" title="书签">书签</button>
+    <button type="button" data-shell-action="notes" title="笔记">笔记</button>
+    <button type="button" data-shell-action="highlights" title="高亮">高亮</button>
+    <button type="button" data-shell-action="vocab" title="生词">生词</button>
+    <button type="button" data-shell-action="speech" title="朗读">朗读</button>
+    <button type="button" data-shell-action="progress" title="进度">进度</button>
+    <button type="button" data-shell-action="jumpPanel" title="位置跳转">跳转</button>
+    <button type="button" data-shell-action="editor" title="浏览器编辑">编辑</button>
+    <button type="button" id="appUnlockBtn" data-shell-action="unlockPanel" title="解锁加密书" hidden>解锁</button>
+    <button type="button" data-reader-action="fontDown" title="缩小字号">A-</button>
+    <button type="button" data-reader-action="fontUp" title="放大字号">A+</button>
+    <button type="button" data-reader-action="settings" title="设置">设置</button>
+    <button type="button" data-reader-action="top" title="顶部">顶部</button>
+    <button type="button" data-reader-action="bottom" title="底部">底部</button>
+    <button type="button" data-shell-action="viewMode" title="阅读模式">模式</button>
+    <button type="button" data-reader-action="focus" title="专注模式">专注</button>
+    <button type="button" data-reader-action="fullscreen" title="全屏">全屏</button>
+    <button type="button" data-shell-action="settings" title="更多设置">设置+</button>
+  </div>
+  <div class="br-app-settings" id="appReaderSettings" hidden>
+    <h3>阅读设置</h3>
+    <div class="br-app-setting-row">
+      <button type="button" data-reader-action="fontDown">A-</button>
+      <button type="button" data-reader-action="fontUp">A+</button>
+      <button type="button" data-reader-action="lineDown">行高-</button>
+      <button type="button" data-reader-action="lineUp">行高+</button>
+    </div>
+    <div>主题：<select id="appThemeSelect"></select></div>
+    <div class="br-app-setting-row">
+      <button type="button" data-reader-action="themeManager">主题管理</button>
+      <button type="button" data-reader-action="settings">字体设置</button>
+      <button type="button" data-reader-action="fullWidth">宽屏阅读</button>
+      <button type="button" data-reader-action="legacyToolbar">旧版工具栏</button>
+    </div>
+    <div class="br-app-setting-row">
+      <button type="button" data-reader-action="downloadTxt">下载 TXT</button>
+      <button type="button" data-reader-action="print">打印 / PDF</button>
+      <button type="button" data-shell-action="editor">浏览器编辑</button>
+    </div>
+    <div class="br-app-setting-row">
+      <button type="button" data-reader-action="autoScrollPanel">自动滚动</button>
+      <button type="button" data-reader-action="paginationSettings">翻页设置</button>
+      <button type="button" data-shell-action="closeSettings">关闭</button>
+    </div>
+  </div>
+  <div class="br-app-settings" id="appSearchPanel" hidden>
+    <h3>内容搜索</h3>
+    <input type="search" id="appSearchInput" placeholder="输入关键词后自动搜索">
+    <ul id="appSearchList"></ul>
+    <div class="br-app-setting-row">
+      <button type="button" data-reader-action="searchNext">下一个</button>
+      <button type="button" data-shell-action="closeSearch">关闭</button>
+    </div>
+  </div>
+  <div class="br-app-settings" id="appUnlockPanel" hidden>
+    <h3>解锁加密书</h3>
+    <div id="appUnlockMeta">本书未加密或已解锁</div>
+    <input type="password" id="appUnlockInput" placeholder="请输入书籍密码" autocomplete="off">
+    <div class="br-app-setting-row">
+      <button type="button" data-shell-action="unlockBook">解锁</button>
+      <button type="button" data-shell-action="closeUnlock">关闭</button>
+    </div>
+  </div>
+  <div class="br-app-settings" id="appJumpPanel" hidden>
+    <h3>位置跳转</h3>
+    <div id="appJumpMeta">当前位置 0.00%</div>
+    <input type="number" id="appJumpInput" min="0" max="100" step="0.01" placeholder="输入 0-100 的百分比">
+    <div class="br-app-setting-row">
+      <button type="button" data-shell-action="jumpTo">跳转</button>
+      <button type="button" data-shell-action="jumpQuick" data-value="25">25%</button>
+      <button type="button" data-shell-action="jumpQuick" data-value="50">50%</button>
+      <button type="button" data-shell-action="jumpQuick" data-value="75">75%</button>
+      <button type="button" id="appMinimapToggle" data-shell-action="minimapToggle">显示缩略图</button>
+      <button type="button" data-shell-action="closeJump">关闭</button>
+    </div>
+  </div>
+  <div class="br-app-settings" id="appViewModePanel" hidden>
+    <h3>阅读模式</h3>
+    <div id="appViewModeMeta">专注：关 · 宽屏：关 · 全屏：关</div>
+    <div class="br-app-setting-row">
+      <button type="button" id="appFocusToggle" data-shell-action="focusToggle">进入专注模式</button>
+      <button type="button" id="appFullWidthToggle" data-shell-action="fullWidthToggle">开启宽屏阅读</button>
+      <button type="button" id="appFullscreenToggle" data-shell-action="fullscreenToggle">进入全屏</button>
+      <button type="button" data-shell-action="closeViewMode">关闭</button>
+    </div>
+  </div>
+  <div class="br-app-settings" id="appProgressPanel" hidden>
+    <h3>阅读进度</h3>
+    <div id="appProgressTrack"><div id="appProgressFill"></div></div>
+    <div id="appProgressMeta">当前 0%</div>
+    <input type="number" id="appProgressJump" min="0" max="100" step="0.1" placeholder="跳转到百分比，例如 50">
+    <div class="br-app-setting-row">
+      <button type="button" data-shell-action="progressJump">跳转</button>
+      <button type="button" data-shell-action="progressSave">保存当前进度</button>
+      <button type="button" data-shell-action="progressReload">恢复进度</button>
+      <button type="button" id="appProgressSyncToggle" data-shell-action="progressSyncToggle">开启同步</button>
+      <button type="button" data-shell-action="closeProgress">关闭</button>
+    </div>
+  </div>
+  <div class="br-app-settings" id="appSpeechPanel" hidden>
+    <h3>朗读</h3>
+    <select id="appSpeechVoice"><option value="">选择语音</option></select>
+    <div class="br-app-setting-row">
+      <button type="button" id="appSpeechToggle" data-shell-action="speechToggle">开始朗读</button>
+      <button type="button" data-shell-action="speechStop">停止</button>
+      <button type="button" data-shell-action="closeSpeech">关闭</button>
+    </div>
+    <label>语速 <input type="range" id="appSpeechRate" min="0.5" max="2" step="0.1" value="1"></label>
+    <label>音调 <input type="range" id="appSpeechPitch" min="0.5" max="2" step="0.1" value="1"></label>
+    <div id="appSpeechStatus"></div>
+  </div>
+  <div class="br-app-settings" id="appVocabPanel" hidden>
+    <h3>生词本</h3>
+    <input id="appVocabWord" placeholder="单词或短语">
+    <input id="appVocabTranslation" placeholder="释义（可选）">
+    <div class="br-app-setting-row">
+      <button type="button" data-shell-action="vocabAdd">加入生词本</button>
+      <button type="button" data-shell-action="vocabSync">同步单词本</button>
+      <button type="button" data-shell-action="closeVocab">关闭</button>
+    </div>
+    <ul class="app-annotation-list" id="appVocabList"></ul>
+  </div>
+  <div class="br-app-settings" id="appHighlightPanel" hidden>
+    <h3>高亮与标注</h3>
+    <div class="br-app-setting-row">
+      <button type="button" data-shell-action="highlightAdd">高亮当前选中文本</button>
+      <button type="button" data-reader-action="highlightPrev">上一个</button>
+      <button type="button" data-reader-action="highlightNext">下一个</button>
+      <button type="button" data-shell-action="closeHighlights">关闭</button>
+    </div>
+    <ul class="app-annotation-list" id="appHighlightList"></ul>
+  </div>
+  <div class="br-app-settings" id="appBookmarkPanel" hidden>
+    <h3>书签</h3>
+    <div class="br-app-setting-row">
+      <button type="button" data-shell-action="bookmarkAdd">添加当前位置书签</button>
+      <button type="button" data-shell-action="closeBookmarks">关闭</button>
+    </div>
+    <ul class="app-annotation-list" id="appBookmarkList"></ul>
+  </div>
+  <div class="br-app-settings" id="appNotePanel" hidden>
+    <h3>笔记</h3>
+    <textarea id="appNoteInput" rows="3" placeholder="写下阅读想法"></textarea>
+    <div class="br-app-setting-row">
+      <button type="button" data-shell-action="noteAdd">添加笔记</button>
+      <button type="button" data-shell-action="closeNotes">关闭</button>
+    </div>
+    <ul class="app-annotation-list" id="appNoteList"></ul>
+  </div>
+  <div class="br-app-settings" id="appTocPanel" hidden>
+    <h3>章节目录</h3>
+    <input type="search" id="appTocSearch" placeholder="搜索章节">
+    <ul id="appTocList"></ul>
+    <div class="br-app-setting-row">
+      <button type="button" data-shell-action="closeToc">关闭</button>
+    </div>
+  </div>
+  <iframe id="appReaderFrame" title="阅读器"></iframe>
+</div>
 
 <script>
+__APP_RUNTIME_JS__
+__DATA_SOURCE_JS__
+__APP_ROUTER_JS__
 window.__BR_LABELS__ = __LABELS_JSON__;
 window.__BR_BOOT_SECRET__ = __SECRET_JSON__;
 window.__BR_OFFLINE_MODE__ = __OFFLINE_MODE__;
@@ -1563,26 +2674,13 @@ _PORTAL_JS = r"""
     var page = 1, total = 0, keyword = '', reqSeq = 0, searchTimer = null, syncing = false;
 
     function $(id) { return document.getElementById(id); }
+    function setTip(text) { var el = $('tip'); if (el) { el.textContent = text || ''; } }
     function safe(fn) { try { return fn(); } catch (e) { return null; } }
-    function backend() {
-        var o = safe(function () { return localStorage.getItem(BACK_STORE); });
-        var fallback = window.__BR_DEFAULT_BACKEND__ || '';
-        if (location.protocol === 'file:' && !fallback) { fallback = 'http://127.0.0.1:54321'; }
-        return String(o || (location.protocol === 'file:' ? fallback : location.origin) || '').replace(/\/+$/, '');
-    }
-    function key() {
-        return safe(function () { return localStorage.getItem(KEY_STORE); }) || window.__BR_BOOT_SECRET__ || '';
-    }
-    function withKey(url) {
-        var k = key();
-        return k ? url + (url.indexOf('?') >= 0 ? '&' : '?') + 'key=' + encodeURIComponent(k) : url;
-    }
-    function headers() {
-        var h = { 'Content-Type': 'application/json' };
-        var k = key();
-        if (k) { h['X-API-Key'] = k; }
-        return h;
-    }
+    /* URL/密钥逻辑统一由 BRAppRuntime 提供，网络/离线差异不再散落在页面逻辑里 */
+    function backend() { return window.BRAppRuntime.backend(); }
+    function key() { return window.BRAppRuntime.key(); }
+    function withKey(url) { return window.BRAppRuntime.withKey(url); }
+    function headers() { return window.BRAppRuntime.apiHeaders(); }
     function paintNet() {
         ['netBadge', 'settingsNet'].forEach(function (id) {
             var el = $(id); if (!el) { return; }
@@ -1594,13 +2692,10 @@ _PORTAL_JS = r"""
     }
     function checkNet() {
         if (!backend()) { netOnline = false; paintNet(); return Promise.resolve(false); }
-        var ctrl = typeof AbortController !== 'undefined' ? new AbortController() : null;
-        var timer = setTimeout(function () { if (ctrl) { ctrl.abort(); } }, 2500);
-        return fetch(backend() + '/health_check', ctrl ? { signal: ctrl.signal, cache: 'no-store' } : { cache: 'no-store' })
-            .then(function (r) { return r.ok ? r.json() : null; })
-            .then(function (d) { netOnline = !!(d && d.status === 'ok'); })
-            .catch(function () { netOnline = false; })
-            .then(function () { clearTimeout(timer); paintNet(); return netOnline; });
+        return window.BRDataSource.http.health()
+            .then(function (online) { netOnline = online; return online; })
+            .catch(function () { netOnline = false; return false; })
+            .then(function () { paintNet(); return netOnline; });
     }
 
     /* ---------- 数据层：服务端分页 + 服务端全库搜索 ----------
@@ -1670,8 +2765,7 @@ _PORTAL_JS = r"""
         var last = parseInt(safe(function () { return localStorage.getItem(CACHE_TIME_KEY); }) || '0', 10) || 0;
         if (Date.now() - last < 10 * 60 * 1000) { return; }
         syncing = true;
-        fetch(withKey(backend() + '/api/portal/books/index'), { headers: headers(), cache: 'no-store' })
-            .then(function (r) { return r.ok ? r.json() : null; })
+        window.BRDataSource.http.bookIndex()
             .then(function (d) {
                 var items = pickItems(d);
                 return items.length ? saveBookIndex(items.map(indexRecord)) : false;
@@ -1701,10 +2795,7 @@ _PORTAL_JS = r"""
                 netOnline = false; paintNet();
                 return renderOfflineFallback(seq);
             }
-            var url = backend() + '/api/portal/books?page=' + page + '&page_size=' + PAGE_SIZE +
-                      (keyword ? '&q=' + encodeURIComponent(keyword) : '');
-            return fetch(withKey(url), { headers: headers(), cache: 'no-store' })
-                .then(function (r) { if (!r.ok) { throw new Error('http ' + r.status); } return r.json(); })
+            return window.BRDataSource.http.listBooks(page, PAGE_SIZE, keyword)
                 .then(function (d) {
                     if (seq !== reqSeq) { return; }   /* 丢弃快速翻页/输入时的过期响应 */
                     var items = pickItems(d);
@@ -1776,14 +2867,7 @@ _PORTAL_JS = r"""
                 reader_url: b.reader_url || '', savedAt: 0, _blob: null
             };
         });
-        return openDB().then(function (db) {
-            return new Promise(function (resolve) {
-                var tx = db.transaction(STORE, 'readonly');
-                var req = tx.objectStore(STORE).getAll();
-                req.onsuccess = function () { db.close(); resolve(req.result || []); };
-                req.onerror = function () { db.close(); resolve([]); };
-            });
-        }).then(function (records) {
+        return window.BRDataSource.local.listBooks().then(function (records) {
             var map = {};
             records.forEach(function (r) {
                 var k = String(r.book_key || r.id || '');
@@ -1809,7 +2893,7 @@ _PORTAL_JS = r"""
         });
     }
     function renderHistory() {
-        var history = safe(function () { return JSON.parse(localStorage.getItem('readingHistory') || '[]'); }) || [];
+        var history = window.BRDataSource.local.history();
         return collectLocalBooks().then(function (local) {
             var map = {};
             local.forEach(function (b) { map[b.book_key] = b; });
@@ -1888,16 +2972,7 @@ _PORTAL_JS = r"""
         book = book || {};
         var bookKey = book.book_key || '';
         if (!bookKey) { alert(L.download_failed); return; }
-        var h = {};
-        var k = key();
-        if (k) { h['X-API-Key'] = k; }
-        fetch(withKey(backend() + '/download_book?book=' + encodeURIComponent(bookKey)), { headers: h, cache: 'no-store' })
-            .then(function (r) {
-                if (!r.ok) { throw new Error('HTTP ' + r.status); }
-                return r.blob().then(function (blob) {
-                    return { blob: blob, cd: r.headers.get('Content-Disposition') || '' };
-                });
-            })
+        window.BRDataSource.http.downloadBook(bookKey)
             .then(function (res) {
                 var a = document.createElement('a');
                 var url = URL.createObjectURL(res.blob);
@@ -1997,16 +3072,14 @@ _PORTAL_JS = r"""
         card.addEventListener('click', function () {
             var ref = b.reader_url || '';
             if (ref.indexOf('indexeddb:') === 0) { openOfflineBook(b.book_key, b); return; }
-            if (ref && ref.indexOf('file:') === 0) { location.href = ref; return; }
-            /* 网络/历史记录统一用公开标识进入内容页；file:// 页面必须拼绝对地址 */
-            if (!b.book_key) { return; }
-            if (location.protocol === 'file:') {
-                var secret = key();
-                location.href = backend() + '/reader?book=' + encodeURIComponent(b.book_key) +
-                    (secret ? '&key=' + encodeURIComponent(secret) : '');
-            } else {
-                location.href = withKey('/reader?book=' + encodeURIComponent(b.book_key));
+            if (!window.BRAppRouter) {
+                if (ref && ref.indexOf('file:') === 0) { location.href = ref; return; }
+                if (b.book_key) { location.href = window.BRAppRuntime.readerUrl(b.book_key); }
+                return;
             }
+            if (ref && ref.indexOf('file:') === 0) { window.BRAppRouter.showReader(b.book_key, ref, true); return; }
+            if (!b.book_key) { return; }
+            window.BRAppRouter.showReader(b.book_key, '', true);
         });
         return card;
     }
@@ -2153,27 +3226,14 @@ _PORTAL_JS = r"""
             .replace(/"/g, '&quot;').replace(/'/g, '&#39;');
     }
     function saveLocalBook(record) {
-        return openDB().then(function (db) {
-            return new Promise(function (resolve) {
-                var tx = db.transaction(STORE, 'readwrite');
-                tx.objectStore(STORE).put(record);
-                tx.oncomplete = function () { db.close(); resolve(true); };
-                tx.onerror = function () { db.close(); resolve(false); };
-            });
-        });
+        return window.BRDataSource.local.saveBook(record);
     }
     function postBookBlob(blob, fileName, bookTitle) {
-        var h = {
-            'Content-Type': 'application/octet-stream',
-            'X-File-Name': encodeURIComponent(fileName),
-            'X-File-Title': encodeURIComponent(bookTitle || fileName.replace(/\.[^.]+$/, ''))
-        };
-        var k = key();
-        if (k) { h['X-API-Key'] = k; }
-        return fetch(withKey(backend() + '/api/upload_book'), {
-            method: 'POST', headers: h, body: blob, cache: 'no-store'
-        }).then(function (r) { return r.ok ? r.json() : null; })
-          .then(function (d) { if (!d || !d.success) { throw new Error((d && d.error) || 'http'); } return d.book; });
+        return window.BRDataSource.http.uploadBook(blob, fileName, bookTitle)
+            .then(function (d) {
+                if (!d || !d.success) { throw new Error((d && d.error) || 'http'); }
+                return d.book;
+            });
     }
     /* 上传先入 IndexedDB：无论网络版还是离线版，书籍默认只在浏览器里。
        网络版可在本地书籍里点「同步到后端」单独上传到 Python 书架。 */
@@ -2212,6 +3272,7 @@ _PORTAL_JS = r"""
         var blob = b._blob || (b._record && b._record.blob);
         if (!blob) { alert(L.upload_failed + ': 原始文件不可用'); return; }
         if (btn) { btn.disabled = true; }
+        setTip(L.sync_to_backend + '…');
         var fileName = (b._record && b._record.file_name) || (title || 'book') + '.' + (b.format || 'txt').toLowerCase();
         postBookBlob(blob, fileName, title || b.title).then(function () {
             return saveLocalBook(Object.assign({}, b._record || {}, {
@@ -2219,21 +3280,33 @@ _PORTAL_JS = r"""
             }));
         }).then(function () {
             setMode('local');
+            setTimeout(function () { setTip(L.synced); }, 80);
         }).catch(function (e) {
-            alert(L.upload_failed + ': ' + (e.message || e));
+            var msg = L.upload_failed + ': ' + (e.message || e);
+            setTip(msg);
+            alert(msg);
             if (btn) { btn.disabled = false; }
         });
     }
     function uploadFiles(files) {
         if (!files || !files.length) { return; }
         var jobs = [];
+        var uploadBtn = $('uploadBtn');
+        if (uploadBtn) { uploadBtn.disabled = true; }
+        setTip(L.portal_upload + '…');
         Array.prototype.forEach.call(files, function (f) {
             jobs.push(uploadToLocal(f).catch(function (e) {
                 alert(L.upload_failed + ': ' + (e.message || e));
                 return null;
             }));
         });
-        Promise.all(jobs).then(function () { setMode('local'); });
+        Promise.all(jobs).then(function (results) {
+            var ok = (results || []).filter(function (r) { return r; }).length;
+            setMode('local');
+            setTimeout(function () { setTip(L.upload_ok + ' ' + ok + '/' + files.length); }, 80);
+        }).finally(function () {
+            if (uploadBtn) { uploadBtn.disabled = false; }
+        });
     }
 
     function bind() {
@@ -2308,16 +3381,19 @@ _PORTAL_JS = r"""
             localStorage.removeItem('br_portal_books');
             localStorage.removeItem('br_portal_books_synced_at');
         });
-        /* 统一入口：?book=<公开标识> 直接进入内容阅读页，不经过书库列表。 */
+        /* 统一入口：?book=<公开标识> 直接进入统一 App Shell 的阅读视图。 */
         var autoBook = safe(function () { return new URLSearchParams(location.search).get('book') || ''; });
-        if (autoBook) {
-            if (OFFLINE) {
-                var target = OFFLINE_BOOKS.filter(function (b) { return b.book_key === autoBook; })[0];
-                if (target && target.reader_url) { location.replace(target.reader_url); return; }
-            } else {
-                location.replace(withKey('/reader?book=' + encodeURIComponent(autoBook)));
+        if (autoBook && OFFLINE) {
+            var target = OFFLINE_BOOKS.filter(function (b) { return b.book_key === autoBook; })[0];
+            if (target && target.reader_url) {
+                window.BRAppRouter.showReader(autoBook, target.reader_url, false);
                 return;
             }
+        }
+        if (window.BRAppRouter && window.BRAppRouter.start()) { return; }
+        if (autoBook && window.BRAppRouter) {
+            window.BRAppRouter.showReader(autoBook, '', false);
+            return;
         }
         bind();
         paintNet();
@@ -2352,6 +3428,10 @@ def build_portal_html(locale: Optional[str] = None, secret: str = "",
     lang = "zh-CN" if (locale or "zh_CN") == "zh_CN" else "en"
     replacements = {
         "__LANG__": lang,
+        "__APP_RUNTIME_JS__": APP_RUNTIME_JS,
+        "__DATA_SOURCE_JS__": DATA_SOURCE_JS,
+        "__APP_SHELL_CSS__": APP_SHELL_CSS,
+        "__APP_ROUTER_JS__": APP_ROUTER_JS,
         "__LABELS_JSON__": _js_json(labels),
         "__SECRET_JSON__": _js_json(secret or ""),
         "__OFFLINE_MODE__": "true" if offline_books is not None else "false",

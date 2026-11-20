@@ -10,6 +10,7 @@ import re
 import uuid
 from html.parser import HTMLParser
 from typing import Optional, Dict, Any, Callable, Tuple
+from urllib.parse import quote
 from src.utils.logger import get_logger
 from src.utils.browser_reader import BrowserReader
 from src.utils.book_identity import (
@@ -103,6 +104,9 @@ _WEB_PAGE_PATHS = ("/", "/reader", "/sw.js", "/manifest.webmanifest")
 _reader_page_cache: Dict[str, str] = {}
 _reader_page_gzip_cache: Dict[str, bytes] = {}
 _reader_page_cache_lock = threading.Lock()
+# HTTP /reader 页面复用同一套浏览器编辑器；按真实文件路径缓存，避免重复启动服务。
+_editor_servers: Dict[str, Tuple[str, Any]] = {}
+_editor_servers_lock = threading.Lock()
 _READER_PAGE_CACHE_MAX = 6
 # 阅读页内嵌了整本书正文，体积通常远大于普通网页；大于 1KB 才 gzip，
 # 避免把短错误页也压缩得得不偿失。
@@ -320,6 +324,25 @@ def _txt_content_disposition(filename: str) -> str:
     return f'attachment; filename="{fallback}"; filename*=UTF-8\'\'{quote(filename)}'
 
 
+def _ensure_http_editor(file_path: str) -> str:
+    """为 HTTP /reader 页面启动并缓存浏览器编辑器服务，返回编辑器 URL。"""
+    import os
+    key = os.path.realpath(file_path)
+    with _editor_servers_lock:
+        cached = _editor_servers.get(key)
+        if cached and cached[0]:
+            return cached[0]
+        try:
+            from src.utils.browser_editor import BrowserEditorServer
+            server = BrowserEditorServer(key, idle_timeout=0)
+            url = server.start()
+            _editor_servers[key] = (url, server)
+            return url
+        except Exception as e:
+            logger.warning(f"为局域网阅读页启动编辑器失败: {e}")
+            return ""
+
+
 def _build_reader_page(file_path: str, req_host: str, req_port: int, secret: str,
                        book_key: str = "") -> Optional[Tuple[str, bytes]]:
     """生成阅读页，返回 (HTML, 预压缩 gzip)；与 file:// 版本共用页面与功能。"""
@@ -347,7 +370,7 @@ def _build_reader_page(file_path: str, req_host: str, req_port: int, secret: str
     # 末尾为前端资源版本号：响应式 CSS / Web JS / Service Worker 有变更时递增，
     # 让进程内缓存的旧 /reader 页面失效，否则局域网版会一直返回修复前的 HTML。
     cache_key = (f"{os.path.realpath(file_path)}|{mtime}|{req_host}|{req_port}|{secret}|"
-                 f"{_sg_enabled}|{_sg_pwd}|13")
+                 f"{_sg_enabled}|{_sg_pwd}|46")
     with _reader_page_cache_lock:
         cached = _reader_page_cache.get(cache_key)
         cached_gzip = _reader_page_gzip_cache.get(cache_key, b"")
@@ -382,6 +405,18 @@ def _build_reader_page(file_path: str, req_host: str, req_port: int, secret: str
     except Exception as e:
         logger.error(f"生成局域网阅读页失败: {e}")
         return None
+
+    # 与桌面端 file:// 阅读页保持一致：为 HTTP /reader 注入浏览器编辑器入口。
+    try:
+        editor_url = _ensure_http_editor(file_path)
+        if editor_url:
+            public_key = book_key or book_key_for_path(file_path)
+            return_url = f"{base}/reader?book={quote(public_key, safe='')}"
+            if secret:
+                return_url += "&key=" + quote(secret, safe="")
+            html = BrowserReader._inject_editor_button(html, editor_url, return_url)
+    except Exception as e:
+        logger.warning(f"为局域网阅读页注入编辑器入口失败: {e}")
 
     # 阅读页内嵌整本书正文，预压缩一次后所有手机/浏览器请求都复用，避免每请求重复 gzip。
     try:
