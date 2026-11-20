@@ -113,6 +113,14 @@ def dispatch_api(handler: BaseHTTPRequestHandler) -> None:
     raw_path = rp.split("?")[0]
     query = parse_query(rp)
 
+    # 上传是原始文件体，不能走 JSON body 解析，必须在通用路由前处理。
+    if raw_path == "/api/upload_book":
+        if method == "POST":
+            send_json(handler, 200, routes.route_upload_book(handler))
+        else:
+            send_error(handler, 405, "Method Not Allowed")
+        return
+
     body = {}
     if method in ("POST", "PUT"):
         ok, data = read_json_body(handler)

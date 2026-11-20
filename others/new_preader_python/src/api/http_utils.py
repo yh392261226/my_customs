@@ -15,7 +15,7 @@ def send_json(handler, status: int, obj: Any, cors: bool = True) -> None:
     if cors:
         handler.send_header("Access-Control-Allow-Origin", "*")
         handler.send_header("Access-Control-Allow-Methods", "GET, POST, PUT, DELETE, OPTIONS")
-        handler.send_header("Access-Control-Allow-Headers", "Content-Type, X-Book-ID, X-API-Key")
+        handler.send_header("Access-Control-Allow-Headers", "Content-Type, X-Book-ID, X-API-Key, X-File-Name, X-File-Title")
     handler.send_header("Content-Length", str(len(payload)))
     handler.end_headers()
     handler.wfile.write(payload)

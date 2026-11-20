@@ -21,7 +21,9 @@ from urllib.parse import parse_qs, urlparse
 from html import escape as _html_escape
 
 from src.utils.logger import get_logger
-from src.utils.book_identity import book_key_for_path, resolve_path_by_book_key
+from src.utils.book_identity import (
+    book_key_for_path, is_book_key, known_book_paths, resolve_path_by_book_key,
+)
 
 logger = get_logger(__name__)
 
@@ -2054,7 +2056,8 @@ class BrowserReader:
                         startup_password_enabled: bool = False,
                         startup_password: str = "",
                         download_txt_enabled: bool = False,
-                        book_key: Optional[str] = None) -> str:
+                        book_key: Optional[str] = None,
+                        offline_library_url: Optional[str] = None) -> str:
         """
         创建浏览器阅读器HTML
         
@@ -5133,7 +5136,7 @@ class BrowserReader:
         <button onclick="toggleTOC()"><script>document.write(t('common.toc'));</script></button>
         <button onclick="if(checkPermission('book.write')) toggleProgressSync()" id="progressSyncBtn"><script>document.write(t('browser_reader.progress_sync'));</script></button>
         <button onclick="if(checkPermission('book.add')) toggleFileImport()" id="fileImportBtn"><script>document.write(t('common.import_file'));</script></button>
-        <button onclick="toggleBookLibrary()" id="bookLibraryBtn"><script>document.write(t('browser_reader.book_library'));</script></button>
+        <button onclick="openBookLibrary()" id="bookLibraryBtn"><script>document.write(t('browser_reader.book_library'));</script></button>
         <button onclick="toggleVocabPanel()" id="vocabBtn"><script>document.write(t('common.vocab'));</script></button>
         <button onclick="if(checkPermission('book.read')) showFileView()" id="viewFileBtn"><script>document.write(t('common.view_file'));</script></button>
         {download_toolbar_html}
@@ -11560,6 +11563,24 @@ class BrowserReader:
             }}
         }}
         
+        // 书库按钮统一回到书库首页：网络版走 /，离线版走生成的内嵌书库页
+        function openBookLibrary() {{
+            try {{
+                if (location.protocol === 'http:' || location.protocol === 'https:') {{
+                    const u = new URL(location.href);
+                    const secret = u.searchParams.get('key') || '';
+                    location.href = '/' + (secret ? '?key=' + encodeURIComponent(secret) : '');
+                    return;
+                }}
+                if (location.protocol === 'file:') {{
+                    const library = window.__BR_OFFLINE_LIBRARY_URL__ || '';
+                    if (library) {{ location.href = library; return; }}
+                }}
+            }} catch (e) {{}}
+            /* 老版本离线页没有内嵌书库地址时回退到页内面板 */
+            toggleBookLibrary();
+        }}
+
         // 书库相关函数
         function toggleBookLibrary() {{
             const panel = document.getElementById('bookLibraryPanel');
@@ -13256,6 +13277,8 @@ class BrowserReader:
             _br_book_id = book_id or title
             _br_book_id_json = json.dumps(_br_book_id)
             _br_book_key_json = json.dumps(book_key or "")
+            _offline_library_url_json = json.dumps(offline_library_url or "")
+            _page_title_json = json.dumps(title or "")
             _lock_literal = "true" if lock_enabled else "false"
             _api_base_json = json.dumps(api_base_url or "")
             # 真实的硬盘文件路径（用于「加入书库」「查看文件」「单词本同步」等需要绝对路径的场景）
@@ -13266,6 +13289,10 @@ class BrowserReader:
                 '  try {\n'
                 '    window.__BR_BOOK_ID__ = ' + _br_book_id_json + ';\n'
                 '    window.__BR_BOOK_KEY__ = ' + _br_book_key_json + ';\n'
+                '    window.__BR_OFFLINE_LIBRARY_URL__ = ' + _offline_library_url_json + ';\n'
+                '    try {\n'
+                '      window.__BR_ACTIVE_BOOK_KEY__ = new URLSearchParams(location.search).get("book") || window.__BR_BOOK_KEY__ || "";\n'
+                '    } catch(e) { window.__BR_ACTIVE_BOOK_KEY__ = window.__BR_BOOK_KEY__ || ""; }\n'
                 '    window.__BR_BOOK_FILE_PATH__ = ' + _file_path_json + ';\n'
                 '    window.__BR_LOCK_ENABLED__ = ' + _lock_literal + ';\n'
                 '    window.__BR_API_BASE__ = ' + _api_base_json + ';\n'
@@ -13273,6 +13300,13 @@ class BrowserReader:
                 '    var rec = null;\n'
                 '    try { rec = JSON.parse(localStorage.getItem(key) || "null"); } catch(e) { rec = null; }\n'
                 '    if (rec && rec.locked) { document.documentElement.classList.add("br-locked"); }\n'
+                '    try {\n'
+                '      var bk = window.__BR_BOOK_KEY__ || window.__BR_BOOK_ID__;\n'
+                '      var hist = JSON.parse(localStorage.getItem("readingHistory") || "[]");\n'
+                '      hist = hist.filter(function(x){ return String(x.bookId) !== String(bk); });\n'
+                '      hist.unshift({ id:String(Date.now()), title:' + _page_title_json + ', type:"network", bookId:bk, readTime:Date.now() });\n'
+                '      localStorage.setItem("readingHistory", JSON.stringify(hist.slice(0,50)));\n'
+                '    } catch(e) {}\n'
                 '  } catch(e) {}\n'
                 '})();\n'
                 '</script>\n'
@@ -13284,21 +13318,27 @@ class BrowserReader:
         # 局域网 / 响应式 / 在线离线并存资源（桌面端零影响）
         # 采用注入方式而非改写上万行的主模板；失败时静默降级为原有页面
         try:
-            from src.utils.reader_web import RESPONSIVE_CSS, MOBILE_HTML, render_reader_web_js
+            from src.utils.reader_web import (
+                RESPONSIVE_CSS, MOBILE_HTML, render_reader_web_js,
+                SCROLL_NAV_CSS, SCROLL_NAV_HTML, SCROLL_NAV_JS,
+            )
             web_css, web_html, web_js = RESPONSIVE_CSS, MOBILE_HTML, render_reader_web_js()
+            scroll_css, scroll_html, scroll_js = SCROLL_NAV_CSS, SCROLL_NAV_HTML, SCROLL_NAV_JS
         except Exception as _web_e:
             logger.warning(f"载入浏览器阅读器 Web 适配资源失败，沿用原页面: {_web_e}")
             web_css = web_html = web_js = ""
+            scroll_css = scroll_html = scroll_js = ""
 
         # 注入增强功能（CSS / HTML / JS）
-        html = html.replace('</style>', EXTRA_READER_CSS + LOCK_SCREEN_CSS + SYNC_CSS + web_css + _sg_css + '</style>', 1)
+        html = html.replace('</style>', scroll_css + EXTRA_READER_CSS + LOCK_SCREEN_CSS + SYNC_CSS + web_css + _sg_css + '</style>', 1)
         html = html.replace(
             '</body>',
-            EXTRA_READER_HTML + SYNC_HTML + web_html + _sg_html
+            scroll_html + EXTRA_READER_HTML + SYNC_HTML + web_html + _sg_html
             + '<script>' + EXTRA_READER_JS + '</script>'
             + '<script>' + LOCK_SCREEN_JS + '</script>'
             + '<script>' + SYNC_JS + '</script>'
             + '<script>' + ENCRYPTED_PDF_JS + '</script>'
+            + ('<script>' + scroll_js + '</script>' if scroll_js else '')
             + ('<script>' + web_js + '</script>' if web_js else '')
             + ('<script>' + _sg_js + '</script>' if _sg_js else '')
             + '</body>', 1)
@@ -13794,6 +13834,51 @@ class BrowserReader:
             return f'<p>读取文件时出错：{str(e)}</p>'
     
     @staticmethod
+    def _build_offline_library(temp_dir: str, backend_url: str = "") -> str:
+        """扫描已生成的离线阅读页，生成与网络版共用 UI 的离线书库首页。"""
+        from urllib.parse import quote
+        from src.utils.reader_web import build_portal_html
+
+        by_key = {}
+        for source in known_book_paths():
+            key = book_key_for_path(source)
+            if not key:
+                continue
+            by_key[key] = {
+                "book_key": key,
+                "book_id": Path(source).stem,
+                "title": Path(source).stem,
+                "author": "",
+                "format": Path(source).suffix.lstrip(".").upper(),
+                "tags": "",
+                "pinyin": "",
+                "reader_url": "",
+            }
+        try:
+            names = os.listdir(temp_dir)
+        except Exception:
+            names = []
+        for name in names:
+            if not name.endswith("_reader.html"):
+                continue
+            key = name[:-len("_reader.html")]
+            if not is_book_key(key):
+                continue
+            item = by_key.get(key) or {
+                "book_key": key, "book_id": key, "title": key,
+                "author": "", "format": "", "tags": "", "pinyin": "", "reader_url": "",
+            }
+            item["reader_url"] = Path(os.path.join(temp_dir, name)).as_uri() + "?book=" + quote(key, safe="")
+            by_key[key] = item
+
+        books = [item for item in by_key.values() if item.get("reader_url")]
+        books.sort(key=lambda b: str(b.get("title") or ""))
+        library_path = os.path.join(temp_dir, "br_offline_library.html")
+        with open(library_path, "w", encoding="utf-8") as f:
+            f.write(build_portal_html(offline_books=books, backend_url=backend_url))
+        return Path(library_path).as_uri()
+
+    @staticmethod
     def open_book_in_browser(file_path: str, theme: str = "light",
                           custom_settings: Optional[Dict[str, str]] = None,
                           pdf_password: Optional[str] = None,
@@ -13988,6 +14073,17 @@ class BrowserReader:
 
             # 公开书籍标识：同时用于页面内 book 操作与离线 HTML 文件名，避免暴露真实书名/目录
             book_key = book_key_for_path(file_path)
+            temp_dir = tempfile.gettempdir()
+            offline_library_url = Path(os.path.join(temp_dir, "br_offline_library.html")).as_uri()
+            # 离线页访问网络书库时用 127.0.0.1，避免受局域网 IP 变化影响
+            local_backend_url = f"http://127.0.0.1:{browser_server_port}"
+            try:
+                from urllib.parse import urlparse
+                _actual_port = urlparse(save_url or "").port
+                if _actual_port:
+                    local_backend_url = f"http://127.0.0.1:{_actual_port}"
+            except Exception:
+                pass
 
             # 创建HTML
             html = BrowserReader.create_reader_html(
@@ -13998,11 +14094,11 @@ class BrowserReader:
                 api_secret=_api_secret,
                 startup_password_enabled=_startup_password_enabled,
                 startup_password=_startup_password,
-                book_key=book_key
+                book_key=book_key,
+                offline_library_url=offline_library_url
             )
             
             # 创建临时HTML文件：文件名只含公开书籍标识，不再是真实书名/路径派生名
-            temp_dir = tempfile.gettempdir()
             html_filename = f"{book_key}_reader.html"
             html_path = os.path.join(temp_dir, html_filename)
 
@@ -14019,22 +14115,29 @@ class BrowserReader:
             with open(html_path, 'w', encoding='utf-8') as f:
                 f.write(html)
 
+            # 重新生成离线书库首页（与网络版共用 build_portal_html），确保包含刚打开的这本书
+            try:
+                BrowserReader._build_offline_library(temp_dir, local_backend_url)
+            except Exception as _lib_e:
+                logger.warning(f"生成离线书库首页失败: {_lib_e}")
+
+            # 统一离线阅读入口：URL 只带公开标识，页面据此直接进入对应书籍的内容阅读视图
+            from urllib.parse import quote
+            file_url = Path(html_path).as_uri() + '?book=' + quote(book_key, safe='')
+
             # 使用BrowserManager打开浏览器
             try:
                 from src.utils.browser_manager import BrowserManager
-                
-                # 使用默认浏览器打开HTML文件
-                success = BrowserManager.open_file(html_path)
+
+                success = BrowserManager.open_url(file_url)
                 if success:
                     browser_name = BrowserManager.get_default_browser()
-                    logger.info(f"使用 {browser_name} 浏览器打开书籍: {html_path}")
+                    logger.info(f"使用 {browser_name} 浏览器打开书籍: {file_url}")
                 else:
-                    # 回退到默认浏览器
-                    webbrowser.open(f'file://{html_path}')
-                    logger.warning(f"使用系统默认浏览器打开: {html_path}")
+                    webbrowser.open(file_url)
+                    logger.warning(f"使用系统默认浏览器打开: {file_url}")
             except Exception as e:
-                # 如果BrowserManager失败，回退到默认浏览器
-                webbrowser.open(f'file://{html_path}')
+                webbrowser.open(file_url)
                 logger.warning(f"BrowserManager失败，使用系统默认浏览器打开: {e}")
 
             return True, f"已在浏览器中打开：{title}"

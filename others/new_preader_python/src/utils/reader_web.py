@@ -660,7 +660,7 @@ READER_WEB_JS = r"""
 #    后端关闭后依然能打开已访问过的页面。
 #  - /sw.js、/health_check 等不缓存，避免把「离线」误判成「在线」。
 SERVICE_WORKER_JS = r"""
-const CACHE = 'br-reader-v2';
+const CACHE = 'br-reader-v9';
 /* ---- 旧缓存页面迁移 ----
    早期窄屏 CSS 把正文字号写成 `font-size: 17px !important`，且设置页滑块还会再调
    `changeFontSize(0)`（按 getComputedStyle 反推字号，配合 body 的 transition 会把
@@ -785,7 +785,11 @@ LABELS: Dict[str, Dict[str, str]] = {
         "portal_tagline": "随时读，随身带", "portal_count": "共 %d 本", "portal_found": "找到 %d 本",
         "portal_page": "第 %d / %d 页", "portal_page_label": "分页",
         "portal_prev": "上一页", "portal_next": "下一页",
-        "portal_refresh": "刷新", "portal_empty": "暂无书籍", "portal_no_match": "没有找到匹配的书籍",
+        "portal_refresh": "刷新", "portal_upload": "上传书籍", "portal_empty": "暂无书籍", "portal_no_match": "没有找到匹配的书籍",
+        "portal_history": "阅读历史", "portal_local_books": "本地书籍", "portal_network_books": "网络书籍",
+        "sync_to_backend": "同步到后端", "synced": "已同步", "history_empty": "暂无阅读历史", "local_empty": "本地书库暂无书籍",
+        "upload_ok": "上传成功", "upload_failed": "上传失败", "offline_upload_text_only": "离线版目前仅支持上传 TXT/MD 文本文件",
+        "binary_local_hint": "该格式暂不支持浏览器内直接阅读，请先同步到后端。",
         "portal_offline_books": "离线书籍", "portal_online_books": "书库",
         "portal_offline_tip": "后端已关闭，显示本机缓存", "portal_online_tip": "已连接后端",
         "portal_no_offline": "还没有离线缓存的书籍，请在线打开一次",
@@ -810,7 +814,11 @@ LABELS: Dict[str, Dict[str, str]] = {
         "portal_tagline": "Books, anywhere", "portal_count": "%d books", "portal_found": "%d found",
         "portal_page": "Page %d / %d", "portal_page_label": "Pagination",
         "portal_prev": "Previous page", "portal_next": "Next page",
-        "portal_refresh": "Refresh", "portal_empty": "No books", "portal_no_match": "No matching books",
+        "portal_refresh": "Refresh", "portal_upload": "Upload", "portal_empty": "No books", "portal_no_match": "No matching books",
+        "portal_history": "History", "portal_local_books": "Local", "portal_network_books": "Network",
+        "sync_to_backend": "Sync to server", "synced": "Synced", "history_empty": "No reading history", "local_empty": "No local books",
+        "upload_ok": "Uploaded", "upload_failed": "Upload failed", "offline_upload_text_only": "Offline mode supports TXT/MD text files only",
+        "binary_local_hint": "This format cannot be read directly in the browser yet. Please sync it to the server first.",
         "portal_offline_books": "Offline", "portal_online_books": "Library",
         "portal_offline_tip": "Backend offline, showing local cache", "portal_online_tip": "Connected to backend",
         "portal_no_offline": "No cached books yet — open one while online",
@@ -1319,6 +1327,92 @@ html.br-dark .br-portal .book-card{ box-shadow:0 8px 24px rgba(0,0,0,.22); }
 }
 """
 
+# 网络版书库页 + 离线/网络阅读页共用的右侧固定滚动按钮。
+# position:fixed 让按钮相对视口定位，页面上下滚动时不会跟着移动。
+SCROLL_NAV_CSS = r"""
+.br-scroll-nav {
+  position: fixed; right: 16px; top: 50%; transform: translateY(-50%);
+  display: flex; flex-direction: column; gap: 8px; z-index: 8000;
+}
+.br-scroll-btn {
+  width: 38px; height: 38px; border-radius: 50%; cursor: pointer;
+  display: flex; align-items: center; justify-content: center;
+  font-size: 18px; line-height: 1; font-weight: 600;
+  color: var(--reader-text, var(--br-page-fg, #222));
+  background: var(--reader-bg, var(--br-page-bg, #fff));
+  border: 1px solid rgba(128,128,128,.38);
+  box-shadow: 0 2px 10px rgba(0,0,0,.16);
+  opacity: .88; transition: opacity .15s, transform .15s, background .15s;
+  padding: 0; -webkit-appearance: none; appearance: none;
+}
+.br-scroll-btn:hover { opacity: 1; transform: scale(1.06); }
+.br-scroll-btn:active { transform: scale(.96); }
+.br-scroll-btn:focus-visible { outline: 2px solid var(--br-accent, #4f7cff); outline-offset: 2px; }
+@media (max-width: 640px) {
+  .br-scroll-nav { right: 8px; gap: 6px; }
+  .br-scroll-btn { width: 34px; height: 34px; font-size: 16px; }
+}
+"""
+
+SCROLL_NAV_HTML = r"""
+<div class="br-scroll-nav" aria-label="页面滚动 / Page scroll">
+  <button type="button" class="br-scroll-btn" id="brScrollTopBtn" title="回到顶部 / Top" aria-label="回到顶部">↑</button>
+  <button type="button" class="br-scroll-btn" id="brScrollBottomBtn" title="去底部 / Bottom" aria-label="去底部">↓</button>
+</div>
+"""
+
+SCROLL_NAV_JS = r"""
+(function(){
+  function scrollHost(){
+    var candidates = [];
+    var offline = document.getElementById('offlineReader');
+    if (offline && offline.classList && offline.classList.contains('open')) candidates.push(offline);
+    var sync = document.querySelector('.br-sync-list');
+    if (sync && sync.offsetParent !== null) candidates.push(sync);
+    var page = document.querySelector('.page.active .page-content') || document.querySelector('.page-content');
+    if (page) candidates.push(page);
+    var content = document.getElementById('content');
+    if (content) candidates.push(content);
+    for (var i = 0; i < candidates.length; i++) {
+      var el = candidates[i];
+      var st = window.getComputedStyle(el);
+      if ((st.overflowY === 'auto' || st.overflowY === 'scroll') && el.scrollHeight > el.clientHeight + 2) return el;
+    }
+    return null;
+  }
+  function go(to){
+    /* 书库页的离线阅读器可能是 iframe，优先滚动 iframe 内部文档 */
+    var iframe = document.querySelector('.br-portal-offline-reader iframe, #offlineReader iframe');
+    if (iframe) {
+      try {
+        var iw = iframe.contentWindow;
+        var idoc = iframe.contentDocument;
+        var iel = idoc && (idoc.scrollingElement || idoc.body);
+        if (iw) {
+          iw.scrollTo({ top: to === 'top' ? 0 : (iel ? iel.scrollHeight : 1e9), behavior: 'smooth' });
+          return;
+        }
+      } catch(e) {}
+    }
+    var el = scrollHost();
+    if (el) {
+      el.scrollTo({ top: to === 'top' ? 0 : el.scrollHeight, behavior: 'smooth' });
+    } else {
+      var doc = document.documentElement || document.body;
+      window.scrollTo({ top: to === 'top' ? 0 : doc.scrollHeight, behavior: 'smooth' });
+    }
+  }
+  function bind(){
+    var top = document.getElementById('brScrollTopBtn');
+    var bottom = document.getElementById('brScrollBottomBtn');
+    if (top) top.addEventListener('click', function(){ go('top'); });
+    if (bottom) bottom.addEventListener('click', function(){ go('bottom'); });
+  }
+  if (document.readyState === 'loading') document.addEventListener('DOMContentLoaded', bind);
+  else bind();
+})();
+"""
+
 _PORTAL_TEMPLATE = r"""<!DOCTYPE html>
 <html lang="__LANG__">
 <head>
@@ -1337,6 +1431,7 @@ button,input,select{font-family:inherit}
 __RESPONSIVE_CSS__
 __PORTAL_CSS__
 __STARTUP_GATE_CSS__
+__SCROLL_NAV_CSS__
 </style>
 </head>
 <body>
@@ -1356,6 +1451,11 @@ __STARTUP_GATE_CSS__
           <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M20 11a8 8 0 1 0-2.3 5.6"/><path d="M20 4v7h-7"/></svg>
           <span>__PORTAL_REFRESH__</span>
         </button>
+        <button type="button" id="uploadBtn" class="br-portal-icon-btn" title="__PORTAL_UPLOAD__" aria-label="__PORTAL_UPLOAD__">
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M12 16V4M6 10l6-6 6 6"/><path d="M4 18v2h16v-2"/></svg>
+          <span>__PORTAL_UPLOAD__</span>
+        </button>
+        <input type="file" id="uploadInput" accept=".txt,.md,.epub,.pdf,.mobi,.azw,.azw3" multiple hidden>
         <button type="button" id="portalSettingsBtn" class="br-portal-icon-btn br-portal-settings-btn" title="__PORTAL_SETTINGS__" aria-label="__PORTAL_SETTINGS__">
           <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" aria-hidden="true"><path d="M4 7h9M17 7h3M4 17h3M11 17h9"/><circle cx="15" cy="7" r="2"/><circle cx="9" cy="17" r="2"/></svg>
           <span>__PORTAL_SETTINGS__</span>
@@ -1375,8 +1475,9 @@ __STARTUP_GATE_CSS__
       <input type="search" id="searchInput" placeholder="__PORTAL_SEARCH__">
     </div>
     <div class="br-portal-tabs" role="tablist">
-      <button type="button" id="tabOnline" class="br-portal-tab active" role="tab">__PORTAL_ONLINE_BOOKS__</button>
-      <button type="button" id="tabOffline" class="br-portal-tab" role="tab">__PORTAL_OFFLINE_BOOKS__</button>
+      <button type="button" id="tabHistory" class="br-portal-tab" role="tab">__PORTAL_HISTORY__</button>
+      <button type="button" id="tabLocal" class="br-portal-tab" role="tab">__PORTAL_LOCAL_BOOKS__</button>
+      <button type="button" id="tabNetwork" class="br-portal-tab active" role="tab">__PORTAL_NETWORK_BOOKS__</button>
     </div>
   </div>
 
@@ -1431,10 +1532,15 @@ __STARTUP_GATE_CSS__
 <script>
 window.__BR_LABELS__ = __LABELS_JSON__;
 window.__BR_BOOT_SECRET__ = __SECRET_JSON__;
+window.__BR_OFFLINE_MODE__ = __OFFLINE_MODE__;
+window.__BR_OFFLINE_BOOKS__ = __OFFLINE_BOOKS_JSON__;
+window.__BR_DEFAULT_BACKEND__ = __BACKEND_URL_JSON__;
 </script>
 <script>
 __PORTAL_JS__
 </script>
+__SCROLL_NAV_HTML__
+<script>__SCROLL_NAV_JS__</script>
 __STARTUP_GATE_HTML__
 <script>__STARTUP_GATE_JS__</script>
 </body>
@@ -1445,19 +1551,24 @@ _PORTAL_JS = r"""
 (function () {
     'use strict';
     var L = window.__BR_LABELS__ || {};
+    /* 同一套书库 UI：网络模式走 API，离线模式使用生成页面时内嵌的书单 */
+    var OFFLINE = window.__BR_OFFLINE_MODE__ === true;
+    var OFFLINE_BOOKS = window.__BR_OFFLINE_BOOKS__ || [];
     var KEY_STORE = 'br_api_secret', BACK_STORE = 'br_backend_override';
     /* v2：旧缓存里含真实 path，整体弃用，避免继续在浏览器本地暴露目录。 */
     var CACHE_KEY = 'br_portal_books_v2', CACHE_TIME_KEY = 'br_portal_books_v2_synced_at';
     var DB_NAME = 'br_offline_books', STORE = 'books', INDEX_STORE = 'book_index';
     var PAGE_SIZE = 20;
-    var mode = 'online', books = [], offlineBooks = [], netOnline = false;
+    var mode = OFFLINE ? 'local' : 'network', books = [], offlineBooks = [], netOnline = false;
     var page = 1, total = 0, keyword = '', reqSeq = 0, searchTimer = null, syncing = false;
 
     function $(id) { return document.getElementById(id); }
     function safe(fn) { try { return fn(); } catch (e) { return null; } }
     function backend() {
         var o = safe(function () { return localStorage.getItem(BACK_STORE); });
-        return (o || location.origin).replace(/\/+$/, '');
+        var fallback = window.__BR_DEFAULT_BACKEND__ || '';
+        if (location.protocol === 'file:' && !fallback) { fallback = 'http://127.0.0.1:54321'; }
+        return String(o || (location.protocol === 'file:' ? fallback : location.origin) || '').replace(/\/+$/, '');
     }
     function key() {
         return safe(function () { return localStorage.getItem(KEY_STORE); }) || window.__BR_BOOT_SECRET__ || '';
@@ -1482,6 +1593,7 @@ _PORTAL_JS = r"""
         if (tip) { tip.textContent = netOnline ? L.portal_online_tip : L.portal_offline_tip; }
     }
     function checkNet() {
+        if (!backend()) { netOnline = false; paintNet(); return Promise.resolve(false); }
         var ctrl = typeof AbortController !== 'undefined' ? new AbortController() : null;
         var timer = setTimeout(function () { if (ctrl) { ctrl.abort(); } }, 2500);
         return fetch(backend() + '/health_check', ctrl ? { signal: ctrl.signal, cache: 'no-store' } : { cache: 'no-store' })
@@ -1530,6 +1642,7 @@ _PORTAL_JS = r"""
            metadata（章节正文）体积过大，不写入 localStorage。 */
         return {
             book_key: b.book_key || '', book_id: b.book_id || '',
+            reader_url: b.reader_url || '',
             title: b.title || b.novel_title || b.name || '',
             author: b.author || '', format: b.format || '', status: b.status || '',
             pinyin: b.pinyin || '', tags: b.tags || ''
@@ -1580,7 +1693,9 @@ _PORTAL_JS = r"""
         if (typeof targetPage === 'number') { page = Math.max(1, targetPage); }
         keyword = keywordOf();
         var seq = ++reqSeq;
-        if (mode === 'offline') { loadOfflineBooks(); return Promise.resolve(); }
+        if (mode === 'history') { return renderHistory(); }
+        if (mode === 'local') { return loadLocalBooksView(); }
+        if (OFFLINE) { return loadLocalBooksView(); }
         return checkNet().then(function (online) {
             if (!online) {
                 netOnline = false; paintNet();
@@ -1651,6 +1766,70 @@ _PORTAL_JS = r"""
             });
         }).catch(function () { return []; });
     }
+    /* 本地书籍 = IndexedDB 中缓存/上传的书 + 离线页生成时内嵌的书 */
+    function collectLocalBooks() {
+        var embedded = (OFFLINE_BOOKS || []).map(function (b) {
+            return {
+                book_key: b.book_key || '', book_id: b.book_id || b.book_key || '',
+                title: b.title || '', author: b.author || '', format: b.format || '',
+                status: b.status || '', pinyin: b.pinyin || '', tags: b.tags || '',
+                reader_url: b.reader_url || '', savedAt: 0, _blob: null
+            };
+        });
+        return openDB().then(function (db) {
+            return new Promise(function (resolve) {
+                var tx = db.transaction(STORE, 'readonly');
+                var req = tx.objectStore(STORE).getAll();
+                req.onsuccess = function () { db.close(); resolve(req.result || []); };
+                req.onerror = function () { db.close(); resolve([]); };
+            });
+        }).then(function (records) {
+            var map = {};
+            records.forEach(function (r) {
+                var k = String(r.book_key || r.id || '');
+                if (!k) { return; }
+                map[k] = {
+                    book_key: k, book_id: r.book_id || k,
+                    title: r.title || k, author: r.author || '',
+                    format: r.format || '', status: r.synced ? (L.synced || '已同步') : '',
+                    pinyin: r.pinyin || '', tags: r.tags || '',
+                    reader_url: r.reader_url || ('indexeddb:' + k),
+                    savedAt: r.savedAt || 0, _blob: r.blob || null
+                };
+            });
+            embedded.forEach(function (b) { if (b.book_key && !map[b.book_key]) { map[b.book_key] = b; } });
+            return Object.keys(map).map(function (k) { return map[k]; })
+                .sort(function (a, b) { return (b.savedAt || 0) - (a.savedAt || 0); });
+        }).catch(function () { return embedded; });
+    }
+    function loadLocalBooksView() {
+        return collectLocalBooks().then(function (list) {
+            offlineBooks = list;
+            render(sliceLocal(list), total);
+        });
+    }
+    function renderHistory() {
+        var history = safe(function () { return JSON.parse(localStorage.getItem('readingHistory') || '[]'); }) || [];
+        return collectLocalBooks().then(function (local) {
+            var map = {};
+            local.forEach(function (b) { map[b.book_key] = b; });
+            var items = history.map(function (h) {
+                var k = String(h.bookId || h.id || '');
+                var b = map[k] || {};
+                var ts = h.readTime || h.lastReadTime || 0;
+                return {
+                    book_key: k, book_id: b.book_id || k,
+                    title: h.title || b.title || k, author: b.author || '',
+                    format: b.format || '',
+                    status: ts ? new Date(ts).toLocaleString() : '',
+                    pinyin: b.pinyin || '', tags: b.tags || '',
+                    reader_url: b.reader_url || (b.book_key ? ('indexeddb:' + k) : ''), _blob: b._blob || null
+                };
+            });
+            render(sliceLocal(items), total);
+        });
+    }
+
     function loadOfflineBooks() {
         return openDB().then(function (db) {
             return new Promise(function (resolve) {
@@ -1760,7 +1939,7 @@ _PORTAL_JS = r"""
         h.textContent = title;
         var author = document.createElement('p');
         author.className = 'book-author';
-        author.textContent = b.author || (mode === 'offline' ? L.portal_offline_books : '—');
+        author.textContent = b.author || (mode === 'local' ? L.portal_local_books : '—');
         meta.appendChild(h);
         meta.appendChild(author);
 
@@ -1773,7 +1952,7 @@ _PORTAL_JS = r"""
             chip.textContent = text;
             chips.appendChild(chip);
         });
-        if (mode === 'offline') {
+        if (mode === 'local') {
             var offlineChip = document.createElement('span');
             offlineChip.className = 'book-chip book-chip--offline';
             offlineChip.textContent = L.offline;
@@ -1786,7 +1965,7 @@ _PORTAL_JS = r"""
         arrow.setAttribute('aria-hidden', 'true');
         arrow.textContent = '›';
 
-        if (mode === 'online' && b.book_key) {
+        if (mode === 'network' && b.book_key) {
             var download = document.createElement('button');
             download.type = 'button';
             download.className = 'book-download';
@@ -1798,15 +1977,36 @@ _PORTAL_JS = r"""
             });
             card.appendChild(download);
         }
+        if (mode === 'local' && b._blob) {
+            var syncBtn = document.createElement('button');
+            syncBtn.type = 'button';
+            syncBtn.className = 'book-download';
+            syncBtn.title = L.sync_to_backend;
+            syncBtn.textContent = b.status ? L.synced : (L.sync_to_backend || '同步');
+            syncBtn.disabled = !!b.status;
+            syncBtn.addEventListener('click', function (e) {
+                e.stopPropagation();
+                syncBookToBackend(b, title, syncBtn);
+            });
+            card.appendChild(syncBtn);
+        }
 
         card.appendChild(cover);
         card.appendChild(meta);
         card.appendChild(arrow);
         card.addEventListener('click', function () {
-            if (mode === 'offline') { openOfflineBook(b.id, b); return; }
-            /* 只使用公开标识，URL 与前端数据里都不再出现物理路径 */
+            var ref = b.reader_url || '';
+            if (ref.indexOf('indexeddb:') === 0) { openOfflineBook(b.book_key, b); return; }
+            if (ref && ref.indexOf('file:') === 0) { location.href = ref; return; }
+            /* 网络/历史记录统一用公开标识进入内容页；file:// 页面必须拼绝对地址 */
             if (!b.book_key) { return; }
-            location.href = withKey('/reader?book=' + encodeURIComponent(b.book_key));
+            if (location.protocol === 'file:') {
+                var secret = key();
+                location.href = backend() + '/reader?book=' + encodeURIComponent(b.book_key) +
+                    (secret ? '&key=' + encodeURIComponent(secret) : '');
+            } else {
+                location.href = withKey('/reader?book=' + encodeURIComponent(b.book_key));
+            }
         });
         return card;
     }
@@ -1895,7 +2095,7 @@ _PORTAL_JS = r"""
     }
 
     function syncNav() {
-        var current = mode === 'offline' ? 'offline' : 'library';
+        var current = mode === 'local' ? 'offline' : 'library';
         Array.prototype.forEach.call($('brMobileNav').querySelectorAll('button[data-nav]'), function (btn) {
             btn.classList.toggle('active', btn.getAttribute('data-nav') === current);
         });
@@ -1904,8 +2104,10 @@ _PORTAL_JS = r"""
     function setMode(m) {
         mode = m;
         page = 1;
-        $('tabOnline').classList.toggle('active', m === 'online');
-        $('tabOffline').classList.toggle('active', m === 'offline');
+        ['tabHistory', 'tabLocal', 'tabNetwork'].forEach(function (id) {
+            var el = $(id);
+            if (el) { el.classList.toggle('active', id === 'tab' + m.charAt(0).toUpperCase() + m.slice(1)); }
+        });
         syncNav();
         loadBooks(1);
     }
@@ -1938,16 +2140,121 @@ _PORTAL_JS = r"""
         applyReaderSettings();
     }
 
+    /* ---------- 上传书籍：网络版写入服务端书库，离线版写入 IndexedDB ---------- */
+    function randomBookKey() {
+        var bytes = new Uint8Array(10);
+        if (window.crypto && window.crypto.getRandomValues) { window.crypto.getRandomValues(bytes); }
+        else { for (var i = 0; i < bytes.length; i++) { bytes[i] = Math.floor(Math.random() * 256); } }
+        return Array.prototype.map.call(bytes, function (b) { return ('0' + b.toString(16)).slice(-2); }).join('');
+    }
+    function escapeHtml(text) {
+        return String(text == null ? '' : text)
+            .replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;')
+            .replace(/"/g, '&quot;').replace(/'/g, '&#39;');
+    }
+    function saveLocalBook(record) {
+        return openDB().then(function (db) {
+            return new Promise(function (resolve) {
+                var tx = db.transaction(STORE, 'readwrite');
+                tx.objectStore(STORE).put(record);
+                tx.oncomplete = function () { db.close(); resolve(true); };
+                tx.onerror = function () { db.close(); resolve(false); };
+            });
+        });
+    }
+    function postBookBlob(blob, fileName, bookTitle) {
+        var h = {
+            'Content-Type': 'application/octet-stream',
+            'X-File-Name': encodeURIComponent(fileName),
+            'X-File-Title': encodeURIComponent(bookTitle || fileName.replace(/\.[^.]+$/, ''))
+        };
+        var k = key();
+        if (k) { h['X-API-Key'] = k; }
+        return fetch(withKey(backend() + '/api/upload_book'), {
+            method: 'POST', headers: h, body: blob, cache: 'no-store'
+        }).then(function (r) { return r.ok ? r.json() : null; })
+          .then(function (d) { if (!d || !d.success) { throw new Error((d && d.error) || 'http'); } return d.book; });
+    }
+    /* 上传先入 IndexedDB：无论网络版还是离线版，书籍默认只在浏览器里。
+       网络版可在本地书籍里点「同步到后端」单独上传到 Python 书架。 */
+    function uploadToLocal(file) {
+        return new Promise(function (resolve, reject) {
+            var ext = (file.name.split('.').pop() || '').toLowerCase();
+            var isText = (ext === 'txt' || ext === 'md');
+            var reader = new FileReader();
+            reader.onerror = function () { reject(new Error(L.upload_failed)); };
+            reader.onload = function () {
+                var k = randomBookKey();
+                var title = file.name.replace(/\.[^.]+$/, '');
+                var html = isText
+                    ? '<h2>' + escapeHtml(title) + '</h2><pre style="white-space:pre-wrap;font:inherit">' +
+                      escapeHtml(String(reader.result || '')) + '</pre>'
+                    : '<h2>' + escapeHtml(title) + '</h2><p>' + escapeHtml(L.binary_local_hint || '该格式暂不支持浏览器内直接阅读，请先同步到后端。') + '</p>';
+                saveLocalBook({
+                    id: k, book_key: k, title: title, html: html,
+                    path: '', format: ext.toUpperCase(), file_name: file.name,
+                    blob: file, synced: false, savedAt: Date.now()
+                }).then(function (ok) {
+                    if (!ok) { reject(new Error(L.upload_failed)); return; }
+                    OFFLINE_BOOKS.push({
+                        book_key: k, book_id: k, title: title, author: '',
+                        format: ext.toUpperCase(), tags: '', pinyin: '',
+                        reader_url: 'indexeddb:' + k, savedAt: Date.now()
+                    });
+                    resolve(true);
+                });
+            };
+            if (ext === 'txt' || ext === 'md') { reader.readAsText(file); }
+            else { reader.readAsArrayBuffer(file); }
+        });
+    }
+    function syncBookToBackend(b, title, btn) {
+        var blob = b._blob || (b._record && b._record.blob);
+        if (!blob) { alert(L.upload_failed + ': 原始文件不可用'); return; }
+        if (btn) { btn.disabled = true; }
+        var fileName = (b._record && b._record.file_name) || (title || 'book') + '.' + (b.format || 'txt').toLowerCase();
+        postBookBlob(blob, fileName, title || b.title).then(function () {
+            return saveLocalBook(Object.assign({}, b._record || {}, {
+                id: b.book_key, book_key: b.book_key, synced: true
+            }));
+        }).then(function () {
+            setMode('local');
+        }).catch(function (e) {
+            alert(L.upload_failed + ': ' + (e.message || e));
+            if (btn) { btn.disabled = false; }
+        });
+    }
+    function uploadFiles(files) {
+        if (!files || !files.length) { return; }
+        var jobs = [];
+        Array.prototype.forEach.call(files, function (f) {
+            jobs.push(uploadToLocal(f).catch(function (e) {
+                alert(L.upload_failed + ': ' + (e.message || e));
+                return null;
+            }));
+        });
+        Promise.all(jobs).then(function () { setMode('local'); });
+    }
+
     function bind() {
         $('refreshBtn').addEventListener('click', function () { loadBooks(1); });
+        var uploadBtn = $('uploadBtn'), uploadInput = $('uploadInput');
+        if (uploadBtn && uploadInput) {
+            uploadBtn.addEventListener('click', function () { uploadInput.click(); });
+            uploadInput.addEventListener('change', function () {
+                uploadFiles(uploadInput.files);
+                uploadInput.value = '';
+            });
+        }
         $('searchInput').addEventListener('input', function () {
             if (searchTimer) { clearTimeout(searchTimer); }
             searchTimer = setTimeout(function () { loadBooks(1); }, 250);
         });
         $('prevPage').addEventListener('click', function () { goPage(page - 1); });
         $('nextPage').addEventListener('click', function () { goPage(page + 1); });
-        $('tabOnline').addEventListener('click', function () { setMode('online'); });
-        $('tabOffline').addEventListener('click', function () { setMode('offline'); });
+        $('tabHistory').addEventListener('click', function () { setMode('history'); });
+        $('tabLocal').addEventListener('click', function () { setMode('local'); });
+        $('tabNetwork').addEventListener('click', function () { setMode('network'); });
         $('brMobileNav').addEventListener('click', function (e) {
             var btn = e.target.closest ? e.target.closest('button[data-nav]') : null;
             if (!btn) { return; }
@@ -1955,7 +2262,7 @@ _PORTAL_JS = r"""
             Array.prototype.forEach.call($('brMobileNav').querySelectorAll('button'), function (b) { b.classList.remove('active'); });
             btn.classList.add('active');
             if (which === 'settings') { openSettings(); }
-            else { closeSettings(); setMode(which === 'offline' ? 'offline' : 'online'); }
+            else { closeSettings(); setMode(which === 'offline' ? 'local' : 'network'); }
         });
         $('settingsBack').addEventListener('click', closeSettings);
         var portalSettingsBtn = $('portalSettingsBtn');
@@ -2001,9 +2308,20 @@ _PORTAL_JS = r"""
             localStorage.removeItem('br_portal_books');
             localStorage.removeItem('br_portal_books_synced_at');
         });
+        /* 统一入口：?book=<公开标识> 直接进入内容阅读页，不经过书库列表。 */
+        var autoBook = safe(function () { return new URLSearchParams(location.search).get('book') || ''; });
+        if (autoBook) {
+            if (OFFLINE) {
+                var target = OFFLINE_BOOKS.filter(function (b) { return b.book_key === autoBook; })[0];
+                if (target && target.reader_url) { location.replace(target.reader_url); return; }
+            } else {
+                location.replace(withKey('/reader?book=' + encodeURIComponent(autoBook)));
+                return;
+            }
+        }
         bind();
         paintNet();
-        loadBooks(1);
+        setMode(mode);
         loadOfflineBooks();
         if ('serviceWorker' in navigator && (location.protocol === 'http:' || location.protocol === 'https:')) {
             navigator.serviceWorker.register('/sw.js', { scope: '/' }).catch(function () {});
@@ -2016,7 +2334,9 @@ _PORTAL_JS = r"""
 
 def build_portal_html(locale: Optional[str] = None, secret: str = "",
                       startup_password_enabled: bool = False,
-                      startup_password: str = "") -> str:
+                      startup_password: str = "",
+                      offline_books: Optional[list] = None,
+                      backend_url: str = "") -> str:
     """生成局域网书库入口页（在线 / 离线共用同一页面）。
 
     Args:
@@ -2034,6 +2354,9 @@ def build_portal_html(locale: Optional[str] = None, secret: str = "",
         "__LANG__": lang,
         "__LABELS_JSON__": _js_json(labels),
         "__SECRET_JSON__": _js_json(secret or ""),
+        "__OFFLINE_MODE__": "true" if offline_books is not None else "false",
+        "__OFFLINE_BOOKS_JSON__": _js_json(offline_books or []),
+        "__BACKEND_URL_JSON__": _js_json(backend_url or ""),
         "__RESPONSIVE_CSS__": RESPONSIVE_CSS,
         "__PORTAL_CSS__": PORTAL_CSS,
         "__PORTAL_JS__": _PORTAL_JS,
@@ -2042,6 +2365,9 @@ def build_portal_html(locale: Optional[str] = None, secret: str = "",
         "__STARTUP_GATE_CSS__": STARTUP_GATE_CSS,
         "__STARTUP_GATE_HTML__": STARTUP_GATE_HTML,
         "__STARTUP_GATE_JS__": STARTUP_GATE_JS,
+        "__SCROLL_NAV_CSS__": SCROLL_NAV_CSS,
+        "__SCROLL_NAV_HTML__": SCROLL_NAV_HTML,
+        "__SCROLL_NAV_JS__": SCROLL_NAV_JS,
         "__PORTAL_TITLE__": labels["portal_title"],
         "__PORTAL_TAGLINE__": labels["portal_tagline"],
         "__PORTAL_COUNT__": labels["portal_count"].replace("%d", "0"),
@@ -2050,9 +2376,13 @@ def build_portal_html(locale: Optional[str] = None, secret: str = "",
         "__PORTAL_PREV__": labels["portal_prev"],
         "__PORTAL_NEXT__": labels["portal_next"],
         "__PORTAL_REFRESH__": labels["portal_refresh"],
+        "__PORTAL_UPLOAD__": labels["portal_upload"],
         "__PORTAL_EMPTY__": labels["portal_empty"],
         "__PORTAL_ONLINE_BOOKS__": labels["portal_online_books"],
         "__PORTAL_OFFLINE_BOOKS__": labels["portal_offline_books"],
+        "__PORTAL_HISTORY__": labels["portal_history"],
+        "__PORTAL_LOCAL_BOOKS__": labels["portal_local_books"],
+        "__PORTAL_NETWORK_BOOKS__": labels["portal_network_books"],
         "__PORTAL_SETTINGS__": labels["portal_settings"],
         "__PORTAL_CLEAR_CACHE__": labels["portal_clear_cache"],
         "__LIBRARY__": labels["library"],

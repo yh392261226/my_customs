@@ -10,6 +10,7 @@ We
 
 import json
 import os
+from urllib.parse import unquote
 from typing import Any, Dict, List, Optional
 
 from . import db
@@ -481,6 +482,53 @@ def route_open_book(body: Dict[str, Any], open_cb) -> Dict[str, Any]:
             ok = bool(res)
             msg = ""
         return {"success": ok, "message": msg or ""}
+    except Exception as e:  # noqa: BLE001
+        return {"success": False, "error": str(e)}
+
+
+# ---------------------------------------------------------------------------
+# 网页上传书籍：浏览器书库（网络/离线统一 UI）把文件直接 POST 到这里
+# ---------------------------------------------------------------------------
+def route_upload_book(handler) -> Dict[str, Any]:
+    """接收原始文件体，保存到书库目录并登记；只返回公开字段，不回传真实路径。"""
+    try:
+        length = int(handler.headers.get("Content-Length", 0) or 0)
+    except Exception:
+        length = 0
+    max_bytes = 100 * 1024 * 1024
+    if length <= 0 or length > max_bytes:
+        return {"success": False, "error": "文件大小无效或超过 100MB"}
+
+    name = unquote(handler.headers.get("X-File-Name") or "").replace("\\", "/")
+    name = os.path.basename(name).strip().lstrip(".")
+    ext = os.path.splitext(name)[1].lower()
+    allowed = {".txt", ".md", ".epub", ".pdf", ".mobi", ".azw", ".azw3"}
+    if not name or ext not in allowed:
+        return {"success": False, "error": "不支持的文件格式"}
+
+    data = handler.rfile.read(length)
+    if len(data) != length:
+        return {"success": False, "error": "文件内容不完整"}
+
+    try:
+        from src.core.bookshelf import Bookshelf
+        from datetime import datetime
+
+        shelf = Bookshelf()
+        os.makedirs(shelf.data_dir, exist_ok=True)
+        target = os.path.join(shelf.data_dir, name)
+        if os.path.exists(target):
+            stem, suffix = os.path.splitext(name)
+            name = f"{stem}_{datetime.now().strftime('%Y%m%d_%H%M%S')}{suffix}"
+            target = os.path.join(shelf.data_dir, name)
+        with open(target, "wb") as f:
+            f.write(data)
+
+        title = unquote(handler.headers.get("X-File-Title") or "").strip() or os.path.splitext(name)[0]
+        book = shelf.add_book(target, title=title, tags="网页上传")
+        if book is None:
+            return {"success": False, "error": "书籍已存在或入库失败"}
+        return {"success": True, "book": _portal_book(_with_public_ids([book.to_dict()])[0])}
     except Exception as e:  # noqa: BLE001
         return {"success": False, "error": str(e)}
 
