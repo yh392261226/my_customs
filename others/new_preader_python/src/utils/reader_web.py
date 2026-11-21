@@ -54,6 +54,25 @@ RESPONSIVE_CSS = r"""
 }
 .br-portal-offline-reader .br-offline-body { max-width: 820px; margin: 0 auto; padding: 20px 16px 100px; line-height: 1.8; word-wrap: break-word; }
 .br-portal-offline-reader .br-offline-body img { max-width: 100%; height: auto; }
+/* 本地书面板复用统一阅读工具栏：把返回按钮、书名、功能按钮整合到同一条 sticky 工具栏，
+   避免桌面端出现「← 孤零零独占一行 + 标题另起一行」的割裂布局。 */
+.br-offline-toolbar {
+  position: sticky; top: 0; z-index: 2;
+  display: flex; flex-wrap: wrap; gap: 6px; align-items: center;
+  padding: 8px 12px; background: var(--br-card-bg, #fff);
+  border-bottom: 1px solid var(--br-nav-border, #ddd);
+}
+.br-offline-toolbar button {
+  cursor: pointer; padding: 5px 10px; border-radius: 14px;
+  border: 1px solid var(--br-nav-border, #ddd);
+  background: transparent; color: inherit; font-size: 13px;
+}
+.br-offline-toolbar button:hover { background: rgba(128,128,128,.12); }
+.br-offline-toolbar #offlineBack { font-size: 18px; line-height: 1; }
+.br-offline-toolbar .br-offline-title {
+  flex: 1; min-width: 0; font-size: 15px; font-weight: 600; padding: 0 6px;
+  overflow: hidden; text-overflow: ellipsis; white-space: nowrap;
+}
 
 @media (max-width: 1024px) {
     html, body { -webkit-text-size-adjust: 100%; }
@@ -449,18 +468,47 @@ READER_WEB_JS = r"""
             req.onerror = function () { reject(req.error); };
         });
     }
+    /* 标题伪装（老板键 / 切标签）会把 document.title 改成“百度一下，你就知道”。
+       beforeunload 时若两个监听器顺序不利，cacheCurrentBook 会把这个伪装标题当作书名
+       持久化到 IndexedDB，导致本地书面板标题显示成“百度一下”。书名只从不受伪装影响的
+       __BR_BOOK_ID__ / data-original-title 读取，绝不直接用 document.title。 */
+    function stableBookTitle() {
+        var t = '';
+        try {
+            /* __BR_BOOK_ID__ 是生成页面时写入的真实书名，不受任何标题伪装影响 */
+            t = String(window.__BR_BOOK_ID__ || '');
+            if (!t) {
+                var el = document.querySelector('[data-original-title]');
+                if (el) { t = el.getAttribute('data-original-title') || ''; }
+            }
+            if (!t) { t = String(window.__BR_BOOK_TITLE__ || ''); }
+        } catch (e) {}
+        t = String(t || '').replace(/\s*-\s*(浏览器阅读器|Browser Reader)\s*$/i, '').trim();
+        /* 兜底：任何含“百度”伪装特征的标题都视为无效，退回可读占位 */
+        if (!t || /百度一下|百度一下[,，]你就知道/.test(t)) { t = 'book'; }
+        return t;
+    }
     function cacheCurrentBook() {
         var el = $('content');
         if (!el || !el.innerHTML) { return; }
         var legacyId = safe(function () { return window.__BR_BOOK_ID__; }) || document.title || 'book';
-        var bookKey = safe(function () { return window.__BR_BOOK_KEY__; }) || '';
+        var bookKey = safe(function () {
+            return window.__BR_BOOK_KEY__ || window.__BR_ACTIVE_BOOK_KEY__ || '';
+        }) || '';
+        try {
+            if (!bookKey) { bookKey = new URLSearchParams(location.search).get('book') || ''; }
+        } catch (e) {}
+        /* 旧版阅读页可能只注入 path 而没有合法 book key：若把书名当 key 缓存，
+           书库会拼出 /reader?book=<书名> 并被后端 404。宁可留空，按本地正文打开。 */
+        if (!/^[0-9a-f]{20}$/i.test(String(bookKey).trim())) { bookKey = ''; }
         /* 新缓存用不可逆的 book key 作主键；旧缓存仍按 book_id / path 兼容读取。 */
         var id = bookKey || legacyId;
+        var bookTitle = stableBookTitle();
         openCacheDB().then(function (db) {
             var tx = db.transaction(CACHE_STORE, 'readwrite');
             tx.objectStore(CACHE_STORE).put({
                 id: String(id), book_key: String(bookKey), book_id: String(legacyId),
-                title: document.title,
+                title: bookTitle,
                 html: el.innerHTML,
                 path: safe(function () { return window.__BR_BOOK_FILE_PATH__; }) || '',
                 savedAt: Date.now()
@@ -662,7 +710,7 @@ READER_WEB_JS = r"""
 #    后端关闭后依然能打开已访问过的页面。
 #  - /sw.js、/health_check 等不缓存，避免把「离线」误判成「在线」。
 SERVICE_WORKER_JS = r"""
-const CACHE = 'br-reader-v42';
+const CACHE = 'br-reader-v61';
 /* ---- 旧缓存页面迁移 ----
    早期窄屏 CSS 把正文字号写成 `font-size: 17px !important`，且设置页滑块还会再调
    `changeFontSize(0)`（按 getComputedStyle 反推字号，配合 body 的 transition 会把
@@ -798,6 +846,13 @@ LABELS: Dict[str, Dict[str, str]] = {
         "portal_settings": "设置", "portal_back": "返回",
         "portal_clear_cache": "清除离线缓存", "portal_cleared": "已清除",
         "portal_open_failed": "打开失败，请检查后端与密钥",
+        "portal_loading": "正在打开书籍",
+        "portal_confirm_delete_history": "确定删除选中的阅读历史？",
+        "portal_confirm_clear_history": "确定清除全部阅读历史？此操作不可恢复。",
+        "portal_manage_local": "管理", "portal_select_all": "全选", "portal_delete_selected": "删除选中",
+        "portal_delete_all": "全部清除", "portal_cancel": "取消", "portal_select_first": "请先选择书籍",
+        "portal_confirm_delete_selected": "确定删除选中的书籍？此操作不可恢复。",
+        "portal_confirm_delete_all": "确定清除全部本地书籍？此操作不可恢复。",
     },
     "en_US": {
         "read": "Read", "toc": "Contents", "search": "Search", "library": "Library", "settings": "Settings",
@@ -827,6 +882,13 @@ LABELS: Dict[str, Dict[str, str]] = {
         "portal_settings": "Settings", "portal_back": "Back",
         "portal_clear_cache": "Clear offline cache", "portal_cleared": "Cleared",
         "portal_open_failed": "Failed to open, check backend and API key",
+        "portal_loading": "Opening book",
+        "portal_confirm_delete_history": "Delete selected reading history?",
+        "portal_confirm_clear_history": "Clear all reading history? This cannot be undone.",
+        "portal_manage_local": "Manage", "portal_select_all": "Select all", "portal_delete_selected": "Delete selected",
+        "portal_delete_all": "Clear all", "portal_cancel": "Cancel", "portal_select_first": "Select books first",
+        "portal_confirm_delete_selected": "Delete selected books? This cannot be undone.",
+        "portal_confirm_delete_all": "Clear all local books? This cannot be undone.",
     },
 }
 
@@ -885,9 +947,11 @@ def render_startup_gate_early_js(enabled: bool, password_hash: str = "") -> str:
         '  try {\n'
         '    window.__BR_STARTUP_PASSWORD_ENABLED__ = ' + ('true' if enabled else 'false') + ';\n'
         '    window.__BR_STARTUP_PASSWORD_HASH__ = ' + _js_json(password_hash or "") + ';\n'
-        '    function brCookie(){ var parts=document.cookie.split(";"), name="br_startup_unlocked_hash="; for(var i=0;i<parts.length;i++){ var p=parts[i].trim(); if(p.indexOf(name)===0) return decodeURIComponent(p.slice(name.length)); } return ""; }\n'
-        '    var unlocked = !!window.__BR_STARTUP_PASSWORD_HASH__ &&\n'
-        '      brCookie() === window.__BR_STARTUP_PASSWORD_HASH__;\n'
+        '    function brUnlockedHash(){ var exp=window.__BR_STARTUP_PASSWORD_HASH__||""; if(!exp) return false;\n'
+        '      try { var parts=document.cookie.split(";"), name="br_startup_unlocked_hash="; for(var i=0;i<parts.length;i++){ var p=parts[i].trim(); if(p.indexOf(name)===0 && decodeURIComponent(p.slice(name.length))===exp) return true; } } catch(e){}\n'
+        '      try { if (localStorage.getItem("br_startup_unlocked_hash")===exp) return true; } catch(e){}\n'
+        '      return false; }\n'
+        '    var unlocked = brUnlockedHash();\n'
         '    if (window.__BR_STARTUP_PASSWORD_ENABLED__ && !unlocked) {\n'
         '      document.documentElement.classList.add("br-startup-locked");\n'
         '    }\n'
@@ -1050,8 +1114,11 @@ STARTUP_GATE_JS = r"""
       return;
     }
     brMsg('');
-    /* 同源所有页面共享已验证的密码摘要（会话 cookie），书库/阅读页/新标签页都不再重复输入。 */
-    document.cookie = 'br_startup_unlocked_hash=' + encodeURIComponent(expected) + '; Path=/; SameSite=Lax';
+    /* file:// 页面里 document.cookie 不可用（或每个文件相互隔离），只写 cookie 会导致
+       每打开一本书都要重新输密码。localStorage 在同一浏览器下跨 file:// 页面共享，
+       作为主存储；摘要与当前密码哈希绑定，改密码后自动失效。 */
+    try { localStorage.setItem('br_startup_unlocked_hash', expected); } catch(e){}
+    try { document.cookie = 'br_startup_unlocked_hash=' + encodeURIComponent(expected) + '; Path=/; SameSite=Lax'; } catch(e){}
     try { sessionStorage.removeItem('br_startup_unlocked_hash'); } catch(e) {}
     document.documentElement.classList.remove('br-startup-locked');
     try { window.dispatchEvent(new Event('br-startup-unlocked')); } catch(e) {}
@@ -1171,6 +1238,26 @@ html.br-dark{
   opacity:1; font-weight:650; color:var(--br-accent); background:var(--br-card-bg);
   box-shadow:0 2px 8px rgba(31,55,110,.10);
 }
+/* ---- 本地书籍管理（清理）---- */
+.br-manage-local-btn{ display:none; }
+.br-portal-tabs.manage-visible .br-manage-local-btn{ display:inline-flex; align-items:center; }
+.br-local-manage-bar{
+  display:flex; flex-wrap:wrap; align-items:center; gap:8px; margin-top:10px; padding:10px 12px;
+  border-radius:12px; background:var(--br-card-bg); border:1px solid var(--br-nav-border);
+}
+.br-local-select-all{ display:inline-flex; align-items:center; gap:6px; font-size:13px; cursor:pointer; }
+.br-local-manage-bar button{
+  padding:6px 12px; border-radius:9px; border:1px solid var(--br-nav-border);
+  background:transparent; color:inherit; cursor:pointer; font-size:13px;
+}
+.br-local-manage-bar button.br-local-danger{ color:#c0392b; border-color:#e6b0aa; }
+html.br-dark .br-local-manage-bar button.br-local-danger{ color:#ff8a80; border-color:#7f3a33; }
+.br-portal .book-card.select-mode{ cursor:default; }
+.br-card-check{ display:none; align-items:center; justify-content:center; flex:0 0 auto; width:20px; height:20px; }
+.br-portal.manage-mode .br-card-check{ display:flex; }
+.br-portal.manage-mode .book-card{ cursor:pointer; }
+.br-portal.manage-mode .book-card.selected{ outline:2px solid var(--br-accent); outline-offset:-2px; }
+}
 
 /* ---- 书籍卡片 ---- */
 .br-portal .book-grid{ gap:14px; margin-top:18px; grid-template-columns:repeat(auto-fill,minmax(280px,1fr)); }
@@ -1207,7 +1294,8 @@ html.br-dark{
 .book-meta{ flex:1 1 auto; min-width:0; }
 .br-portal .book-card h3{
   margin:0 0 5px; font-size:15.5px; font-weight:650; line-height:1.4;
-  white-space:nowrap; overflow:hidden; text-overflow:ellipsis; word-break:normal;
+  display:-webkit-box; -webkit-box-orient:vertical; -webkit-line-clamp:2;
+  overflow:hidden; word-break:break-all;
 }
 .br-portal .book-card .book-author{
   margin:0; font-size:12.5px; opacity:.6; white-space:nowrap; overflow:hidden; text-overflow:ellipsis;
@@ -1223,9 +1311,9 @@ html.br-dark{
   margin-left:2px; transition:transform .18s ease, opacity .18s ease; user-select:none;
 }
 .book-download{
-  flex:0 0 auto; min-width:46px; min-height:34px; padding:0 10px; margin-left:2px;
-  border-radius:9px; border:1px solid var(--br-nav-border); background:var(--br-card-bg);
-  color:var(--br-accent); font-size:12px; font-weight:650; white-space:nowrap; cursor:pointer;
+  flex:0 0 auto; min-height:22px; padding:3px 8px; margin-left:0;
+  border-radius:6px; border:1px solid var(--br-nav-border); background:var(--br-card-bg);
+  color:var(--br-accent); font-size:11px; font-weight:650; white-space:nowrap; cursor:pointer;
 }
 .book-download:hover{ border-color:var(--br-accent); background:var(--br-accent-soft); }
 .book-download:disabled{ opacity:.5; cursor:default; }
@@ -1576,6 +1664,18 @@ DATA_SOURCE_JS = r"""
     saveHistory: function (items) {
       try { localStorage.setItem(HISTORY_KEY, JSON.stringify(items || [])); return true; }
       catch (e) { return false; }
+    },
+    deleteHistory: function (keys) {
+      var list = Object.keys(keys || {}).filter(function (k) { return !!k; });
+      if (!list.length) { return false; }
+      var remain = this.history().filter(function (h) {
+        var k = String(h.bookId || h.id || '');
+        return list.indexOf(k) < 0;
+      });
+      return this.saveHistory(remain);
+    },
+    clearHistory: function () {
+      return this.saveHistory([]);
     }
   };
 
@@ -1665,6 +1765,13 @@ body.app-reader-active .br-scroll-nav { display: none; }
   #appSpeechPanel, #appProgressPanel, #appViewModePanel, #appJumpPanel,
   #appUnlockPanel { left: 8px !important; right: 8px !important; width: auto !important; top: 58px; max-height: calc(100vh - 120px); }
 }
+
+/* 打开书籍前的全屏遮罩：后端动态 reader 首次生成可能要数秒，先给出明确反馈。 */
+#brLoadingMask { position: fixed; inset: 0; z-index: 99999; display: none; align-items: center; justify-content: center; background: rgba(16,20,34,.55); backdrop-filter: blur(4px); -webkit-backdrop-filter: blur(4px); color: #fff; }
+.br-loading-card { display: flex; flex-direction: column; align-items: center; gap: 14px; padding: 28px 34px; max-width: 84vw; border-radius: 16px; background: rgba(26,30,46,.94); box-shadow: 0 18px 48px rgba(0,0,0,.38); }
+.br-loading-spinner { width: 40px; height: 40px; border-radius: 50%; border: 3px solid rgba(255,255,255,.22); border-top-color: #4f7cff; animation: brLoadingSpin .8s linear infinite; }
+.br-loading-text { font-size: 14px; line-height: 1.5; text-align: center; }
+@keyframes brLoadingSpin { to { transform: rotate(360deg); } }
 """
 
 APP_ROUTER_JS = r"""
@@ -1698,14 +1805,33 @@ APP_ROUTER_JS = r"""
     if (push) { history.pushState(null, '', url); }
     else { history.replaceState(null, '', url); }
   }
+  /* 显式同步阅读视图的界面状态，不单纯依赖 body class：
+     工具栏(.br-app-toolbar)在阅读视图必须可见，右下角滚动导航(.br-scroll-nav)
+     在阅读视图必须隐藏。个别浏览器在 iframe 加载/整页刷新后 body class 与
+     视图状态可能短暂不同步，表现为“进入阅读后顶部菜单消失、只剩返回按钮和
+     右侧滚动按钮”，这里用 inline style 兜底，确保状态一致。 */
+  function syncReaderChrome(inReader) {
+    var toolbar = document.getElementById('appReaderToolbar');
+    var back = document.getElementById('appReaderBackBtn');
+    var scrollNav = document.querySelector('.br-scroll-nav');
+    var lib = document.getElementById('appLibraryView');
+    var reader = document.getElementById('appReaderView');
+    /* 视图容器也用 inline style 同步：截图里出现“URL 已是 #view=library 但
+       阅读 iframe 仍可见、工具栏却消失”的矛盾态，即 .active class 与
+       app-reader-active 脱节。直接控制 display 保证二者严格一致。 */
+    if (reader) { reader.style.display = inReader ? 'block' : 'none'; }
+    if (lib) { lib.style.display = inReader ? 'none' : 'block'; }
+    if (toolbar) { toolbar.style.display = inReader ? 'flex' : 'none'; }
+    if (back) { back.style.display = inReader ? 'block' : 'none'; }
+    if (scrollNav) { scrollNav.style.display = inReader ? 'none' : 'flex'; }
+    if (inReader) { if (reader) { reader.classList.add('active'); } if (lib) { lib.classList.remove('active'); } }
+    else { if (reader) { reader.classList.remove('active'); } if (lib) { lib.classList.add('active'); } }
+    document.body.classList.toggle('app-reader-active', !!inReader);
+  }
   function showLibrary(push) {
     current = 'library';
     currentSrc = '';
-    document.body.classList.remove('app-reader-active');
-    var lib = document.getElementById('appLibraryView');
-    var reader = document.getElementById('appReaderView');
-    if (lib) { lib.classList.add('active'); }
-    if (reader) { reader.classList.remove('active'); }
+    syncReaderChrome(false);
     hideAllAppPanels();
     updateUrl('library', '', '', push !== false);
   }
@@ -1713,28 +1839,74 @@ APP_ROUTER_JS = r"""
     if (!bookKey && !src) { return; }
     current = 'reader';
     currentSrc = src || currentSrc;
-    document.body.classList.add('app-reader-active');
-    var lib = document.getElementById('appLibraryView');
-    var reader = document.getElementById('appReaderView');
     var frame = document.getElementById('appReaderFrame');
-    if (lib) { lib.classList.remove('active'); }
-    if (reader) { reader.classList.add('active'); }
+    syncReaderChrome(true);
     if (frame) {
       frame.src = currentSrc || window.BRAppRuntime.readerUrl(bookKey);
     }
     updateUrl('reader', bookKey, currentSrc, push !== false);
+    /* iframe 加载 / hashchange 可能在下一帧回退状态，延迟再确认一次 */
+    setTimeout(function () {
+      if (current === 'reader') { syncReaderChrome(true); }
+    }, 0);
+    setTimeout(function () {
+      if (current === 'reader') { syncReaderChrome(true); }
+    }, 300);
+  }
+  /* 设置页用 #settings 作为 hash；它不是阅读路由，APP_ROUTER 必须忽略，
+     否则 hashchange → start() 会把它当成「非阅读」而调用 showLibrary()，
+     把刚打开的设置面板立刻关掉（表现为点设置按钮页面一闪）。 */
+  function isSettingsHash() {
+    var h = String(location.hash || '');
+    return h === '#settings' || h === '#/settings' || h.indexOf('#settings&') === 0;
   }
   function start() {
+    if (isSettingsHash()) { return current === 'reader'; }
     var p = params();
     if (p.view === 'reader' || p.book) {
+      /* 旧缓存曾把书名写进 book 参数；这类 key 后端无法识别，
+         刷新到错误 URL 时直接回书库，避免再次落到 404 页面。 */
+      if (p.book && !/^[0-9a-f]{20}$/i.test(String(p.book).trim()) &&
+          !(p.src || currentSrc)) {
+        showLibrary(false);
+        return false;
+      }
       showReader(p.book || '', p.src || currentSrc, false);
       return true;
     }
     showLibrary(false);
     return false;
   }
-  window.addEventListener('popstate', function () { start(); });
-  window.addEventListener('hashchange', function () { start(); });
+  window.addEventListener('popstate', function () { if (!isSettingsHash()) { start(); } });
+  window.addEventListener('hashchange', function () { if (!isSettingsHash()) { start(); } });
+  /* 兜底：以顶层 URL hash 为唯一真相校正视图状态。
+     file:// 下 iframe 是独立 origin，父页面读 contentWindow.location.href 会抛
+     SecurityError（实测），无法探测 iframe 内部导航；postMessage 超时也不能作为
+     “已离开阅读页”的依据（旧版阅读页不会应答，会误伤）。因此这里只根据顶层
+     hash 判断：URL 已是 library 视图时，确保书库可见、阅读视图与工具栏隐藏，
+     消除“URL=#view=library 但正文仍显示”的脱节态。 */
+  function reconcileViewFromHash() {
+    if (isSettingsHash()) { return; } /* 设置页不是阅读路由，勿按其 hash 校正视图 */
+    var p = params();
+    var wantReader = (p.view === 'reader' || !!p.book);
+    if (wantReader && current !== 'reader') { showReader(p.book || '', p.src || currentSrc, false); }
+    else if (!wantReader && current !== 'library') { showLibrary(false); }
+    else { syncReaderChrome(wantReader); }
+  }
+  window.addEventListener('DOMContentLoaded', function () {
+    setTimeout(reconcileViewFromHash, 50);
+    setTimeout(reconcileViewFromHash, 400);
+    /* 低频兜底轮询：仅当 hash 与视图状态不一致才动作，正常时不改 DOM。
+       覆盖 replaceState 改 hash 不触发 hashchange、或 iframe 导航导致状态脱节。 */
+    setInterval(function () {
+      var p = params();
+      var wantReader = (p.view === 'reader' || !!p.book);
+      var readerView = document.getElementById('appReaderView');
+      var actuallyReader = !!(readerView && readerView.classList.contains('active') &&
+        getComputedStyle(readerView).display !== 'none');
+      if (wantReader !== actuallyReader) { reconcileViewFromHash(); }
+    }, 700);
+  });
   var tocItems = [];
   function requestToc() {
     var frame = document.getElementById('appReaderFrame');
@@ -2315,6 +2487,7 @@ APP_ROUTER_JS = r"""
       showAppToast(d.message || (d.available ? '编辑器已打开' : '编辑器入口不可用，请重新打开本书'));
     }
     if (d.type === 'encrypted-state') { renderEncryptedState(d.state || {}); }
+    if (d.type === 'go-library') { showLibrary(true); }
   });
   window.BRAppReaderToolbar = {
     send: sendReaderAction,
@@ -2351,6 +2524,28 @@ APP_ROUTER_JS = r"""
 })();
 """
 
+# 标签页伪装：切到其他标签时把标题改成 innocuous 的“百度一下”，切回来还原。
+# 与旧阅读页 browser_reader.py 的 title_change_script 行为一致；统一壳（书库页 /
+# 阅读视图）本身也需要，否则从书库标签切走时标题仍暴露“书库”。
+TITLE_GUARD_JS = r"""
+(function () {
+  'use strict';
+  var HIDDEN_TITLE = '百度一下，你就知道';
+  var realTitle = document.title || '';
+  function apply() {
+    try {
+      if (document.hidden) { document.title = HIDDEN_TITLE; }
+      else { document.title = realTitle; }
+    } catch (e) {}
+  }
+  /* 只用 visibilitychange + document.hidden 判断“切换标签/最小化”。
+     不要用 blur 兜底：点击页面内的 iframe 阅读区时顶层 window 也会 blur，
+     会把仍可见页面的标题误改成“百度一下”。 */
+  document.addEventListener('visibilitychange', apply);
+  apply();
+})();
+"""
+
 _PORTAL_TEMPLATE = r"""<!DOCTYPE html>
 <html lang="__LANG__">
 <head>
@@ -2374,6 +2569,12 @@ __APP_SHELL_CSS__
 </style>
 </head>
 <body>
+<div id="brLoadingMask" role="status" aria-live="polite">
+  <div class="br-loading-card">
+    <div class="br-loading-spinner" aria-hidden="true"></div>
+    <div class="br-loading-text" id="brLoadingText">__PORTAL_LOADING__…</div>
+  </div>
+</div>
 <div id="appLibraryView" class="app-view active">
 <div class="br-portal" id="portalRoot">
   <header class="br-portal-hero">
@@ -2418,6 +2619,13 @@ __APP_SHELL_CSS__
       <button type="button" id="tabHistory" class="br-portal-tab" role="tab">__PORTAL_HISTORY__</button>
       <button type="button" id="tabLocal" class="br-portal-tab" role="tab">__PORTAL_LOCAL_BOOKS__</button>
       <button type="button" id="tabNetwork" class="br-portal-tab active" role="tab">__PORTAL_NETWORK_BOOKS__</button>
+      <button type="button" id="manageLocalBtn" class="br-portal-tab br-manage-local-btn" role="button" title="__PORTAL_MANAGE_LOCAL__">__PORTAL_MANAGE_LOCAL__</button>
+    </div>
+    <div class="br-local-manage-bar" id="localManageBar" style="display:none">
+      <label class="br-local-select-all"><input type="checkbox" id="localSelectAll"> __PORTAL_SELECT_ALL__</label>
+      <button type="button" id="localDeleteSelected" class="br-local-danger">__PORTAL_DELETE_SELECTED__</button>
+      <button type="button" id="localDeleteAll" class="br-local-danger">__PORTAL_DELETE_ALL__</button>
+      <button type="button" id="localManageExit">__PORTAL_CANCEL__</button>
     </div>
   </div>
 
@@ -2462,9 +2670,16 @@ __APP_SHELL_CSS__
 </section>
 
 <div class="br-portal-offline-reader" id="offlineReader">
-  <div class="br-settings-head" style="background:var(--br-card-bg)">
-    <button type="button" id="offlineBack">&#8592;</button>
-    <h2 id="offlineTitle" style="font-size:16px"></h2>
+  <div class="br-offline-toolbar" id="offlineToolbar" aria-label="本地书阅读工具栏">
+    <button type="button" id="offlineBack" title="返回书库">&#8592;</button>
+    <strong class="br-offline-title" id="offlineTitle"></strong>
+    <button type="button" data-offline-action="fontDown" title="缩小字号">A-</button>
+    <button type="button" data-offline-action="fontUp" title="放大字号">A+</button>
+    <button type="button" data-offline-action="lineDown" title="减小行高">行高-</button>
+    <button type="button" data-offline-action="lineUp" title="增大行高">行高+</button>
+    <button type="button" data-offline-action="night" title="夜间模式">夜间</button>
+    <button type="button" data-offline-action="top" title="回到顶部">顶部</button>
+    <button type="button" data-offline-action="bottom" title="去到底部">底部</button>
   </div>
   <div class="br-offline-body" id="offlineBody"></div>
 </div>
@@ -2646,6 +2861,7 @@ window.__BR_BOOT_SECRET__ = __SECRET_JSON__;
 window.__BR_OFFLINE_MODE__ = __OFFLINE_MODE__;
 window.__BR_OFFLINE_BOOKS__ = __OFFLINE_BOOKS_JSON__;
 window.__BR_DEFAULT_BACKEND__ = __BACKEND_URL_JSON__;
+__TITLE_GUARD_JS__
 </script>
 <script>
 __PORTAL_JS__
@@ -2672,10 +2888,53 @@ _PORTAL_JS = r"""
     var PAGE_SIZE = 20;
     var mode = OFFLINE ? 'local' : 'network', books = [], offlineBooks = [], netOnline = false;
     var page = 1, total = 0, keyword = '', reqSeq = 0, searchTimer = null, syncing = false;
+    /* 本地书籍管理模式：manageMode=true 时点卡片切换选中而非打开书 */
+    var manageMode = false, selectedBooks = Object.create(null);
 
     function $(id) { return document.getElementById(id); }
     function setTip(text) { var el = $('tip'); if (el) { el.textContent = text || ''; } }
     function safe(fn) { try { return fn(); } catch (e) { return null; } }
+    /* 后端公开标识固定为 20 位十六进制（book_identity.book_key_for_path）。
+       旧版阅读页只注入 __BR_BOOK_FILE_PATH__、没注入 __BR_BOOK_KEY__ 时，
+       IndexedDB 缓存会把书名当成 id；若不校验就拼 /reader?book=<书名>，
+       后端必然返回「无法打开该书籍：文件不存在或不在书库中」。 */
+    function isBackendBookKey(v) {
+        return /^[0-9a-f]{20}$/i.test(String(v == null ? '' : v).trim());
+    }
+    var loadingTimer = null;
+    function scheduleHideLoading(ms) {
+        if (loadingTimer) { clearTimeout(loadingTimer); }
+        loadingTimer = setTimeout(hideLoading, ms);
+    }
+    function showLoading(title) {
+        var mask = $('brLoadingMask');
+        if (!mask) { return; }
+        var text = $('brLoadingText');
+        if (text) {
+            var prefix = L.portal_loading || '正在打开书籍';
+            text.textContent = title ? (prefix + '《' + title + '》…') : (prefix + '…');
+        }
+        mask.style.display = 'flex';
+        /* 兜底：后端异常或 iframe 始终不触发 load 时，不能把用户永久挡在遮罩后。 */
+        scheduleHideLoading(15000);
+    }
+    function hideLoading() {
+        if (loadingTimer) { clearTimeout(loadingTimer); loadingTimer = null; }
+        var mask = $('brLoadingMask');
+        if (mask) { mask.style.display = 'none'; }
+    }
+    function openWithFrame(opener) {
+        var frame = document.getElementById('appReaderFrame');
+        var before = frame ? String(frame.src || '') : '';
+        opener();
+        if (!frame) { scheduleHideLoading(300); return; }
+        if (String(frame.src || '') !== before) {
+            frame.addEventListener('load', hideLoading, { once: true });
+        } else {
+            /* 同一 src 重复点击不会再触发 load，短延时后收起遮罩。 */
+            scheduleHideLoading(400);
+        }
+    }
     /* URL/密钥逻辑统一由 BRAppRuntime 提供，网络/离线差异不再散落在页面逻辑里 */
     function backend() { return window.BRAppRuntime.backend(); }
     function key() { return window.BRAppRuntime.key(); }
@@ -2780,6 +3039,8 @@ _PORTAL_JS = r"""
         return readBookIndex().then(function (list) {
             if (seq !== reqSeq) { return; }
             if (!list.length) { list = cachedBooks(); }
+            /* 最后兜底：file:// 生成页内嵌的书单（离线生成时写入的真实服务端书） */
+            if (!list.length && OFFLINE_BOOKS && OFFLINE_BOOKS.length) { list = OFFLINE_BOOKS.slice(); }
             render(sliceLocal(list), total);
         });
     }
@@ -2789,7 +3050,11 @@ _PORTAL_JS = r"""
         var seq = ++reqSeq;
         if (mode === 'history') { return renderHistory(); }
         if (mode === 'local') { return loadLocalBooksView(); }
-        if (OFFLINE) { return loadLocalBooksView(); }
+        /* 「网络书籍」列表始终以服务端为准：页面虽由 Python 以 file:// 生成、
+           OFFLINE 标志为 true，但只要后端在线，就应显示真实服务端书库（book_key 正确），
+           否则用户拿到的是生成时内嵌的旧书单/IndexedDB 缓存，book_key 与后端不符，
+           点书拼 /reader?book=<key> 会报「书籍不存在」。仅后端不可达时才在
+           checkNet 分支里降级到本地缓存。 */
         return checkNet().then(function (online) {
             if (!online) {
                 netOnline = false; paintNet();
@@ -2878,10 +3143,25 @@ _PORTAL_JS = r"""
                     format: r.format || '', status: r.synced ? (L.synced || '已同步') : '',
                     pinyin: r.pinyin || '', tags: r.tags || '',
                     reader_url: r.reader_url || ('indexeddb:' + k),
-                    savedAt: r.savedAt || 0, _blob: r.blob || null
+                    savedAt: r.savedAt || 0, _blob: r.blob || null,
+                    /* 只有 key 合法且 path 非空，后端才可能用 /reader?book= 打开。
+                       旧缓存缺 __BR_BOOK_KEY__ 时 key 退化为书名（path 仍非空），
+                       这类记录必须按纯本地书走简化面板，否则必然 404。 */
+                    _hasPath: !!r.path && isBackendBookKey(k)
                 };
             });
-            embedded.forEach(function (b) { if (b.book_key && !map[b.book_key]) { map[b.book_key] = b; } });
+            embedded.forEach(function (b) {
+                if (!b.book_key) { return; }
+                if (!map[b.book_key]) { map[b.book_key] = b; return; }
+                /* 生成页内嵌书单带真实的 file:// reader_url；IndexedDB 缓存记录常用
+                   indexeddb: 占位符覆盖它，导致点书进「简化面板」而非 iframe 完整菜单。
+                   只要内嵌书单里有真实 file:// url，就优先采用，保证菜单与网络版一致。 */
+                var ref = String(b.reader_url || '');
+                var cur = String(map[b.book_key].reader_url || '');
+                if (ref.indexOf('file:') === 0 && cur.indexOf('file:') !== 0) {
+                    map[b.book_key].reader_url = ref;
+                }
+            });
             return Object.keys(map).map(function (k) { return map[k]; })
                 .sort(function (a, b) { return (b.savedAt || 0) - (a.savedAt || 0); });
         }).catch(function () { return embedded; });
@@ -2950,13 +3230,37 @@ _PORTAL_JS = r"""
                 tx.onerror = function () { db.close(); resolve(found); };
             });
         }).then(function (rec) {
-            if (!rec) { return; }
-            $('offlineTitle').textContent = rec.title || id;
+            if (!rec) { hideLoading(); return; }
+            /* 旧版本 cacheCurrentBook 用 document.title 存书名，标题伪装期间会把
+               “百度一下，你就知道”写进 title；这里读取时兜底，避免显示伪装标题。 */
+            var rawTitle = String(rec.title || '');
+            var fake = /百度一下|百度一下[,，]你就知道/.test(rawTitle);
+            /* 生成页内嵌书单 __BR_OFFLINE_BOOKS__ 的 title 是静态写入的，不受
+               document.title 伪装污染；被污染的 IndexedDB 记录用这里的值纠正。 */
+            var cleanTitle = '';
+            try {
+                var embedded = (window.__BR_OFFLINE_BOOKS__ || []).filter(function (x) {
+                    return String(x.book_key || x.book_id) === String(id);
+                })[0];
+                if (embedded && embedded.title && !/百度一下/.test(String(embedded.title))) {
+                    cleanTitle = String(embedded.title);
+                }
+            } catch (e) {}
+            var bookTitle = (fake || !rawTitle)
+                ? (cleanTitle || b.title || rec.book_id || rec.book_key || id || '书籍')
+                : rawTitle;
+            $('offlineTitle').textContent = bookTitle;
             $('offlineBody').innerHTML = rec.html || '';
             applyReaderSettings();
             $('offlineReader').classList.add('open');
+            $('offlineReader').scrollTop = 0;
             $('portalRoot').style.display = 'none';
-        }).catch(function () {});
+            /* 本地书面板是全屏层，portal 的全局滚动按钮(z-index 8000)会盖在其上。
+               工具栏已提供「顶部/底部」，这里隐藏全局按钮避免孤立悬浮。 */
+            var scrollNav = document.querySelector('.br-scroll-nav');
+            if (scrollNav) { scrollNav.style.display = 'none'; }
+            hideLoading();
+        }).catch(function () { hideLoading(); });
     }
 
     function applyReaderSettings() {
@@ -3001,7 +3305,22 @@ _PORTAL_JS = r"""
     function makeCard(b) {
         var card = document.createElement('div');
         card.className = 'book-card';
+        if (b.book_key) { card.setAttribute('data-book-key', b.book_key); }
         var title = String(b.title || b.novel_title || b.name || L.portal_title);
+
+        /* 管理模式下的选择复选框（仅本地书籍 tab 可见，CSS 控制显隐） */
+        var check = document.createElement('label');
+        check.className = 'br-card-check';
+        var checkBox = document.createElement('input');
+        checkBox.type = 'checkbox';
+        checkBox.className = 'br-card-checkbox';
+        checkBox.checked = !!selectedBooks[b.book_key];
+        checkBox.addEventListener('change', function () {
+            if (checkBox.checked) { selectedBooks[b.book_key] = true; }
+            else { delete selectedBooks[b.book_key]; }
+            card.classList.toggle('selected', checkBox.checked);
+        });
+        check.appendChild(checkBox);
 
         var cover = document.createElement('div');
         cover.className = 'book-cover book-cover--' + coverTone(title);
@@ -3012,6 +3331,7 @@ _PORTAL_JS = r"""
         meta.className = 'book-meta';
         var h = document.createElement('h3');
         h.textContent = title;
+        h.title = title;
         var author = document.createElement('p');
         author.className = 'book-author';
         author.textContent = b.author || (mode === 'local' ? L.portal_local_books : '—');
@@ -3050,7 +3370,7 @@ _PORTAL_JS = r"""
                 e.stopPropagation();
                 downloadBookTxt(b, title);
             });
-            card.appendChild(download);
+            chips.appendChild(download);
         }
         if (mode === 'local' && b._blob) {
             var syncBtn = document.createElement('button');
@@ -3063,23 +3383,62 @@ _PORTAL_JS = r"""
                 e.stopPropagation();
                 syncBookToBackend(b, title, syncBtn);
             });
-            card.appendChild(syncBtn);
+            chips.appendChild(syncBtn);
         }
 
+        card.appendChild(check);
         card.appendChild(cover);
         card.appendChild(meta);
         card.appendChild(arrow);
-        card.addEventListener('click', function () {
-            var ref = b.reader_url || '';
-            if (ref.indexOf('indexeddb:') === 0) { openOfflineBook(b.book_key, b); return; }
-            if (!window.BRAppRouter) {
-                if (ref && ref.indexOf('file:') === 0) { location.href = ref; return; }
-                if (b.book_key) { location.href = window.BRAppRuntime.readerUrl(b.book_key); }
+        if (manageMode && selectedBooks[b.book_key]) { card.classList.add('selected'); }
+        card.addEventListener('click', function (e) {
+            /* 管理模式：点卡片切换选中，不打开书 */
+            if (manageMode) {
+                if (e && e.target && e.target.tagName === 'INPUT') { return; }
+                checkBox.checked = !checkBox.checked;
+                checkBox.dispatchEvent(new Event('change'));
                 return;
             }
-            if (ref && ref.indexOf('file:') === 0) { window.BRAppRouter.showReader(b.book_key, ref, true); return; }
-            if (!b.book_key) { return; }
-            window.BRAppRouter.showReader(b.book_key, '', true);
+            var ref = b.reader_url || '';
+            showLoading(b.title || b.novel_title || b.name || '');
+            if (ref.indexOf('indexeddb:') === 0) {
+                /* indexeddb: 有三种书，必须区分，否则会误走后端 iframe 报
+                   「文件不存在或不在书库中」：
+                   ① 服务端缓存书（_hasPath=true 且 key 为 20 位十六进制）：后端有它，
+                      /reader?book=<key> 能动态生成完整阅读器，在线时优先走 iframe 完整菜单。
+                   ② 旧缓存缺 __BR_BOOK_KEY__ 的书：key 退化成书名、path 可能非空，
+                      后端无法按书名找书，只能用 #offlineReader 读 IndexedDB 正文。
+                   ③ 纯浏览器上传书（_hasPath=false，正文只在 IndexedDB、后端没有）：
+                      只能用 #offlineReader 简化面板，绝不能走后端 iframe。 */
+                if (!b._hasPath || !isBackendBookKey(b.book_key)) { openOfflineBook(b.book_key, b); return; }
+                var openFull = function () {
+                    if (b.book_key && window.BRAppRouter) {
+                        openWithFrame(function () { window.BRAppRouter.showReader(b.book_key, '', true); });
+                    } else {
+                        openOfflineBook(b.book_key, b);
+                    }
+                };
+                var online = null;
+                try { online = checkNet(); } catch (e) {}
+                if (online && typeof online.then === 'function') {
+                    online.then(function (ok) { if (ok) { openFull(); } else { openOfflineBook(b.book_key, b); } })
+                           .catch(function () { openOfflineBook(b.book_key, b); });
+                } else {
+                    openOfflineBook(b.book_key, b);
+                }
+                return;
+            }
+            if (!window.BRAppRouter) {
+                if (ref && ref.indexOf('file:') === 0) { location.href = ref; return; }
+                if (b.book_key) { location.href = window.BRAppRuntime.readerUrl(b.book_key); return; }
+                hideLoading(); return;
+            }
+            if (ref && ref.indexOf('file:') === 0) {
+                openWithFrame(function () { window.BRAppRouter.showReader(b.book_key, ref, true); });
+                return;
+            }
+            if (!b.book_key) { hideLoading(); return; }
+            openWithFrame(function () { window.BRAppRouter.showReader(b.book_key, '', true); });
         });
         return card;
     }
@@ -3174,13 +3533,92 @@ _PORTAL_JS = r"""
         });
     }
 
+    /* ---------- 本地书籍管理：清理选中 / 全部清除 ---------- */
+    function setManageMode(on) {
+        manageMode = !!on;
+        if (!manageMode) { selectedBooks = Object.create(null); }
+        var portal = document.querySelector('.br-portal');
+        var tabs = document.querySelector('.br-portal-tabs');
+        var bar = $('localManageBar');
+        if (portal) { portal.classList.toggle('manage-mode', manageMode); }
+        if (tabs) { tabs.classList.toggle('manage-visible', mode === 'local' || mode === 'history'); }
+        if (bar) { bar.style.display = manageMode ? 'flex' : 'none'; }
+        loadBooks(1);
+    }
+    function deleteLocalBooks(keys, all) {
+        var list = all ? null : Object.keys(keys || {}).filter(function (k) { return !!k; });
+        if (!all && (!list || !list.length)) { setTip(L.portal_select_first || '请先选择书籍'); return; }
+        var msg = all ? (L.portal_confirm_delete_all || '确定清除全部本地书籍？此操作不可恢复。')
+                      : (L.portal_confirm_delete_selected || '确定删除选中的书籍？');
+        if (!window.confirm(msg)) { return; }
+        /* 主删除只操作 books store：book_index 在部分旧库并未创建，
+           若与 books 放进同一 readwrite 事务，NotFoundError 会让整笔删除回滚。 */
+        return window.BRDataSource.local.openDB().then(function (db) {
+            return new Promise(function (resolve) {
+                var tx = db.transaction(STORE, 'readwrite');
+                var store = tx.objectStore(STORE);
+                if (all) { store.clear(); }
+                else { list.forEach(function (k) { store.delete(k); }); }
+                tx.oncomplete = function () { resolve(true); };
+                tx.onerror = function () { resolve(false); };
+                tx.onabort = function () { resolve(false); };
+            }).then(function (ok) { db.close(); return ok; });
+        }).then(function (ok) {
+            /* 网络书单索引是可选缓存：存在才清理，失败也不影响本地书删除结果。 */
+            pruneLocalIndex(all, list);
+            selectedBooks = Object.create(null);
+            setManageMode(false);
+            setTip(ok ? (L.portal_cleared || '已清除') : (L.upload_failed || '操作失败'));
+        }).catch(function () { setTip(L.upload_failed || '操作失败'); });
+    }
+    function deleteHistoryBooks(keys, all) {
+        var list = all ? null : Object.keys(keys || {}).filter(function (k) { return !!k; });
+        if (!all && (!list || !list.length)) { setTip(L.portal_select_first || '请先选择书籍'); return; }
+        var msg = all ? (L.portal_confirm_clear_history || '确定清除全部阅读历史？此操作不可恢复。')
+                      : (L.portal_confirm_delete_history || '确定删除选中的阅读历史？');
+        if (!window.confirm(msg)) { return; }
+        var ds = window.BRDataSource.local;
+        /* all=true 不依赖任何勾选，直接清空整份历史。 */
+        var ok = all ? ds.clearHistory() : ds.deleteHistory(keys);
+        selectedBooks = Object.create(null);
+        setManageMode(false);
+        setTip(ok ? (L.portal_cleared || '已清除') : (L.upload_failed || '操作失败'));
+    }
+    function pruneLocalIndex(all, list) {
+        return openDB().then(function (db) {
+            return new Promise(function (resolve) {
+                if (!db.objectStoreNames.contains(INDEX_STORE)) { db.close(); resolve(); return; }
+                var tx = db.transaction(INDEX_STORE, 'readwrite');
+                var idx = tx.objectStore(INDEX_STORE);
+                var g = idx.get('all');
+                g.onsuccess = function () {
+                    var data = g.result;
+                    if (data && Array.isArray(data.items)) {
+                        data.items = data.items.filter(function (it) {
+                            if (all) { return false; }
+                            var k = String(it.book_key || it.id || '');
+                            return list.indexOf(k) < 0;
+                        });
+                        idx.put(data);
+                    }
+                };
+                tx.oncomplete = function () { db.close(); resolve(); };
+                tx.onerror = function () { db.close(); resolve(); };
+                tx.onabort = function () { db.close(); resolve(); };
+            });
+        }).catch(function () {});
+    }
+
     function setMode(m) {
         mode = m;
         page = 1;
+        if (manageMode && m !== 'local' && m !== 'history') { setManageMode(false); }
         ['tabHistory', 'tabLocal', 'tabNetwork'].forEach(function (id) {
             var el = $(id);
             if (el) { el.classList.toggle('active', id === 'tab' + m.charAt(0).toUpperCase() + m.slice(1)); }
         });
+        var tabs = document.querySelector('.br-portal-tabs');
+        if (tabs) { tabs.classList.toggle('manage-visible', mode === 'local' || mode === 'history'); }
         syncNav();
         loadBooks(1);
     }
@@ -3274,10 +3712,20 @@ _PORTAL_JS = r"""
         if (btn) { btn.disabled = true; }
         setTip(L.sync_to_backend + '…');
         var fileName = (b._record && b._record.file_name) || (title || 'book') + '.' + (b.format || 'txt').toLowerCase();
-        postBookBlob(blob, fileName, title || b.title).then(function () {
-            return saveLocalBook(Object.assign({}, b._record || {}, {
-                id: b.book_key, book_key: b.book_key, synced: true
-            }));
+        /* 先读完整记录再合并：book 列表对象只带 _blob、不带 html/blob/title 等原始字段。
+           旧实现用 b._record || {} 合并，同步后只剩 id/book_key/synced，把 html 抹掉，
+           导致本地书再次打开时内容页空白。这里以 IndexedDB 里的完整记录为准。 */
+        window.BRDataSource.local.getBook(b.book_key).then(function (full) {
+            return postBookBlob(blob, fileName, title || b.title).then(function () {
+                var base = full || b._record || {};
+                return saveLocalBook(Object.assign({}, base, {
+                    id: b.book_key, book_key: b.book_key,
+                    title: base.title || title || b.title,
+                    blob: base.blob || blob,
+                    html: base.html || '',
+                    synced: true
+                }));
+            });
         }).then(function () {
             setMode('local');
             setTimeout(function () { setTip(L.synced); }, 80);
@@ -3328,6 +3776,33 @@ _PORTAL_JS = r"""
         $('tabHistory').addEventListener('click', function () { setMode('history'); });
         $('tabLocal').addEventListener('click', function () { setMode('local'); });
         $('tabNetwork').addEventListener('click', function () { setMode('network'); });
+        var manageBtn = $('manageLocalBtn');
+        if (manageBtn) { manageBtn.addEventListener('click', function () { setManageMode(!manageMode); }); }
+        var selectAll = $('localSelectAll');
+        if (selectAll) {
+            selectAll.addEventListener('change', function () {
+                Array.prototype.forEach.call(document.querySelectorAll('#bookGrid .book-card'), function (card) {
+                    var k = card.getAttribute('data-book-key');
+                    if (!k) { return; }
+                    var cb = card.querySelector('.br-card-checkbox');
+                    if (!cb) { return; }
+                    cb.checked = selectAll.checked;
+                    cb.dispatchEvent(new Event('change'));
+                });
+            });
+        }
+        var delSel = $('localDeleteSelected');
+        if (delSel) { delSel.addEventListener('click', function () {
+            if (mode === 'history') { deleteHistoryBooks(selectedBooks, false); }
+            else { deleteLocalBooks(selectedBooks, false); }
+        }); }
+        var delAll = $('localDeleteAll');
+        if (delAll) { delAll.addEventListener('click', function () {
+            if (mode === 'history') { deleteHistoryBooks(null, true); }
+            else { deleteLocalBooks(null, true); }
+        }); }
+        var mngExit = $('localManageExit');
+        if (mngExit) { mngExit.addEventListener('click', function () { setManageMode(false); }); }
         $('brMobileNav').addEventListener('click', function (e) {
             var btn = e.target.closest ? e.target.closest('button[data-nav]') : null;
             if (!btn) { return; }
@@ -3367,9 +3842,32 @@ _PORTAL_JS = r"""
         $('fontSizeInput').addEventListener('input', function () { $('fontSizeValue').textContent = this.value; saveSettings(); });
         $('lineHeightInput').addEventListener('input', function () { $('lineHeightValue').textContent = (this.value / 10).toFixed(1); saveSettings(); });
         $('darkInput').addEventListener('change', saveSettings);
-        $('offlineBack').addEventListener('click', function () {
+        function closeOfflineReader() {
             $('offlineReader').classList.remove('open');
             $('portalRoot').style.display = '';
+            var scrollNav = document.querySelector('.br-scroll-nav');
+            if (scrollNav) { scrollNav.style.display = ''; }
+        }
+        $('offlineBack').addEventListener('click', closeOfflineReader);
+        $('offlineToolbar').addEventListener('click', function (e) {
+            var btn = e.target && e.target.closest ? e.target.closest('button[data-offline-action]') : null;
+            if (!btn) { return; }
+            var action = btn.getAttribute('data-offline-action');
+            if (action === 'library') { closeOfflineReader(); return; }
+            if (action === 'top') { $('offlineReader').scrollTop = 0; return; }
+            if (action === 'bottom') { var r = $('offlineReader'); r.scrollTop = r.scrollHeight; return; }
+            if (action === 'fontDown' || action === 'fontUp') {
+                var fi = $('fontSizeInput');
+                fi.value = Math.max(12, Math.min(32, parseInt(fi.value, 10) + (action === 'fontUp' ? 2 : -2)));
+                $('fontSizeValue').textContent = fi.value;
+            } else if (action === 'lineDown' || action === 'lineUp') {
+                var li = $('lineHeightInput');
+                li.value = Math.max(12, Math.min(28, parseInt(li.value, 10) + (action === 'lineUp' ? 1 : -1)));
+                $('lineHeightValue').textContent = (parseInt(li.value, 10) / 10).toFixed(1);
+            } else if (action === 'night') {
+                $('darkInput').checked = !$('darkInput').checked;
+            }
+            saveSettings();
         });
         setInterval(checkNet, 30000);
     }
@@ -3381,6 +3879,21 @@ _PORTAL_JS = r"""
             localStorage.removeItem('br_portal_books');
             localStorage.removeItem('br_portal_books_synced_at');
         });
+        /* 先完成书库初始化（事件绑定 + 数据加载），再处理直达阅读路由。
+           旧实现在 autoBook/start() 命中后直接 return，跳过了 bind()/loadBooks()，
+           导致从阅读页返回书库时三个 tab 全空、必须整页刷新。初始化只渲染
+           书库 DOM（bookGrid），与 reader 视图互不干扰，可安全提前。 */
+        bind();
+        paintNet();
+        /* 立即探测后端并刷新在线徽章：netOnline 初始为 false，若只 paintNet 不 checkNet，
+           页面刚打开会一直显示「离线」，要等 setInterval(checkNet,30000) 30 秒后才纠正。
+           这会让后端明明在线时，从网络书籍 tab 点书被误判为离线、降级简化面板。 */
+        checkNet();
+        setMode(mode);
+        loadOfflineBooks();
+        if ('serviceWorker' in navigator && (location.protocol === 'http:' || location.protocol === 'https:')) {
+            navigator.serviceWorker.register('/sw.js', { scope: '/' }).catch(function () {});
+        }
         /* 统一入口：?book=<公开标识> 直接进入统一 App Shell 的阅读视图。 */
         var autoBook = safe(function () { return new URLSearchParams(location.search).get('book') || ''; });
         if (autoBook && OFFLINE) {
@@ -3394,13 +3907,6 @@ _PORTAL_JS = r"""
         if (autoBook && window.BRAppRouter) {
             window.BRAppRouter.showReader(autoBook, '', false);
             return;
-        }
-        bind();
-        paintNet();
-        setMode(mode);
-        loadOfflineBooks();
-        if ('serviceWorker' in navigator && (location.protocol === 'http:' || location.protocol === 'https:')) {
-            navigator.serviceWorker.register('/sw.js', { scope: '/' }).catch(function () {});
         }
     }
     if (document.readyState === 'loading') { document.addEventListener('DOMContentLoaded', init); } else { init(); }
@@ -3432,6 +3938,7 @@ def build_portal_html(locale: Optional[str] = None, secret: str = "",
         "__DATA_SOURCE_JS__": DATA_SOURCE_JS,
         "__APP_SHELL_CSS__": APP_SHELL_CSS,
         "__APP_ROUTER_JS__": APP_ROUTER_JS,
+        "__TITLE_GUARD_JS__": TITLE_GUARD_JS,
         "__LABELS_JSON__": _js_json(labels),
         "__SECRET_JSON__": _js_json(secret or ""),
         "__OFFLINE_MODE__": "true" if offline_books is not None else "false",
@@ -3465,6 +3972,12 @@ def build_portal_html(locale: Optional[str] = None, secret: str = "",
         "__PORTAL_NETWORK_BOOKS__": labels["portal_network_books"],
         "__PORTAL_SETTINGS__": labels["portal_settings"],
         "__PORTAL_CLEAR_CACHE__": labels["portal_clear_cache"],
+        "__PORTAL_LOADING__": labels["portal_loading"],
+        "__PORTAL_MANAGE_LOCAL__": labels["portal_manage_local"],
+        "__PORTAL_SELECT_ALL__": labels["portal_select_all"],
+        "__PORTAL_DELETE_SELECTED__": labels["portal_delete_selected"],
+        "__PORTAL_DELETE_ALL__": labels["portal_delete_all"],
+        "__PORTAL_CANCEL__": labels["portal_cancel"],
         "__LIBRARY__": labels["library"],
         "__NETWORK__": labels["network"],
         "__BACKEND__": labels["backend"],

@@ -11573,6 +11573,15 @@ class BrowserReader:
         
         // 书库按钮统一回到书库首页：网络版走 /，离线版走生成的内嵌书库页
         function openBookLibrary() {{
+            /* 嵌入统一 App Shell（iframe）时，绝不能在本页用 location.href 导航：
+               那会把 iframe 跳成裸书库页，导致“URL 变 #view=library 但阅读正文还在、
+               工具栏消失”的错乱。应通知父页面用 showLibrary 切回书库视图。 */
+            try {{
+                if (window.parent && window.parent !== window) {{
+                    window.parent.postMessage({{ source: 'br-reader', type: 'go-library' }}, '*');
+                    return;
+                }}
+            }} catch (e) {{}}
             try {{
                 if (location.protocol === 'http:' || location.protocol === 'https:') {{
                     const u = new URL(location.href);
@@ -13783,9 +13792,25 @@ class BrowserReader:
 
         # 注入增强功能（CSS / HTML / JS）
         html = html.replace('</style>', scroll_css + EXTRA_READER_CSS + LOCK_SCREEN_CSS + SYNC_CSS + web_css + _sg_css + '</style>', 1)
+        # 嵌入统一外壳时隐藏旧工具栏的「独立兜底」脚本。
+        # 原 markShellEmbedded 依赖一大段 IIFE，任何中途异常/时序问题都会让它失效，
+        # 表现为从书库再次进入阅读时旧工具栏与统一工具栏同时出现（两套菜单）。
+        # 这段脚本零依赖、幂等：body 存在即加 class；并监听 shell 消息再次兜底。
+        _shell_embed_fallback = (
+            '<script>(function(){'
+            'function mark(){try{if(window.parent!==window&&document.body){'
+            'document.body.classList.add("br-shell-embedded");}}catch(e){}}'
+            'if(document.readyState==="loading"){document.addEventListener("DOMContentLoaded",mark);}'
+            'else{mark();}'
+            'setTimeout(mark,0);setTimeout(mark,300);setTimeout(mark,1200);'
+            'window.addEventListener("message",function(ev){'
+            'try{var d=ev&&ev.data;if(d&&d.source==="br-app-shell"){mark();}}catch(e){}});'
+            '})();</script>'
+        )
         html = html.replace(
             '</body>',
-            scroll_html + EXTRA_READER_HTML + SYNC_HTML + web_html + _sg_html
+            _shell_embed_fallback
+            + scroll_html + EXTRA_READER_HTML + SYNC_HTML + web_html + _sg_html
             + '<script>' + EXTRA_READER_JS + '</script>'
             + '<script>' + LOCK_SCREEN_JS + '</script>'
             + '<script>' + SYNC_JS + '</script>'
