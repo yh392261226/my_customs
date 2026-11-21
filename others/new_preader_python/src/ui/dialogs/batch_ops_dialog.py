@@ -223,7 +223,7 @@ class BatchOpsDialog(ModalScreen[Dict[str, Any]]):
                     Button(get_global_i18n().t("common.clean_invalid_short"), id="remove-missing-btn", variant="error"),
                     Button(get_global_i18n().t("common.export"), id="export-btn"),
                     Button(get_global_i18n().t('common.view_log'), id="view-logs-btn", variant="success"),
-                    Button(get_global_i18n().t("recycle_bin.open"), id="recycle-bin-btn", variant="primary"),
+                    # Button(get_global_i18n().t("recycle_bin.open"), id="recycle-bin-btn", variant="primary"),
                     Button(get_global_i18n().t("common.cancel"), id="cancel-btn"),
                     id="batch-ops-buttons", classes="btn-row"
                 ),
