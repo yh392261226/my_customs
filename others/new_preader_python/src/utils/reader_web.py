@@ -710,7 +710,7 @@ READER_WEB_JS = r"""
 #    后端关闭后依然能打开已访问过的页面。
 #  - /sw.js、/health_check 等不缓存，避免把「离线」误判成「在线」。
 SERVICE_WORKER_JS = r"""
-const CACHE = 'br-reader-v61';
+const CACHE = 'br-reader-v62';
 /* ---- 旧缓存页面迁移 ----
    早期窄屏 CSS 把正文字号写成 `font-size: 17px !important`，且设置页滑块还会再调
    `changeFontSize(0)`（按 getComputedStyle 反推字号，配合 body 的 transition 会把
@@ -2901,6 +2901,25 @@ _PORTAL_JS = r"""
     function isBackendBookKey(v) {
         return /^[0-9a-f]{20}$/i.test(String(v == null ? '' : v).trim());
     }
+    /* 书库点书即记历史：阅读页自己写的历史在 file:// 书库 + http:// iframe 的跨源
+       场景下会落进 iframe 的 localStorage，父页面读不到；简化面板更是完全不写。
+       这里统一在本地书库侧落一条，保证离线/网络版都能在阅读历史里找到。 */
+    function recordReadingHistory(b) {
+        b = b || {};
+        var bk = String(b.book_key || b.id || '');
+        if (!bk) { return; }
+        var ds = window.BRDataSource.local;
+        var hist = ds.history().filter(function (x) {
+            return String(x.bookId || x.id || '') !== bk;
+        });
+        hist.unshift({
+            id: String(Date.now()),
+            title: String(b.title || b.novel_title || b.name || bk),
+            type: 'network', bookId: bk, readTime: Date.now(),
+            reader_url: String(b.reader_url || '')
+        });
+        ds.saveHistory(hist.slice(0, 50));
+    }
     var loadingTimer = null;
     function scheduleHideLoading(ms) {
         if (loadingTimer) { clearTimeout(loadingTimer); }
@@ -3187,7 +3206,7 @@ _PORTAL_JS = r"""
                     format: b.format || '',
                     status: ts ? new Date(ts).toLocaleString() : '',
                     pinyin: b.pinyin || '', tags: b.tags || '',
-                    reader_url: b.reader_url || (b.book_key ? ('indexeddb:' + k) : ''), _blob: b._blob || null
+                    reader_url: h.reader_url || b.reader_url || (b.book_key ? ('indexeddb:' + k) : ''), _blob: b._blob || null
                 };
             });
             render(sliceLocal(items), total);
@@ -3401,6 +3420,7 @@ _PORTAL_JS = r"""
             }
             var ref = b.reader_url || '';
             showLoading(b.title || b.novel_title || b.name || '');
+            recordReadingHistory(b);
             if (ref.indexOf('indexeddb:') === 0) {
                 /* indexeddb: 有三种书，必须区分，否则会误走后端 iframe 报
                    「文件不存在或不在书库中」：
