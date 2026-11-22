@@ -7,8 +7,11 @@
 - 智能范围合并：自动识别章节号范围并合并
 """
 
+import os
 import re
 from typing import Any, Optional, List, Tuple
+
+from src.utils.string_utils import normalize_match_text, normalize_match_text_with_map
 
 
 class SmartTitleUtils:
@@ -154,14 +157,15 @@ class SmartTitleUtils:
         )  # 罗马数字
         any_num = f'(?:{arabic_num}|{fullwidth_num}|{chinese_num}|{roman_num})'  # 任意数字格式
 
-        chapter_markers = r'(?:序|前传|后传|外传|番外)'
-        volume_markers = r'(?:第' + any_num + r'[卷部册集]|[卷部册集])'
+        # 简繁混用：同一套书的标题可能写「后传/後傳」「册/冊」，两种都要认
+        chapter_markers = r'(?:序|前传|前傳|后传|後傳|外传|外傳|番外)'
+        volume_markers = r'(?:第' + any_num + r'[卷部册冊集]|[卷部册冊集])'
         all_markers = f'(?:{chapter_markers}|{volume_markers})'
 
         return any_num, all_markers
 
     # 数字后缀字符（数字后的 上/下/中 等标记）
-    _NUM_SUFFIX_CHARS = set('上下中前后内外终完正续附增补篇回章集卷册部')
+    _NUM_SUFFIX_CHARS = set('上下中前後后内外終终完正續续附增補补篇回章集卷冊册部')
 
     @staticmethod
     def _parse_numeric(s: str):
@@ -688,7 +692,8 @@ class SmartTitleUtils:
             (volume_order, chapter) 元组，均为可比较数值。
         """
         vol = 1.0  # 默认第一卷（无卷标）
-        low = title or ''
+        # 卷序识别只看归一后的文本；原书名字串不改动
+        low = normalize_match_text(title or '', collapse_spaces=False)
 
         # ── 1. 标准卷标：第N卷 / N卷 / 卷N（支持阿拉伯/中文数字）──
         num_atom = (r'[0-9０-９]+|'
@@ -787,7 +792,7 @@ class SmartTitleUtils:
             detected_marker = ''
 
         # 后缀处理（提取完成标记，剩余作为后缀）
-        completion_keywords = ['完结', '完本', '完整', '完', '全本', '全集', '全', '终']
+        completion_keywords = ['完结', '完結', '完本', '完整', '完', '全本', '全集', '全', '终', '終']
 
         # 无括号形式（如 "书名 1-5缺2 作者：小红"）中，"缺X" 声明会落入后缀
         # （ci[3]）；先拆分出来：声明部分延后并入缺失章节集合，剩余才参与后缀候选。
@@ -1040,17 +1045,24 @@ class SmartTitleUtils:
         if len(cleaned_titles) < 2:
             return None
 
-        # 找最长公共前缀
-        common_prefix = os.path.commonprefix(cleaned_titles)
-        if not common_prefix:
+        # 找最长公共前缀：先归一化（简繁/全半角/大小写），再映射回第一本书的原文
+        norm_titles = [normalize_match_text(t, collapse_spaces=False) for t in cleaned_titles]
+        norm_prefix = os.path.commonprefix(norm_titles)
+        if not norm_prefix:
             return None
 
+        original = cleaned_titles[0]
+        _, mapping = normalize_match_text_with_map(original)
+        if len(norm_prefix) > len(mapping):
+            common_prefix = os.path.commonprefix(cleaned_titles)
+        else:
+            common_prefix = original[:mapping[len(norm_prefix) - 1] + 1]
         common_prefix = common_prefix.strip()
 
         # ── 过滤无意义的公共前缀 ──
         
         # 1. 公共前缀太短（少于3个字符），说明书名不相似
-        if len(common_prefix) < 3:
+        if len(norm_prefix) < 3:
             return None
         
         # 2. 公共前缀只是标点符号（如【、[、( 等）
@@ -1058,18 +1070,17 @@ class SmartTitleUtils:
             return None
         
         # 3. 如果公共前缀截断了中文字符，检查是否值得保留
-        if len(common_prefix) < len(cleaned_titles[0]):
-            next_char_pos = len(common_prefix)
-            original = cleaned_titles[0]
+        if len(norm_prefix) < len(norm_titles[0]):
+            next_char_pos = mapping[len(norm_prefix)] if len(norm_prefix) < len(mapping) else len(original)
             if next_char_pos < len(original):
                 char = original[next_char_pos]
                 # 截断了中文，且前缀本身不够有意义的长度
-                if '\u4e00' <= char <= '\u9fff' and len(common_prefix) < 5:
+                if '\u4e00' <= char <= '\u9fff' and len(norm_prefix) < 5:
                     return None
 
         # 4. 检查书名相似度：如果公共前缀占比太小，说明书名不相似
-        avg_len = sum(len(t) for t in cleaned_titles) / len(cleaned_titles)
-        if avg_len > 0 and len(common_prefix) / avg_len < 0.3:
+        avg_len = sum(len(t) for t in norm_titles) / len(norm_titles)
+        if avg_len > 0 and len(norm_prefix) / avg_len < 0.3:
             # 公共前缀不足平均长度的30%，认为不相似
             return None
 
@@ -1113,7 +1124,7 @@ class SmartTitleUtils:
                 indexed.append((float('inf'), float('inf'), float('inf'), idx, book, title))
 
         # 排序键：卷序 → 章节号 → 章节范围末端 → 书名（正序，忽略大小写）→ 原始顺序
-        indexed.sort(key=lambda x: (x[0], x[1], x[2], (x[5] or '').lower(), x[3]))
+        indexed.sort(key=lambda x: (x[0], x[1], x[2], normalize_match_text(x[5] or ''), x[3]))
 
         sorted_books = [item[4] for item in indexed]
         return sorted_books, True

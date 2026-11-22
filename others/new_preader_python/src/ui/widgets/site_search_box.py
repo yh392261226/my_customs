@@ -27,6 +27,8 @@ from textual.widgets import Input, Label, ListItem, ListView
 
 from pypinyin import Style, pinyin as _pinyin
 
+from src.utils.string_utils import normalize_match_text
+
 # 最多展示的候选数，避免下拉过长
 _MAX_SUGGESTIONS = 12
 # 候选项显示宽度（字符列），略宽于输入框本身以便完整展示网址
@@ -180,8 +182,8 @@ class SiteSearchBox(Container):
     @staticmethod
     def _match(site: Dict, q: str) -> tuple:
         """返回 (是否匹配, 排序分数)。分数越小越靠前。"""
-        name = (site.get("name", "") or "").lower()
-        url = (site.get("url", "") or "").lower()
+        name = normalize_match_text(site.get("name", "") or "")
+        url = normalize_match_text(site.get("url", "") or "")
         if name.startswith(q):
             return True, 0
         if url.startswith(q):
@@ -290,7 +292,7 @@ class SiteSearchBox(Container):
         self._update(value)
 
     def _update(self, query: str) -> None:
-        q = (query or "").strip().lower()
+        q = normalize_match_text((query or "").strip())
         if not q:
             self._hide()
             return

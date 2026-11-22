@@ -1986,25 +1986,24 @@ class ReaderScreen(ScreenStyleMixin, Screen[None]):
                         self._hide_loading_animation()
                         return
                     
-                    # 在当前内容中搜索
+                    # 在当前内容中搜索：简繁中文与英文大小写统一，位置仍映射回原文
+                    from src.utils.string_utils import find_match_positions
                     search_results = []
-                    import re
-                    pattern = re.compile(re.escape(search_keyword), re.IGNORECASE)
                     
-                    for match in pattern.finditer(full_content):
-                        start_pos = max(0, match.start() - 50)
-                        end_pos = min(len(full_content), match.end() + 50)
+                    for hit_start, hit_end, matched_text in find_match_positions(full_content, search_keyword):
+                        start_pos = max(0, hit_start - 50)
+                        end_pos = min(len(full_content), hit_end + 50)
                         context = full_content[start_pos:end_pos]
                         
                         # 估算页码
                         avg_page_length = len(full_content) / self.renderer.total_pages if self.renderer.total_pages > 0 else 1000
-                        estimated_page = min(self.renderer.total_pages, max(1, int(match.start() / avg_page_length) + 1))
+                        estimated_page = min(self.renderer.total_pages, max(1, int(hit_start / avg_page_length) + 1))
                         
                         search_results.append({
                             'page': estimated_page,
-                            'position': match.start(),
+                            'position': hit_start,
                             'preview': context,
-                            'match_text': match.group()
+                            'match_text': matched_text
                         })
                     
                     # 隐藏加载动画

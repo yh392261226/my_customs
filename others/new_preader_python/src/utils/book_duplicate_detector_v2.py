@@ -179,6 +179,9 @@ class SmartDuplicateDetectorV3:
         # 1. 去除扩展名
         base_name, _ = os.path.splitext(name)
         name = base_name if base_name else name
+        # 先转简体：站点前缀/噪声词表都是简体，繁体文件名也能识别（不改动括号等结构）
+        from src.utils.string_utils import to_simplified_text
+        name = to_simplified_text(name)
 
         # 1.1 去除文件名中混入的路径片段（如把完整路径当书名：
         #      /Users/yanghao/Documents/novels/datas -> usersyanghaodocumentsnovelsdatas）
@@ -1810,7 +1813,8 @@ class SmartDuplicateDetectorV3:
         author2 = getattr(book2, 'author', '') or ''
         
         if author1 and author2:
-            if author1.lower() != author2.lower():
+            from src.utils.string_utils import normalize_match_text
+            if normalize_match_text(author1) != normalize_match_text(author2):
                 if len(meaningful_common) <= 1:
                     return True
         

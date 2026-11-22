@@ -10,6 +10,7 @@ from dataclasses import dataclass
 from datetime import datetime
 
 from src.utils.logger import get_logger
+from src.utils.string_utils import match_like_pattern, register_sqlite_text_norm
 from src.core.database_manager import DatabaseManager
 
 logger = get_logger(__name__)
@@ -419,12 +420,14 @@ class TagManager:
         """搜索标签"""
         try:
             with self.db_manager._get_connection() as conn:
+                register_sqlite_text_norm(conn)
                 cursor = conn.cursor()
                 cursor.execute("""
                     SELECT * FROM tags
-                    WHERE name LIKE ? OR description LIKE ?
+                    WHERE MATCH_NORM(name) LIKE ? ESCAPE '\\'
+                       OR MATCH_NORM(description) LIKE ? ESCAPE '\\'
                     ORDER BY name
-                """, (f"%{keyword}%", f"%{keyword}%"))
+                """, (match_like_pattern(keyword), match_like_pattern(keyword)))
                 rows = cursor.fetchall()
                 
                 return [

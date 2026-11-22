@@ -22,6 +22,7 @@ from src.utils.logger import LoggerSetup
 
 from src.utils.book_typeset import typeset_body, strip_leading_title, split_chapters
 from src.utils.logger import get_logger
+from src.utils.string_utils import normalize_match_text
 
 logger = get_logger(__name__)
 
@@ -243,7 +244,10 @@ class Bookshelf:
             except Exception:
                 self._site_names_cache = []
         for site in self._site_names_cache:
-            if site and title.startswith(site + "_"):
+            if not site:
+                continue
+            # 繁体站名 / 英文大小写变体同样识别；按原站名长度截掉原串前缀
+            if normalize_match_text(title).startswith(normalize_match_text(site) + "_"):
                 return title[len(site) + 1:]
         return title
 
@@ -524,9 +528,9 @@ class Bookshelf:
         books = list(self.books.values())
         
         if key == "title":
-            return sorted(books, key=lambda x: x.title.lower(), reverse=reverse)
+            return sorted(books, key=lambda x: normalize_match_text(x.title or ''), reverse=reverse)
         elif key == "author":
-            return sorted(books, key=lambda x: x.author.lower(), reverse=reverse)
+            return sorted(books, key=lambda x: normalize_match_text(x.author or ''), reverse=reverse)
         elif key == "add_date":
             return sorted(books, key=lambda x: x.add_date, reverse=reverse)
         elif key == "last_read_date":
@@ -1392,22 +1396,34 @@ class Bookshelf:
                     # 如果没有author，使用默认值
                     final_author = "未知作者"
                 else:
-                    # 检查所有author是否相同
-                    unique_authors = set(authors)
+                    # 简繁 / 大小写视为同一作者；保留首次出现的原文用于展示
+                    unique_authors = {}
+                    for author in authors:
+                        unique_authors.setdefault(normalize_match_text(author), author)
                     if len(unique_authors) == 1:
-                        # 如果所有author都相同，使用这个author
                         final_author = authors[0]
                     else:
-                        # 如果author超过一个不同，随机选择一个
                         import random
-                        final_author = random.choice(authors)
+                        final_author = random.choice(list(unique_authors.values()))
+            
+            if new_tags:
+                final_tags = new_tags
+            else:
+                # 标签去重同样忽略简繁与大小写差异，保留原始写法
+                unique_tags = {}
+                for book in books_to_merge:
+                    for tag in (book.tags or "").split(","):
+                        tag = tag.strip()
+                        if tag:
+                            unique_tags.setdefault(normalize_match_text(tag), tag)
+                final_tags = ",".join(unique_tags.values())
             
             # 创建新的书籍对象并添加到书架
             new_book = self.add_book(
                 new_filepath, 
                 title=new_title,
                 author=final_author,
-                tags=new_tags if new_tags else ",".join(list(set(tag for book in books_to_merge if book.tags for tag in book.tags.split(","))))
+                tags=final_tags
             )
             
             if new_book:

@@ -12,7 +12,7 @@
   ``restore_items`` 单独恢复。
 * 恢复时若原路径已被占用（用户重新导入了同名文件），会自动改用带
   ``_restored_N`` 后缀的新路径，并同步改写所有关联数据里的路径，避免覆盖新数据。
-* 只有「清空 / 彻底删除 / 到达自动清空周期」才会真正删除物理文件。
+* 只有「清空 / 彻底删除 / 到达自动清空周期」才会将物理文件移入系统回收站。
 
 关联数据（快照 + 恢复）
 ----------------------
@@ -31,7 +31,9 @@ import sqlite3
 import tempfile
 import uuid
 from datetime import datetime, timedelta
-from typing import Any, Dict, Iterable, List, Optional, Sequence, Tuple
+from typing import Any, Dict, Iterable, List, Optional, Sequence, Set, Tuple
+
+from send2trash import send2trash
 
 from src.utils.logger import get_logger
 
@@ -428,6 +430,24 @@ class RecycleBin:
         with self._connect() as conn:
             return [dict(r) for r in conn.execute(sql).fetchall()]
 
+    def get_active_paths(self) -> Set[str]:
+        """返回仍在回收站中、由回收站保管物理文件的绝对路径集合。
+
+        供文件列表等场景排除这些文件，避免用户把回收站里的书重新添加进书架。
+        已恢复的条目以及删除时文件并不存在的条目不计入。
+        """
+        paths: Set[str] = set()
+        with self._connect() as conn:
+            rows = conn.execute(
+                "SELECT book_path, file_name FROM recycle_items "
+                "WHERE restored_at IS NULL AND file_existed = 1"
+            ).fetchall()
+        for row in rows:
+            for value in (row["file_name"], row["book_path"]):
+                if value:
+                    paths.add(os.path.normcase(os.path.abspath(os.path.expanduser(value))))
+        return paths
+
     def list_batches(self) -> List[Dict[str, Any]]:
         """按批次聚合（只列出仍有可恢复条目的批次）。"""
         with self._connect() as conn:
@@ -672,7 +692,7 @@ class RecycleBin:
     # ------------------------------------------------------------------ 清空
 
     def purge_items(self, item_ids: Sequence[int]) -> int:
-        """彻底删除指定条目（真删除：物理文件 + 回收站记录）。"""
+        """彻底删除指定条目（物理文件移入系统回收站，并删除回收站记录）。"""
         if not item_ids:
             return 0
         purged = 0
@@ -694,10 +714,10 @@ class RecycleBin:
         return purged
 
     def _delete_original_file(self, conn, path: str) -> None:
-        """真正删除文件（回收站彻底删除 / 清空 / 过期清理时调用）。
+        """将文件移入系统回收站（回收站彻底删除 / 清空 / 过期清理时调用）。
 
         安全护栏：若路径仍被书库 ``books`` 表引用（例如该书已被重新导入），
-        则不删除，避免误删在用书。文件不存在时静默跳过。
+        则不处理，避免误删在用书。文件不存在时静默跳过。
         """
         if not path or not os.path.isfile(path):
             return
@@ -708,12 +728,13 @@ class RecycleBin:
         except sqlite3.Error:
             pass
         try:
-            os.remove(path)
-        except OSError as e:
-            logger.error(f"彻底删除回收站文件失败 {path}: {e}")
+            send2trash(path)
+            logger.info(f"回收站文件已移入系统回收站: {path}")
+        except Exception as e:
+            logger.error(f"将回收站文件移入系统回收站失败 {path}: {e}")
 
     def empty(self) -> int:
-        """清空回收站（真正删除所有文件与记录）。"""
+        """清空回收站（文件移入系统回收站，并删除所有回收站记录）。"""
         with self._connect() as conn:
             rows = conn.execute(
                 "SELECT file_name, book_path, file_existed FROM recycle_items"

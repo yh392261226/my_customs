@@ -29,6 +29,7 @@ from src.utils.book_duplicate_detector_optimized import OptimizedBookDuplicateDe
 from src.utils.book_duplicate_detector_ultra import UltraBookDuplicateDetector  # 新增：超高性能检测器
 from src.utils import dedup_staging
 from src.utils.logger import get_logger
+from src.utils.string_utils import normalize_match_text
 from src.ui.dialogs.log_viewer_popup import LogViewerPopup  # noqa: F401 兼容旧导入路径
 
 logger = get_logger(__name__)
@@ -1064,24 +1065,22 @@ class BatchOpsDialog(ModalScreen[Dict[str, Any]]):
         """根据搜索关键词、文件格式和作者过滤书籍"""
         filtered_books = books
         
-        # 按名称搜索（支持标题、拼音、作者、标签）
+        # 按名称搜索（支持标题、拼音、作者、标签；简繁与大小写统一）
         if self._search_keyword:
-            keyword = self._search_keyword.lower()
-            
-            # 支持使用英文逗号分割多个关键词
-            keywords = [k.strip() for k in keyword.split(',') if k.strip()]
+            keywords = [normalize_match_text(k.strip())
+                        for k in self._search_keyword.split(',') if k.strip()]
             
             if keywords:
-                filtered_books = [
-                    book for book in filtered_books
-                    if any(
-                        k in book.title.lower() or 
-                        k in book.author.lower() or
-                        (hasattr(book, 'pinyin') and book.pinyin and k in book.pinyin.lower()) or
-                        (book.tags and k in book.tags.lower())
-                        for k in keywords
+                def _book_hits(book: Any) -> bool:
+                    fields = (
+                        normalize_match_text(getattr(book, 'title', '') or ''),
+                        normalize_match_text(getattr(book, 'author', '') or ''),
+                        normalize_match_text(getattr(book, 'pinyin', '') or ''),
+                        normalize_match_text(getattr(book, 'tags', '') or ''),
                     )
-                ]
+                    return any(k and k in field for k in keywords for field in fields)
+                
+                filtered_books = [book for book in filtered_books if _book_hits(book)]
         
         # 按文件格式过滤
         if self._selected_format != "all":
@@ -1090,11 +1089,12 @@ class BatchOpsDialog(ModalScreen[Dict[str, Any]]):
                 if book.format and hasattr(book.format, 'lower') and book.format.lower() and book.format.lower().lstrip('.') == (self._selected_format.lower() if self._selected_format else "")
             ]
         
-        # 按作者过滤
+        # 按作者过滤（简繁 / 大小写统一）
         if self._selected_author != "all":
+            selected_author = normalize_match_text(self._selected_author or "")
             filtered_books = [
                 book for book in filtered_books
-                if book.author and hasattr(book.author, 'lower') and book.author.lower() and book.author.lower() == (self._selected_author.lower() if self._selected_author else "")
+                if selected_author and normalize_match_text(book.author) == selected_author
             ]
         
         return filtered_books

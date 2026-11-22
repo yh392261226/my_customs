@@ -29,6 +29,7 @@ from src.themes.theme_manager import ThemeManager
 from src.core.database_manager import DatabaseManager
 from src.utils.logger import get_logger
 from src.utils.merge_staging import has_staging
+from src.utils.string_utils import normalize_match_text
 
 logger = get_logger(__name__)
 
@@ -129,7 +130,9 @@ def normalize_book_title(title: str) -> str:
     if not title:
         return ""
 
-    result = title.strip()
+    # 关键：同一本书不同章节可能混用简繁体、英文大小写，先统一为比较键。
+    # 保留分隔结构，后续步骤仍按原有规则剥离作者/章节/标点。
+    result = normalize_match_text(title.strip(), collapse_spaces=False)
 
     # Step 1: 剥离章节信息
     result = remove_chapter_info(result)
@@ -225,7 +228,7 @@ def _like_key_for_search(title: str) -> str:
     """
     if not title:
         return ""
-    r = remove_chapter_info(title.strip())
+    r = remove_chapter_info(normalize_match_text(title.strip(), collapse_spaces=False))
     for sep in ('译者', '作者', '作', '译'):
         i = r.find(sep)
         if i > 0:
@@ -246,6 +249,7 @@ def _strip_punct(text: str) -> str:
     """
     if not text:
         return ""
+    text = normalize_match_text(text, collapse_spaces=False)
     return re.sub(
         r'[^\u4e00-\u9fff\u3400-\u4dbf\U00020000-\U0002a6dfa-zA-Z\d]',
         '', text,
@@ -272,7 +276,7 @@ def _split_title_segments(title: str) -> List[str]:
     """
     if not title:
         return []
-    t = title.strip()
+    t = normalize_match_text(title.strip(), collapse_spaces=False)
     # 先去除"作者/译者"及之后的内容：否则其后的文字会挡住章节规则的「行尾锚定」，
     # 导致 "11-19完 译者：x" 这类末尾章节号无法被剥离（先剥作者即可被规则命中）。
     for sep in ('译者', '作者', '作', '译'):
@@ -314,7 +318,7 @@ def _segment_books_match(candidate_title: str, seed_segments: List[str]) -> bool
     """
     if not seed_segments or not candidate_title:
         return False
-    t = candidate_title.strip()
+    t = normalize_match_text(candidate_title.strip(), collapse_spaces=False)
     # 先剥作者/译者后缀（同 _split_title_segments，确保章节规则的行尾锚定生效）
     for sep in ('译者', '作者', '作', '译'):
         i = t.find(sep)
@@ -335,7 +339,7 @@ def remove_chapter_info(title: str) -> str:
     if not title:
         return ""
 
-    result = title.strip()
+    result = normalize_match_text(title.strip(), collapse_spaces=False)
 
     # 反复应用直到稳定：某些组合（如「第二卷 32-36」）需先剥离卷标，
     # 内部的数字范围（32-36）才暴露出来被后续规则命中；单次扫描会残留数字。

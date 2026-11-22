@@ -10,6 +10,7 @@ import sqlite3
 from dataclasses import dataclass
 
 from src.utils.logger import get_logger
+from src.utils.string_utils import find_match_positions, normalize_match_text
 
 logger = get_logger(__name__)
 
@@ -18,6 +19,14 @@ logger = get_logger(__name__)
 _PREVIEW_LIMIT = 20
 # 生成预览时最多读取的文件前缀（字节），避免大文件被整个读入内存
 _MAX_PREVIEW_BYTES = 4 * 1024 * 1024
+# 索引归一化规则版本：规则变化时清空旧索引，由后台任务按新规则重建
+_INDEX_NORM_VERSION = "1"
+
+_FTS_CREATE_SQL = """
+    CREATE VIRTUAL TABLE {name}
+    USING fts5(book_id UNINDEXED, content, position UNINDEXED,
+               content='', contentless_delete=1, contentless_unindexed=1)
+"""
 
 @dataclass
 class SearchResult:
@@ -38,10 +47,11 @@ class SearchEngine:
             db_path: 数据库文件路径
         """
         self.db_path = os.path.expanduser(db_path)
+        self._pending_migration = False
         self._init_db()
     
     def _init_db(self) -> None:
-        """初始化数据库"""
+        """初始化数据库（只做轻量建表，重建索引交给后台任务）"""
         with sqlite3.connect(self.db_path) as conn:
             cursor = conn.cursor()
             # 已索引书籍登记表：仅记录已建立全文索引的 book_id，用于判断
@@ -54,16 +64,41 @@ class SearchEngine:
                 )
             """)
             # FTS5 采用 contentless 模式：只保留倒排索引，不再保存正文原文副本。
-            # 正文原文本就存在于书籍文件中，在库里再存一份会让数据库体积翻倍。
-            #   contentless_unindexed=1 —— 允许读取 book_id / position 两个 UNINDEXED 列，
-            #       否则 contentless 表只能返回 rowid，无法得知命中了哪一本书。
+            #   contentless_unindexed=1 —— 允许读取 book_id / position 两个 UNINDEXED 列；
             #   contentless_delete=1 —— 支持 DELETE，否则删除书籍/清空索引会静默失败。
-            cursor.execute("""
-                CREATE VIRTUAL TABLE IF NOT EXISTS search_content 
-                USING fts5(book_id UNINDEXED, content, position UNINDEXED,
-                           content='', contentless_delete=1, contentless_unindexed=1)
-            """)
+            cursor.execute(_FTS_CREATE_SQL.format(name="search_content").replace(
+                "CREATE VIRTUAL TABLE", "CREATE VIRTUAL TABLE IF NOT EXISTS", 1))
+            cursor.execute("CREATE TABLE IF NOT EXISTS search_meta (key TEXT PRIMARY KEY, value TEXT)")
+            row = cursor.execute(
+                "SELECT value FROM search_meta WHERE key = 'norm_version'"
+            ).fetchone()
+            # 索引表可能非常大（本机 3 万条、库 10GB），DROP/DELETE 都可能耗时几十秒。
+            # 这里只标记待迁移，由后台补索引任务执行，避免阻塞 UI 启动。
+            self._pending_migration = row is None or row[0] != _INDEX_NORM_VERSION
             conn.commit()
+
+    def has_pending_migration(self) -> bool:
+        return self._pending_migration
+
+    def apply_pending_migration(self) -> None:
+        """在后台任务中重建索引（简繁/大小写规则升级时调用一次）。"""
+        if not self._pending_migration:
+            return
+        with sqlite3.connect(self.db_path) as conn:
+            cursor = conn.cursor()
+            cursor.execute("DROP TABLE IF EXISTS search_content")
+            # contentless FTS5 中若存在名为 content 的列，SQLite 会留下
+            # search_content_content 影子表，重建前需一并清掉。
+            cursor.execute("DROP TABLE IF EXISTS search_content_content")
+            cursor.execute(_FTS_CREATE_SQL.format(name="search_content"))
+            cursor.execute("DELETE FROM search_indexed_books")
+            cursor.execute(
+                "INSERT OR REPLACE INTO search_meta (key, value) VALUES ('norm_version', ?)",
+                (_INDEX_NORM_VERSION,),
+            )
+            conn.commit()
+        self._pending_migration = False
+        logger.info("全文索引已按新归一化规则重建，后台将重新索引书籍")
     
     def index_book(self, book_id: str, content: str, position: str) -> None:
         """
@@ -84,7 +119,7 @@ class SearchEngine:
             cursor.execute("""
                 INSERT INTO search_content 
                 VALUES (?, ?, ?)
-            """, (book_id, content, position))
+            """, (book_id, normalize_match_text(content or ""), position))
             # 仅登记已索引状态，开销极小
             cursor.execute("""
                 INSERT OR REPLACE INTO search_indexed_books (book_id) VALUES (?)
@@ -149,8 +184,8 @@ class SearchEngine:
         if not query or not query.strip():
             return []
             
-        # 清理查询字符串，移除可能导致SQL错误的特殊字符
-        cleaned_query = self._clean_search_query(query)
+        # 与索引侧使用同一套归一化（繁简/全半角/大小写），再清理 FTS 特殊字符
+        cleaned_query = self._clean_search_query(normalize_match_text(query))
         if not cleaned_query:
             return []
             
@@ -230,14 +265,17 @@ class SearchEngine:
             
             # 折叠换行，避免预览里出现大段空白
             flat = text.replace('\r', ' ').replace('\n', ' ')
-            pos = flat.find(query) if query else -1
-            if pos < 0:
+            matches = find_match_positions(flat, query)
+            if not matches:
                 # 关键词不在已读取的前缀中，退化为返回文件开头片段
                 return flat[:radius * 2].strip()
             
+            pos, hit_end, matched_text = matches[0]
             start = max(0, pos - radius)
-            end = min(len(flat), pos + len(query) + radius)
-            body = flat[start:end].strip().replace(query, f"<b>{query}</b>")
+            end = min(len(flat), hit_end + radius)
+            body = (
+                flat[start:pos] + f"<b>{matched_text}</b>" + flat[hit_end:end]
+            ).strip()
             return ('...' if start > 0 else '') + body + ('...' if end < len(flat) else '')
         except Exception as e:
             logger.debug(f"生成搜索预览失败 {book_id}: {e}")
@@ -266,8 +304,8 @@ class SearchEngine:
         Returns:
             清理后的查询字符串
         """
-        # 移除SQL注入风险的特殊字符
-        cleaned = re.sub(r'[;"\'\\]', '', query)
+        # 移除 SQL/FTS5 特殊字符（含归一化后可能出现的方括号）
+        cleaned = re.sub(r'[;"\'\\[\\]]', '', query)
         # 移除首尾空格
         cleaned = cleaned.strip()
         # 确保查询不为空

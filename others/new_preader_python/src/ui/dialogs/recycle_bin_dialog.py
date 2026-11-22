@@ -24,6 +24,7 @@ from src.themes.theme_manager import ThemeManager
 from src.ui.dialogs.confirm_dialog import ConfirmDialog
 from src.ui.messages import RefreshBookshelfMessage
 from src.utils.logger import get_logger
+from src.utils.string_utils import normalize_match_text
 
 logger = get_logger(__name__)
 
@@ -163,16 +164,16 @@ class RecycleBinDialog(ModalScreen[Optional[Dict[str, Any]]]):
             logger.error(f"读取回收站失败: {e}")
             items = []
         # 关键字过滤（书名 / 作者 / 路径 / 操作 / 批次）
-        kw = (self._search_text or "").strip().lower()
+        kw = normalize_match_text((self._search_text or "").strip())
         if kw:
             def _hit(item: Dict[str, Any]) -> bool:
-                hay = " ".join([
+                hay = normalize_match_text(" ".join([
                     str(item.get("title") or ""),
                     str(item.get("author") or ""),
                     str(item.get("book_path") or ""),
                     operation_label(str(item.get("operation") or "")),
                     str(item.get("batch_id") or ""),
-                ]).lower()
+                ]))
                 return kw in hay
             items = [i for i in items if _hit(i)]
         self._items = items

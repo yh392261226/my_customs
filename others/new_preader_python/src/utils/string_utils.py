@@ -6,12 +6,105 @@ import os
 import re
 import unicodedata
 from difflib import SequenceMatcher
+from functools import lru_cache
 from typing import List, Dict, Any, Optional, Tuple
 
 from src.utils.logger import get_logger
 from src.core.book import Book
 
 logger = get_logger(__name__)
+
+
+def to_simplified_text(text: str) -> str:
+    """把繁体中文转为简体；非中文与无法转换的字符原样保留。"""
+    if not text:
+        return ""
+    return _ChineseConverter.to_simplified(str(text))
+
+
+@lru_cache(maxsize=8192)
+def normalize_match_text(text: str, *, remove_punctuation: bool = False,
+                         collapse_spaces: bool = True) -> str:
+    """搜索/分组共用的比较键：繁体→简体、NFKC 全半角统一、英文大小写统一。
+
+    * ``remove_punctuation=True`` 时丢弃空白与标点（用于书名分组、指纹）。
+    * 默认保留标点结构，仅统一全角/弯引号等形式，用于搜索与检索键。
+    * 使用 ``casefold`` 而非 ``lower``，兼顾德语等语言的大小写折叠。
+    """
+    if text is None:
+        return ""
+    value = to_simplified_text(str(text))
+    value = unicodedata.normalize("NFKC", value)
+    value = "".join(ch for ch in value if not unicodedata.combining(ch))
+    if remove_punctuation:
+        value = re.sub(r'\s+', '', value)
+        value = re.sub(r'[^\u4e00-\u9fff\w]', '', value)
+    else:
+        for old, new in StringUtils._get_punctuation_map().items():
+            value = value.replace(old, new)
+        if collapse_spaces:
+            value = re.sub(r'\s+', ' ', value).strip()
+    return value.casefold()
+
+
+def normalize_match_text_with_map(text: str) -> Tuple[str, List[int]]:
+    """同 :func:`normalize_match_text`，但返回归一化串到原文字符下标的映射。
+
+    正文搜索在归一化文本上命中后，用该映射换回原文位置，保证上下文和高亮仍是原文。
+    """
+    if not text:
+        return "", []
+    normalized: List[str] = []
+    mapping: List[int] = []
+    for idx, ch in enumerate(str(text)):
+        part = normalize_match_text(ch, collapse_spaces=False)
+        for c in part:
+            normalized.append(c)
+            mapping.append(idx)
+    return "".join(normalized), mapping
+
+
+def find_match_positions(content: str, keyword: str) -> List[Tuple[int, int, str]]:
+    """在正文中查找关键词（忽略简繁差异与英文大小写）。
+
+    Returns:
+        每项为 ``(原文起点, 原文终点, 原文命中片段)``。
+    """
+    if not content or not keyword:
+        return []
+    norm_content, mapping = normalize_match_text_with_map(content)
+    norm_keyword = "".join(normalize_match_text(ch, collapse_spaces=False) for ch in keyword)
+    if not norm_keyword or len(mapping) != len(norm_content):
+        return []
+    results: List[Tuple[int, int, str]] = []
+    start = 0
+    while True:
+        pos = norm_content.find(norm_keyword, start)
+        if pos < 0:
+            break
+        end = pos + len(norm_keyword)
+        original_start = mapping[pos]
+        original_end = mapping[end - 1] + 1
+        results.append((original_start, original_end, content[original_start:original_end]))
+        start = end
+    return results
+
+
+def match_like_pattern(keyword: str) -> str:
+    """生成经简繁/大小写归一的 SQL LIKE 模式（字面量 % 与 _ 已转义）。"""
+    value = normalize_match_text(keyword)
+    value = value.replace('\\', '\\\\').replace('%', '\\%').replace('_', '\\_')
+    return f"%{value}%"
+
+
+def register_sqlite_text_norm(conn: Any) -> None:
+    """给 SQLite 连接注册 ``MATCH_NORM`` 函数，供 SQL 侧按同一规则比对文本。"""
+    conn.create_function(
+        "MATCH_NORM", 1,
+        lambda value: normalize_match_text(value) if isinstance(value, str) else "",
+        deterministic=True,
+    )
+
 
 class StringUtils:
     """字符串工具类"""

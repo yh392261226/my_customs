@@ -23,7 +23,9 @@ from src.themes.theme_manager import ThemeManager
 from src.core.bookshelf import Bookshelf
 from src.core.statistics_direct import StatisticsManagerDirect
 from src.utils.file_utils import FileUtils
+from src.utils.string_utils import normalize_match_text
 from src.core.bookmark import BookmarkManager
+from src.core.recycle_bin import get_recycle_bin
 from src.ui.messages import RefreshBookshelfMessage
 from src.utils.logger import get_logger
 from src.ui.styles.style_manager import ScreenStyleMixin
@@ -131,6 +133,26 @@ class FileExplorerScreen(ScreenStyleMixin, Screen[Optional[Union[str, List[str]]
         # 性能优化相关缓存
         self._directory_cache = {}  # 目录内容缓存
         self._bookshelf_cache = None  # 书库文件缓存
+        self._recycled_paths_cache = None  # 回收站文件路径缓存：(时间戳, 路径集合)
+        
+    def _get_recycled_file_paths(self) -> Set[str]:
+        """获取仍在应用回收站中的文件路径，用于从文件列表中排除（短时缓存）。"""
+        now = time.time()
+        cached = getattr(self, "_recycled_paths_cache", None)
+        if cached and now - cached[0] < 3:
+            return cached[1]
+        paths: Set[str] = set()
+        try:
+            db_manager = getattr(self.bookshelf, "db_manager", None)
+            paths = get_recycle_bin(db_manager).get_active_paths()
+        except Exception as e:
+            logger.debug(f"读取回收站文件路径失败: {e}")
+        self._recycled_paths_cache = (now, paths)
+        return paths
+
+    def _is_recycled_path(self, path: str, recycled_paths: Set[str]) -> bool:
+        """判断路径是否属于回收站中保管的文件。"""
+        return os.path.normcase(os.path.abspath(os.path.expanduser(path))) in recycled_paths
         
     def compose(self) -> ComposeResult:
         """
@@ -309,9 +331,13 @@ class FileExplorerScreen(ScreenStyleMixin, Screen[Optional[Union[str, List[str]]
             items = []
             book_count = 0
             dir_count = 0
+            recycled_paths = self._get_recycled_file_paths()
             
             for item in sorted(all_items):
                 item_path = os.path.join(self.current_path, item)
+                # 回收站中保管的文件不在添加书籍列表中显示
+                if self._is_recycled_path(item_path, recycled_paths):
+                    continue
                 
                 # 使用try-except避免stat调用失败
                 try:
@@ -472,8 +498,8 @@ class FileExplorerScreen(ScreenStyleMixin, Screen[Optional[Union[str, List[str]]
             for item in os.listdir(base_dir):
                 item_path = os.path.join(base_dir, item)
                 
-                # 检查是否匹配搜索模式（不区分大小写）
-                if search_pattern.lower() in item.lower():
+                # 检查是否匹配搜索模式（简繁 / 大小写统一）
+                if normalize_match_text(search_pattern) in normalize_match_text(item):
                     if os.path.isdir(item_path):
                         # 如果是目录，添加斜杠
                         completions.append(item + "/")
@@ -518,7 +544,7 @@ class FileExplorerScreen(ScreenStyleMixin, Screen[Optional[Union[str, List[str]]
             # 获取匹配的目录（只补全目录，不补全文件名）
             matches = []
             for item in os.listdir(base_dir):
-                if item.lower().startswith(search_pattern.lower()):
+                if normalize_match_text(item).startswith(normalize_match_text(search_pattern)):
                     item_path = os.path.join(base_dir, item)
                     if os.path.isdir(item_path):
                         # 只添加目录，添加斜杠
@@ -1443,7 +1469,7 @@ class FileExplorerScreen(ScreenStyleMixin, Screen[Optional[Union[str, List[str]]
             bookshelf_files: Dict[str, str] = {}
             for book_path, book in self.bookshelf.books.items():
                 if hasattr(book, 'path') and book.path:
-                    bookshelf_files[os.path.basename(book.path).lower()] = book.path
+                    bookshelf_files[normalize_match_text(os.path.basename(book.path))] = book.path
                 else:
                     logger.debug(f"书籍对象没有path属性或path为空: {book_path}")
             logger.debug(f"书库文件名映射构建完成: {len(bookshelf_files)} 个")
@@ -1475,12 +1501,16 @@ class FileExplorerScreen(ScreenStyleMixin, Screen[Optional[Union[str, List[str]]
                     return cached_files
 
         all_files = []
+        recycled_paths = self._get_recycled_file_paths()
         try:
             supported_extensions = self.file_extensions
             current_path = self.current_path
 
             def _add_file(item_path: str, rel_dir: str) -> None:
                 """根据扩展名收集单个书籍文件"""
+                # 回收站中保管的文件不再作为可添加书籍展示
+                if self._is_recycled_path(item_path, recycled_paths):
+                    return
                 item = os.path.basename(item_path)
                 try:
                     stat_info = os.lstat(item_path)
@@ -1579,7 +1609,7 @@ class FileExplorerScreen(ScreenStyleMixin, Screen[Optional[Union[str, List[str]]
             #    同名文件（大小写不同）取第一个，符合"不区分大小写"的语义
             name_to_info: Dict[str, Dict[str, str]] = {}
             for file_info in files:
-                key = file_info["name"].lower()
+                key = normalize_match_text(file_info["name"])
                 if key not in name_to_info:
                     name_to_info[key] = file_info
 
@@ -1660,10 +1690,10 @@ class FileExplorerScreen(ScreenStyleMixin, Screen[Optional[Union[str, List[str]]
                 # 如果有搜索条件，先过滤搜索条件
                 # 差异模式下只按关键词搜索，不按文件类型过滤
                 if search_keyword:
-                    keyword_lower = search_keyword.lower()
+                    keyword_lower = normalize_match_text(search_keyword)
                     files_to_filter = [
                         file_info for file_info in all_files
-                        if keyword_lower in file_info["name"].lower()
+                        if keyword_lower in normalize_match_text(file_info["name"])
                     ]
                 else:
                     files_to_filter = all_files
@@ -1716,12 +1746,13 @@ class FileExplorerScreen(ScreenStyleMixin, Screen[Optional[Union[str, List[str]]
             items = os.listdir(self.current_path)
             current_path = self.current_path
             supported_extensions = self.file_extensions
-            keyword_lower = keyword.lower() if keyword else ""
+            recycled_paths = self._get_recycled_file_paths()
+            keyword_lower = normalize_match_text(keyword) if keyword else ""
             file_type_lower = file_type.lower() if file_type != "all" else ""
 
             for item in items:
-                # 先做廉价的字符串检查，再决定是否 stat
-                if keyword_lower and keyword_lower not in item.lower():
+                # 先做廉价的字符串检查，再决定是否 stat（简繁 / 大小写统一）
+                if keyword_lower and keyword_lower not in normalize_match_text(item):
                     continue
                 if file_type_lower:
                     ext = FileUtils.get_file_extension(item).lower()
@@ -1729,6 +1760,8 @@ class FileExplorerScreen(ScreenStyleMixin, Screen[Optional[Union[str, List[str]]
                         continue
 
                 item_path = os.path.join(current_path, item)
+                if self._is_recycled_path(item_path, recycled_paths):
+                    continue
                 try:
                     # 使用 lstat + S_ISREG 替代 os.path.isfile，更快且不跟随符号链接
                     stat_info = os.lstat(item_path)

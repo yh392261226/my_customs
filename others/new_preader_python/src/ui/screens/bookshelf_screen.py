@@ -38,6 +38,7 @@ from src.ui.messages import RefreshBookshelfMessage
 from src.ui.styles.style_manager import apply_style_isolation
 from src.config.default_config import SUPPORTED_FORMATS
 from src.utils.logger import get_logger
+from src.utils.string_utils import normalize_match_text
 
 logger = get_logger(__name__)
 
@@ -691,42 +692,28 @@ class BookshelfScreen(Screen[None]):
                         book_format_without_dot = book.format.lower().lstrip('.')
                         format_match = book_format_without_dot == actual_search_format.lower()
                     
-                    # 检查作者匹配
+                    # 检查作者匹配（简繁 / 大小写统一后再比较）
                     author_match = True
                     if actual_search_author != "all":
-                        author_match = book.author.lower() == actual_search_author.lower()
+                        author_match = (normalize_match_text(book.author) ==
+                                        normalize_match_text(actual_search_author))
                     
                     # 检查关键词匹配
                     keyword_match = False
                     if format_match and author_match:
                         if keywords:
-                            if search_logic == "and":
-                                # AND逻辑：所有关键词都必须匹配
-                                keyword_match = True
-                                for keyword in keywords:
-                                    # 模糊搜索：检查标题、作者、拼音、标签
-                                    title_match = keyword.lower() in book.title.lower()
-                                    author_match_keyword = keyword.lower() in book.author.lower()
-                                    pinyin_match = (hasattr(book, 'pinyin') and book.pinyin and 
-                                                   keyword.lower() in book.pinyin.lower())
-                                    tags_match = (book.tags and keyword.lower() in book.tags.lower())
-                                    
-                                    # 如果任意一个字段匹配当前关键词，继续检查下一个
-                                    if not (title_match or author_match_keyword or pinyin_match or tags_match):
-                                        keyword_match = False
-                                        break
-                            else:
-                                # OR逻辑：任意一个关键词匹配即可
-                                for keyword in keywords:
-                                    title_match = keyword.lower() in book.title.lower()
-                                    author_match_keyword = keyword.lower() in book.author.lower()
-                                    pinyin_match = (hasattr(book, 'pinyin') and book.pinyin and 
-                                                   keyword.lower() in book.pinyin.lower())
-                                    tags_match = (book.tags and keyword.lower() in book.tags.lower())
-                                    
-                                    if title_match or author_match_keyword or pinyin_match or tags_match:
-                                        keyword_match = True
-                                        break
+                            normalized_keywords = [normalize_match_text(k) for k in keywords]
+                            normalized_fields = (
+                                normalize_match_text(getattr(book, 'title', '') or ''),
+                                normalize_match_text(getattr(book, 'author', '') or ''),
+                                normalize_match_text(getattr(book, 'pinyin', '') or ''),
+                                normalize_match_text(getattr(book, 'tags', '') or ''),
+                            )
+                            matched = [
+                                any(k and k in field for field in normalized_fields)
+                                for k in normalized_keywords
+                            ]
+                            keyword_match = all(matched) if search_logic == "and" else any(matched)
                         else:
                             # 没有关键词时，只按格式和作者筛选
                             keyword_match = True

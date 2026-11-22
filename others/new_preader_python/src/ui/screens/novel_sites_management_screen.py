@@ -16,6 +16,7 @@ from textual import on
 from src.locales.i18n_manager import get_global_i18n, t
 from src.themes.theme_manager import ThemeManager
 from src.utils.logger import get_logger
+from src.utils.string_utils import normalize_match_text
 from src.core.database_manager import DatabaseManager
 from src.ui.styles.universal_style_isolation import apply_universal_style_isolation, remove_universal_style_isolation
 from src.ui.dialogs.note_dialog import NoteDialog
@@ -277,10 +278,10 @@ class NovelSitesManagementScreen(Screen[None]):
             # 关键词搜索
             keyword_match = True
             if search_keyword:
-                keyword_match = (
-                    search_keyword.lower() in site.get("name", "").lower() or
-                    search_keyword.lower() in site.get("url", "").lower() or
-                    search_keyword.lower() in site.get("parser", "").lower()
+                keyword = normalize_match_text(search_keyword)
+                keyword_match = any(
+                    keyword in normalize_match_text(field or '')
+                    for field in (site.get("name"), site.get("url"), site.get("parser"))
                 )
             
             # 解析器筛选

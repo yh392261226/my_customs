@@ -13,7 +13,10 @@ import os
 from dataclasses import dataclass, fields
 from typing import Any, Callable, Dict, Iterable, List, Optional, Tuple
 
+from src.utils.string_utils import normalize_match_text
+
 UNKNOWN_AUTHORS = {"", "未知作者", "unknown", "unknown author", "none", "null"}
+_UNKNOWN_AUTHORS_NORM = {normalize_match_text(a) for a in UNKNOWN_AUTHORS}
 # 大小输入框以 MB 为单位；存储与比较时换算为字节
 MB = 1024 * 1024
 
@@ -154,7 +157,7 @@ class LibraryFilter:
 
 def _author_missing(book: Any) -> bool:
     author = str(getattr(book, "author", "") or "").strip()
-    return author.lower() in UNKNOWN_AUTHORS
+    return normalize_match_text(author) in _UNKNOWN_AUTHORS_NORM
 
 
 def _tags_missing(book: Any) -> bool:

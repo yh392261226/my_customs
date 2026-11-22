@@ -354,13 +354,19 @@ class BookManager:
         """
         if self._indexing:
             return
+        # 索引规则升级后的重建放到后台线程执行；DROP 大 FTS 表可能耗时几十秒，
+        # 不能卡在 UI 启动路径上。
+        try:
+            pending_migration = self.search_engine.has_pending_migration()
+        except Exception:
+            pending_migration = False
         # 快速预检：无未索引书籍则直接返回，避免无谓的动画闪烁与线程开销
         try:
-            todo = self._get_unindexed_books()
+            todo = [] if pending_migration else self._get_unindexed_books()
         except Exception as e:
             logger.error(f"获取未索引书籍列表失败: {e}")
             todo = []
-        if not todo:
+        if not todo and not pending_migration:
             return
         
         self._indexing = True
@@ -372,7 +378,12 @@ class BookManager:
         total = len(todo)
         
         def task() -> None:
+            nonlocal total, todo
             try:
+                if pending_migration:
+                    self.search_engine.apply_pending_migration()
+                    todo = self._get_unindexed_books()
+                    total = len(todo)
                 for i, book in enumerate(todo):
                     try:
                         self._index_book_content(book)

@@ -9,6 +9,7 @@ import sqlite3
 from typing import Any, Dict, List, Optional, Tuple
 
 from src.core.database_manager import DatabaseManager
+from src.utils.string_utils import match_like_pattern, register_sqlite_text_norm
 
 _dm_instance = None
 
@@ -27,6 +28,7 @@ def get_db_path() -> str:
 def get_conn() -> sqlite3.Connection:
     conn = sqlite3.connect(get_db_path(), timeout=15)
     conn.row_factory = sqlite3.Row
+    register_sqlite_text_norm(conn)
     conn.execute("PRAGMA busy_timeout=15000")
     try:
         conn.execute("PRAGMA journal_mode=WAL")
@@ -117,9 +119,10 @@ def query_paginated(collection: str, q: str, page: int, page_size: int, offset: 
     actual_cols = set(get_columns(table))
     search_cols = [c for c in search_cols if c in actual_cols]
     if q:
+        pattern = match_like_pattern(q)
         for col in search_cols:
-            where_clauses.append(f"{col} LIKE ?")
-            params.append("%" + q + "%")
+            where_clauses.append(f"MATCH_NORM({col}) LIKE ? ESCAPE '\\'")
+            params.append(pattern)
     if extra_where:
         where_clauses.append("(" + extra_where + ")")
         if extra_params:

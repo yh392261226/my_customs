@@ -17,6 +17,12 @@ from src.core.book import Book
 from src.config.config_manager import ConfigManager
 from src.utils.file_utils import FileUtils
 from src.utils.logger import get_logger
+from src.utils.string_utils import (
+    match_like_pattern,
+    normalize_match_text,
+    register_sqlite_text_norm,
+    to_simplified_text,
+)
 
 logger = get_logger(__name__)
 
@@ -44,6 +50,8 @@ def convert_to_pinyin(text: str) -> str:
         return ""
     
     try:
+        # 繁体先转简体，保证繁体书名生成的拼音与简体关键词一致
+        text = to_simplified_text(text)
         # 使用普通风格，不带声调
         pinyin_list = pinyin(text, style=Style.NORMAL)  # type: ignore
         return "".join([item[0] for item in pinyin_list if item])
@@ -1031,18 +1039,19 @@ class DatabaseManager:
         try:
             with sqlite3.connect(self.db_path) as conn:
                 conn.row_factory = sqlite3.Row
+                register_sqlite_text_norm(conn)
                 cursor = conn.cursor()
                 
-                pattern = "%" + self._escape_like(keyword) + "%"
+                pattern = match_like_pattern(keyword)
                 params: List[Any] = [pattern, pattern, pattern, pattern]
                 
-                # LIKE 对 ASCII 大小写不敏感，中文无大小写差异，故无需额外 lower()
+                # 两侧都走 MATCH_NORM：繁简中文、全半角与英文大小写统一后再 LIKE
                 sql = """
                     SELECT b.* FROM books b
-                    WHERE (b.title LIKE ? ESCAPE '\\'
-                        OR b.author LIKE ? ESCAPE '\\'
-                        OR b.pinyin LIKE ? ESCAPE '\\'
-                        OR b.tags LIKE ? ESCAPE '\\')
+                    WHERE (MATCH_NORM(b.title) LIKE ? ESCAPE '\\'
+                        OR MATCH_NORM(b.author) LIKE ? ESCAPE '\\'
+                        OR MATCH_NORM(b.pinyin) LIKE ? ESCAPE '\\'
+                        OR MATCH_NORM(b.tags) LIKE ? ESCAPE '\\')
                 """
                 
                 # 权限过滤：非管理员只能检索归属自己的书籍
@@ -1319,6 +1328,7 @@ class DatabaseManager:
         try:
             with sqlite3.connect(self.db_path) as conn:
                 conn.row_factory = sqlite3.Row
+                register_sqlite_text_norm(conn)
                 cursor = conn.cursor()
                 
                 # 支持使用英文逗号分割多个关键词
@@ -1334,9 +1344,10 @@ class DatabaseManager:
                 
                 # 为每个关键词构建搜索条件
                 for k in keywords:
-                    search_pattern = f"%{k}%"
-                    # 每个关键词在标题、拼音、作者、标签中搜索
-                    condition = "(title LIKE ? OR pinyin LIKE ? OR author LIKE ? OR tags LIKE ?)"
+                    search_pattern = match_like_pattern(k)
+                    # 每个关键词在标题、拼音、作者、标签中搜索（两侧统一简繁与大小写）
+                    condition = ("(MATCH_NORM(title) LIKE ? ESCAPE '\\' OR MATCH_NORM(pinyin) LIKE ? ESCAPE '\\' "
+                                 "OR MATCH_NORM(author) LIKE ? ESCAPE '\\' OR MATCH_NORM(tags) LIKE ? ESCAPE '\\')")
                     conditions.append(condition)
                     params.extend([search_pattern, search_pattern, search_pattern, search_pattern])
                 
@@ -3109,14 +3120,15 @@ class DatabaseManager:
                             exact[norm] = rec
                     base = os.path.basename(norm) if norm else ""
                     if base:
-                        if base not in by_base or (
-                            rec["status"] == "success" and by_base[base]["status"] != "success"
+                        key = normalize_match_text(base)
+                        if key not in by_base or (
+                            rec["status"] == "success" and by_base[key]["status"] != "success"
                         ):
-                            by_base[base] = rec
+                            by_base[key] = rec
             for p in norm_paths:
                 rec = exact.get(p)
                 if not rec:
-                    rec = by_base.get(os.path.basename(p))
+                    rec = by_base.get(normalize_match_text(os.path.basename(p)))
                 if rec:
                     result[p] = {"site_id": rec["site_id"], "novel_id": rec["novel_id"]}
         except sqlite3.Error as e:
@@ -3257,12 +3269,13 @@ class DatabaseManager:
         try:
             with sqlite3.connect(self.db_path) as conn:
                 conn.row_factory = sqlite3.Row
+                register_sqlite_text_norm(conn)
                 cursor = conn.cursor()
                 cursor.execute("""
                     SELECT * FROM crawl_history 
-                    WHERE site_id = ? AND novel_title LIKE ?
+                    WHERE site_id = ? AND MATCH_NORM(novel_title) LIKE ? ESCAPE '\\'
                     ORDER BY crawl_time DESC
-                """, (site_id, f"%{title_pattern}%"))
+                """, (site_id, match_like_pattern(title_pattern)))
                 rows = cursor.fetchall()
                 return [dict(row) for row in rows if row]
         except sqlite3.Error as e:

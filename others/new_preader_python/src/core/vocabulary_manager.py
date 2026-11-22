@@ -11,6 +11,7 @@ from datetime import datetime
 from src.config.config_manager import ConfigManager
 from src.core.database_manager import DatabaseManager
 from src.utils.logger import get_logger
+from src.utils.string_utils import match_like_pattern, register_sqlite_text_norm
 
 logger = get_logger(__name__)
 
@@ -291,17 +292,21 @@ class VocabularyManager:
         """
         try:
             conn = sqlite3.connect(self.db_path)
+            register_sqlite_text_norm(conn)
             cursor = conn.cursor()
+            pattern = match_like_pattern(keyword)
             
             if user_id is not None and user_id > 0:
                 cursor.execute(
-                    'SELECT * FROM vocabulary WHERE (word LIKE ? OR translation LIKE ?) AND user_id = ? ORDER BY created_at DESC',
-                    (f'%{keyword}%', f'%{keyword}%', user_id)
+                    "SELECT * FROM vocabulary WHERE (MATCH_NORM(word) LIKE ? ESCAPE '\\' "
+                    "OR MATCH_NORM(translation) LIKE ? ESCAPE '\\') AND user_id = ? ORDER BY created_at DESC",
+                    (pattern, pattern, user_id)
                 )
             else:
                 cursor.execute(
-                    'SELECT * FROM vocabulary WHERE word LIKE ? OR translation LIKE ? ORDER BY created_at DESC',
-                    (f'%{keyword}%', f'%{keyword}%')
+                    "SELECT * FROM vocabulary WHERE MATCH_NORM(word) LIKE ? ESCAPE '\\' "
+                    "OR MATCH_NORM(translation) LIKE ? ESCAPE '\\' ORDER BY created_at DESC",
+                    (pattern, pattern)
                 )
             
             rows = cursor.fetchall()

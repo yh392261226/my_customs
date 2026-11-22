@@ -29,6 +29,7 @@ from src.core.database_manager import DatabaseManager
 from src.core.bookshelf import Bookshelf
 from src.spiders import get_parser_options
 from src.utils.logger import get_logger, is_file_logging_enabled
+from src.utils.string_utils import normalize_match_text
 from src.ui.dialogs.log_viewer_popup import LogViewerPopup
 # 兼容旧的导入路径：实现已统一到 widgets/book_view_dialog.py
 from src.ui.widgets.book_view_dialog import BookPreviewDialog
@@ -1271,7 +1272,7 @@ class CrawlerManagementScreen(Screen[None]):
             return history
         
         # 对搜索关键词进行URL解码，以便能正确匹配
-        keyword = unquote(self._search_keyword).lower()
+        keyword = normalize_match_text(unquote(self._search_keyword))
         filtered_history = []
         
         for item in history:
@@ -1279,11 +1280,14 @@ class CrawlerManagementScreen(Screen[None]):
             item_novel_id = item.get('novel_id', '')
             decoded_novel_id = unquote(item_novel_id) if item_novel_id else ''
             
-            # 搜索小说标题、小说ID（解码后）、状态、拼音
-            if (keyword in item.get('novel_title', '').lower() or 
-                keyword in decoded_novel_id.lower() or 
-                keyword in item.get('status', '').lower() or
-                keyword in item.get('pinyin', '').lower()):
+            # 搜索小说标题、小说ID（解码后）、状态、拼音（简繁 / 大小写统一）
+            fields = (
+                item.get('novel_title', ''),
+                decoded_novel_id,
+                item.get('status', ''),
+                item.get('pinyin', ''),
+            )
+            if any(keyword in normalize_match_text(field or '') for field in fields):
                 filtered_history.append(item)
         
         return filtered_history

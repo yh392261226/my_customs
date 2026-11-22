@@ -829,24 +829,13 @@ class Book:
             List[Tuple[int, str]]: 搜索结果列表，每个元素为(位置, 上下文)
         """
         content = self.get_content()
-        results = []
-        
-        # 简单的搜索实现
-        start = 0
-        while True:
-            pos = content.find(keyword, start)
-            if pos == -1:
-                break
-                
-            # 获取上下文（前后各50个字符）
-            context_start = max(0, pos - 50)
-            context_end = min(len(content), pos + len(keyword) + 50)
-            context = content[context_start:context_end]
-            
-            results.append((pos, context))
-            start = pos + len(keyword)
-        
-        return results
+        if not content or not keyword:
+            return []
+        from src.utils.string_utils import find_match_positions
+        return [
+            (start, content[max(0, start - 50):min(len(content), end + 50)])
+            for start, end, _ in find_match_positions(content, keyword)
+        ]
     
     def _show_loading_animation(self, message: str = "处理中...") -> None:
         """显示加载动画（动态导入以断开循环依赖）"""
@@ -935,7 +924,10 @@ class Book:
         """
         try:
             from pypinyin import pinyin, Style
+            from src.utils.string_utils import to_simplified_text
             
+            # 繁体先转简体，避免繁体书名生成的拼音与简体关键词不一致
+            text = to_simplified_text(text)
             # 将中文转换为拼音，使用不带声调的格式
             pinyin_list = pinyin(text, style=Style.NORMAL)
             # 将拼音列表连接成字符串
