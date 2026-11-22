@@ -60,7 +60,8 @@
     margin: 0 1;
 }
 
-.batchops-component #batch-ops-search-contain #search-btn {
+.batchops-component #batch-ops-search-contain #search-btn,
+.batchops-component #batch-ops-search-contain #filter-btn {
     min-width: 8;
     margin: 0 1;
 }

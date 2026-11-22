@@ -21,7 +21,7 @@ from src.locales.i18n import I18n
 from src.locales.i18n_manager import get_global_i18n
 from src.themes.theme_manager import ThemeManager
 from src.core.bookshelf import Bookshelf
-from src.core.library_filter import UNKNOWN_AUTHORS
+from src.core.library_filter import UNKNOWN_AUTHORS, LibraryFilter, filter_books
 from src.ui.dialogs.confirm_dialog import ConfirmDialog
 from src.ui.dialogs.duplicate_books_dialog import DuplicateBooksDialog
 from src.config.default_config import SUPPORTED_FORMATS
@@ -124,6 +124,7 @@ class BatchOpsDialog(ModalScreen[Dict[str, Any]]):
         ("p", "prev_page", get_global_i18n().t('common.prev_page')),
         # ("d", "find_duplicates", get_global_i18n().t('common.batch_dedupe')),
         ("x", "clear_search_params", get_global_i18n().t('common.clear_search')),
+        ("f", "open_library_filter", get_global_i18n().t('library_filter.button')),
         ("j", "jump_to", get_global_i18n().t('bookshelf.jump_to')),
         ("L", "view_logs", get_global_i18n().t('common.view_log')),
         ("escape", "cancel", get_global_i18n().t('common.cancel')),
@@ -175,6 +176,8 @@ class BatchOpsDialog(ModalScreen[Dict[str, Any]]):
         self._search_keyword = ""
         self._selected_format = "all"
         self._selected_author = "all"
+        # 高级筛选条件（无作者、无标签、阅读状态等），由「筛选」对话框设置
+        self._library_filter: Optional[LibraryFilter] = None
 
         # 排序相关属性
         self._sorted_books: List[str] = []  # 存储排序后的书籍路径顺序
@@ -244,6 +247,7 @@ class BatchOpsDialog(ModalScreen[Dict[str, Any]]):
                     id="search-author-filter",
                     prompt=get_global_i18n().t("bookshelf.select_source")
                 ),
+                    Button(get_global_i18n().t("library_filter.button"), id="filter-btn"),
                     Button(get_global_i18n().t("common.search"), id="search-btn"),
                     id="batch-ops-search-contain", classes="form-row"
                 ),
@@ -1096,8 +1100,13 @@ class BatchOpsDialog(ModalScreen[Dict[str, Any]]):
                 book for book in filtered_books
                 if selected_author and normalize_match_text(book.author) == selected_author
             ]
-        
-        return filtered_books
+
+        # 应用书库高级筛选条件（与书库页面共用同一套判定逻辑）
+        return filter_books(
+            filtered_books,
+            self._library_filter,
+            reading_info_getter=getattr(self.bookshelf, "get_book_reading_info", None),
+        )
     
     def _update_pagination_info(self) -> None:
         """更新分页信息"""
@@ -1111,6 +1120,8 @@ class BatchOpsDialog(ModalScreen[Dict[str, Any]]):
             filter_conditions.append(f"格式: {self._selected_format.upper()}")
         if self._selected_author != "all":
             filter_conditions.append(f"作者: {self._selected_author}")
+        if self._library_filter and not self._library_filter.is_empty():
+            filter_conditions.append(f"筛选: {self._library_filter.describe()}")
         
         # 如果有搜索条件，显示过滤后的结果信息
         if filter_conditions:
@@ -1420,8 +1431,43 @@ class BatchOpsDialog(ModalScreen[Dict[str, Any]]):
         self.query_one("#search-input-field", Input).placeholder = get_global_i18n().t("bookshelf.search_placeholder")
         self.query_one("#search-author-filter", Select).value = "all"
         self.query_one("#search-format-filter", Select).value = "all"
+        self._library_filter = None
         self.query_one("#search-input-field", Input).focus()
         self._perform_search()
+
+    def action_open_library_filter(self) -> None:
+        """f键 - 打开高级筛选"""
+        self._show_library_filter()
+
+    def _show_library_filter(self) -> None:
+        """打开高级筛选；确定后把条件应用到批量操作列表。"""
+        from src.ui.dialogs.library_filter_dialog import LibraryFilterDialog
+
+        def on_close(result: Optional[Dict[str, Any]]) -> None:
+            if result is None:
+                return
+            condition_data = result.get("filter")
+            self._library_filter = (
+                LibraryFilter.from_dict(condition_data) if condition_data else None
+            )
+            self._current_page = 1
+            self._load_books()
+            if self._library_filter and not self._library_filter.is_empty():
+                self.notify(
+                    get_global_i18n().t(
+                        "library_filter.active", name=self._library_filter.describe()
+                    ),
+                    severity="information",
+                )
+                if not self._all_books:
+                    self.notify(
+                        get_global_i18n().t("library_filter.no_result"),
+                        severity="warning",
+                    )
+
+        self.app.push_screen(
+            LibraryFilterDialog(self.theme_manager, self._library_filter), on_close
+        )
 
     def action_view_logs(self) -> None:
         """打开日志查看器弹窗"""
@@ -1791,6 +1837,8 @@ class BatchOpsDialog(ModalScreen[Dict[str, Any]]):
             self._export_selected_books()
         elif event.button.id == "search-btn":
             self._perform_search()
+        elif event.button.id == "filter-btn":
+            self._show_library_filter()
         elif event.button.id == "first-page-btn":
             self._go_to_first_page()
         elif event.button.id == "prev-page-btn":
