@@ -710,7 +710,7 @@ READER_WEB_JS = r"""
 #    后端关闭后依然能打开已访问过的页面。
 #  - /sw.js、/health_check 等不缓存，避免把「离线」误判成「在线」。
 SERVICE_WORKER_JS = r"""
-const CACHE = 'br-reader-v62';
+const CACHE = 'br-reader-v66';
 /* ---- 旧缓存页面迁移 ----
    早期窄屏 CSS 把正文字号写成 `font-size: 17px !important`，且设置页滑块还会再调
    `changeFontSize(0)`（按 getComputedStyle 反推字号，配合 body 的 transition 会把
@@ -1724,6 +1724,11 @@ APP_SHELL_CSS = r"""
 .br-app-settings .br-app-setting-row { display: flex; flex-wrap: wrap; gap: 6px; margin-bottom: 10px; }
 .br-app-settings button { cursor: pointer; padding: 5px 9px; border-radius: 8px; border: 1px solid rgba(128,128,128,.3); background: transparent; color: inherit; }
 .br-app-settings button.active { background: rgba(79,172,254,.22); border-color: rgba(79,172,254,.65); }
+.br-app-progress-sync-settings { margin-top: 10px; padding-top: 10px; border-top: 1px solid rgba(128,128,128,.25); }
+.br-app-progress-sync-settings[hidden] { display: none; }
+.br-app-setting-line { display: flex; align-items: center; justify-content: space-between; gap: 10px; min-height: 30px; font-size: 13px; }
+.br-app-setting-line > span:last-child { color: var(--br-accent, #4f7cff); text-align: right; word-break: break-all; }
+.br-app-setting-line select { max-width: 120px; padding: 4px 6px; border-radius: 8px; border: 1px solid rgba(128,128,128,.3); background: transparent; color: inherit; }
 #appTocPanel { left: 16px; right: auto; width: 300px; max-height: calc(100vh - 90px); overflow-y: auto; }
 #appTocPanel input { width: 100%; padding: 6px 8px; margin-bottom: 8px; border-radius: 8px; border: 1px solid rgba(128,128,128,.3); background: transparent; color: inherit; }
 #appTocList { list-style: none; padding: 0; margin: 0; }
@@ -2121,6 +2126,23 @@ APP_ROUTER_JS = r"""
     if (jump && document.activeElement !== jump) { jump.value = pct.toFixed(1); }
     var toggle = document.getElementById('appProgressSyncToggle');
     if (toggle) { toggle.textContent = state.syncEnabled ? '关闭同步' : '开启同步'; }
+    var syncToggle = document.getElementById('appSyncEnabledToggle');
+    if (syncToggle) {
+      syncToggle.textContent = state.syncEnabled ? '禁用' : '启用';
+      syncToggle.classList.toggle('active', !!state.syncEnabled);
+    }
+    var setText = function (id, v, fallback) {
+      var el = document.getElementById(id);
+      if (el) { el.textContent = v || fallback || '—'; }
+    };
+    setText('appSyncStatusText', state.backendStatus, '未连接');
+    setText('appSyncServerAddress', state.serverAddress, '—');
+    setText('appSyncConnectionMode', state.connectionMode, '—');
+    setText('appSyncLastTime', state.lastSync, '从未同步');
+    var interval = document.getElementById('appSyncInterval');
+    if (interval && state.syncInterval && document.activeElement !== interval) {
+      interval.value = String(state.syncInterval);
+    }
   }
   function requestViewState() { sendReaderAction('view-request'); }
   function appFullscreenEl() {
@@ -2212,6 +2234,12 @@ APP_ROUTER_JS = r"""
   var APP_PANEL_IDS = ['appReaderSettings', 'appSearchPanel', 'appTocPanel',
     'appBookmarkPanel', 'appNotePanel', 'appHighlightPanel', 'appVocabPanel',
     'appSpeechPanel', 'appProgressPanel', 'appViewModePanel', 'appJumpPanel', 'appUnlockPanel'];
+  var syncIntervalEl = document.getElementById('appSyncInterval');
+  if (syncIntervalEl) {
+    syncIntervalEl.addEventListener('change', function () {
+      sendReaderAction('progress-sync-interval', syncIntervalEl.value);
+    });
+  }
   function hideAllAppPanels() {
     APP_PANEL_IDS.forEach(function (id) {
       var panel = document.getElementById(id);
@@ -2267,6 +2295,12 @@ APP_ROUTER_JS = r"""
           hideAllAppPanels();
           showAppToast('正在打开编辑器…');
           sendReaderAction('editor');
+          return;
+        }
+        if (shellAction === 'syncProgress') {
+          /* 工具栏的「同步」= 旧版 manualSync()，把当前滚动进度 POST 到后端。 */
+          showAppToast('正在同步阅读进度…');
+          sendReaderAction('progress-sync-now');
           return;
         }
         if (shellAction === 'unlockPanel') {
@@ -2352,6 +2386,17 @@ APP_ROUTER_JS = r"""
         if (shellAction === 'progressSave') { sendReaderAction('progress-save'); return; }
         if (shellAction === 'progressReload') { sendReaderAction('progress-reload'); return; }
         if (shellAction === 'progressSyncToggle') { sendReaderAction('progress-sync-toggle'); return; }
+        if (shellAction === 'progressSyncSettings') {
+          var syncBox = document.getElementById('appProgressSyncSettings');
+          if (syncBox) { syncBox.hidden = !syncBox.hidden; }
+          if (syncBox && !syncBox.hidden) { sendReaderAction('progress-sync-settings'); }
+          return;
+        }
+        if (shellAction === 'progressSyncSettingsClose') {
+          var syncBox2 = document.getElementById('appProgressSyncSettings');
+          if (syncBox2) { syncBox2.hidden = true; }
+          return;
+        }
         if (shellAction === 'progressJump') {
           var progressJump = document.getElementById('appProgressJump');
           var pct = progressJump ? parseFloat(progressJump.value) : 0;
@@ -2700,6 +2745,7 @@ __APP_SHELL_CSS__
     <button type="button" data-shell-action="progress" title="进度">进度</button>
     <button type="button" data-shell-action="jumpPanel" title="位置跳转">跳转</button>
     <button type="button" data-shell-action="editor" title="浏览器编辑">编辑</button>
+    <button type="button" data-shell-action="syncProgress" title="同步阅读进度">同步</button>
     <button type="button" id="appUnlockBtn" data-shell-action="unlockPanel" title="解锁加密书" hidden>解锁</button>
     <button type="button" data-reader-action="fontDown" title="缩小字号">A-</button>
     <button type="button" data-reader-action="fontUp" title="放大字号">A+</button>
@@ -2787,8 +2833,30 @@ __APP_SHELL_CSS__
       <button type="button" data-shell-action="progressJump">跳转</button>
       <button type="button" data-shell-action="progressSave">保存当前进度</button>
       <button type="button" data-shell-action="progressReload">恢复进度</button>
+      <button type="button" data-shell-action="progressSyncSettings">进度同步设置</button>
       <button type="button" id="appProgressSyncToggle" data-shell-action="progressSyncToggle">开启同步</button>
       <button type="button" data-shell-action="closeProgress">关闭</button>
+    </div>
+    <div class="br-app-progress-sync-settings" id="appProgressSyncSettings" hidden>
+      <div class="br-app-setting-line"><span>启用进度同步</span><button type="button" id="appSyncEnabledToggle" data-shell-action="progressSyncToggle">禁用</button></div>
+      <div class="br-app-setting-line"><span>同步状态</span><span id="appSyncStatusText">未连接</span></div>
+      <div class="br-app-setting-line"><span>服务器地址</span><span id="appSyncServerAddress">检测中…</span></div>
+      <div class="br-app-setting-line"><span>连接模式</span><span id="appSyncConnectionMode">检测中…</span></div>
+      <div class="br-app-setting-line"><span>上次同步时间</span><span id="appSyncLastTime">从未同步</span></div>
+      <div class="br-app-setting-line">
+        <span>自动同步间隔</span>
+        <select id="appSyncInterval">
+          <option value="300000">5 分钟</option>
+          <option value="600000">10 分钟</option>
+          <option value="1800000">30 分钟</option>
+          <option value="3600000">1 小时</option>
+          <option value="7200000">2 小时</option>
+        </select>
+      </div>
+      <div class="br-app-setting-row">
+        <button type="button" data-shell-action="syncProgress">立即同步</button>
+        <button type="button" data-shell-action="progressSyncSettingsClose">关闭</button>
+      </div>
     </div>
   </div>
   <div class="br-app-settings" id="appSpeechPanel" hidden>

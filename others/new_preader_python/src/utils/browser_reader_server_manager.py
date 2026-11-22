@@ -370,7 +370,7 @@ def _build_reader_page(file_path: str, req_host: str, req_port: int, secret: str
     # 末尾为前端资源版本号：响应式 CSS / Web JS / Service Worker 有变更时递增，
     # 让进程内缓存的旧 /reader 页面失效，否则局域网版会一直返回修复前的 HTML。
     cache_key = (f"{os.path.realpath(file_path)}|{mtime}|{req_host}|{req_port}|{secret}|"
-                 f"{_sg_enabled}|{_sg_pwd}|55")
+                 f"{_sg_enabled}|{_sg_pwd}|59")
     with _reader_page_cache_lock:
         cached = _reader_page_cache.get(cache_key)
         cached_gzip = _reader_page_gzip_cache.get(cache_key, b"")
