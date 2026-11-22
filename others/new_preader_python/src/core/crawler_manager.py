@@ -256,6 +256,10 @@ class CrawlerManager:
                 self._notify_status_change(task_id)
                 return
             
+            # 书架实例在整轮爬取中复用：Bookshelf() 构造会初始化数据库并
+            # 全量加载所有书籍与阅读信息，逐本重建会让书库越大越慢。
+            bookshelf = None
+
             # 爬取每个小说
             for i, novel_id in enumerate(task.novel_ids):
                 # 检查是否应该停止
@@ -341,7 +345,8 @@ class CrawlerManager:
                             # 新爬取或有新章节更新，将书籍添加到书库
                             try:
                                 from src.core.bookshelf import Bookshelf
-                                bookshelf = Bookshelf()
+                                if bookshelf is None:
+                                    bookshelf = Bookshelf()
                                 
                                 # 合并网站标签和解析器返回的标签
                                 site_tags = novel_site.get('tags', '')

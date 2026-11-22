@@ -107,6 +107,9 @@ _reader_page_cache_lock = threading.Lock()
 # HTTP /reader 页面复用同一套浏览器编辑器；按真实文件路径缓存，避免重复启动服务。
 _editor_servers: Dict[str, Tuple[str, Any]] = {}
 _editor_servers_lock = threading.Lock()
+# 每个编辑器服务独占一个线程且 idle_timeout=0（永不自动关闭），必须限制数量，
+# 否则每打开一本书就永久新增一个服务线程，长时间运行后越来越卡。
+_EDITOR_SERVERS_MAX = 8
 _READER_PAGE_CACHE_MAX = 6
 # 阅读页内嵌了整本书正文，体积通常远大于普通网页；大于 1KB 才 gzip，
 # 避免把短错误页也压缩得得不偿失。
@@ -331,12 +334,22 @@ def _ensure_http_editor(file_path: str) -> str:
     with _editor_servers_lock:
         cached = _editor_servers.get(key)
         if cached and cached[0]:
+            # LRU：命中的条目移到末尾，超限时淘汰最久未使用的服务
+            _editor_servers.pop(key, None)
+            _editor_servers[key] = cached
             return cached[0]
         try:
             from src.utils.browser_editor import BrowserEditorServer
             server = BrowserEditorServer(key, idle_timeout=0)
             url = server.start()
             _editor_servers[key] = (url, server)
+            while len(_editor_servers) > _EDITOR_SERVERS_MAX:
+                old_key, (_, old_server) = next(iter(_editor_servers.items()))
+                del _editor_servers[old_key]
+                try:
+                    old_server.stop()
+                except Exception as e:
+                    logger.debug(f"关闭淘汰的编辑器服务失败: {e}")
             return url
         except Exception as e:
             logger.warning(f"为局域网阅读页启动编辑器失败: {e}")
@@ -1486,6 +1499,13 @@ class BrowserReaderServerManager:
         """注册书籍特定的回调函数"""
         if book_id not in self._callbacks:
             self._callbacks[book_id] = {}
+            # 按书累积的状态（回调/进度/标注）原本只增不减，限制为最近若干本，
+            # 防止长时间运行后内存与字典遍历成本持续上升。
+            max_books = 200
+            for cache in (self._callbacks, self._book_progress_data,
+                          self._book_annotations, self._annotation_callbacks):
+                while len(cache) > max_books:
+                    cache.pop(next(iter(cache)), None)
         
         if on_progress_save:
             self._callbacks[book_id]['save'] = on_progress_save

@@ -265,12 +265,31 @@ class SearchEngine:
             
             # 折叠换行，避免预览里出现大段空白
             flat = text.replace('\r', ' ').replace('\n', ' ')
-            matches = find_match_positions(flat, query)
-            if not matches:
+
+            # 分块归一化查找：命中即停，避免每次都归一化整段 4MB 正文。
+            # 块间保留重叠，防止关键词跨越块边界时漏检（重叠长度按折叠系数放大）。
+            block_size = 65536
+            overlap = max(len(query) * 4, 32)
+            pos = -1
+            hit_end = -1
+            matched_text = ""
+            block_start = 0
+            while block_start < len(flat):
+                block_end = min(block_start + block_size, len(flat))
+                block_matches = find_match_positions(flat[block_start:block_end], query)
+                if block_matches:
+                    hit_start, hit_end, matched_text = block_matches[0]
+                    pos = block_start + hit_start
+                    hit_end = block_start + hit_end
+                    break
+                if block_end >= len(flat):
+                    break
+                block_start = block_end - overlap
+
+            if pos < 0:
                 # 关键词不在已读取的前缀中，退化为返回文件开头片段
                 return flat[:radius * 2].strip()
-            
-            pos, hit_end, matched_text = matches[0]
+
             start = max(0, pos - radius)
             end = min(len(flat), hit_end + radius)
             body = (

@@ -258,8 +258,10 @@ class BoardView(Container):
     }
     """
 
-    # 轮询间隔（秒）：检测源表数据变化并重建看板
-    SYNC_INTERVAL = 0.3
+    # 轮询间隔（秒）：检测源表数据变化并重建看板。
+    # 每次检测都会对全表行 key 与选中列做哈希，0.3 秒在行多时持续占用 UI 主线程；
+    # 降到 1 秒后交互感知不变，但 CPU 开销约为原来的 1/3。
+    SYNC_INTERVAL = 1.0
 
     def __init__(
         self,

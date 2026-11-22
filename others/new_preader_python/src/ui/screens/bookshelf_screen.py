@@ -677,6 +677,12 @@ class BookshelfScreen(Screen[None]):
                 # 有搜索条件时进行筛选
                 total_books = len(all_books)
                 filtered_books = []
+                # 搜索词/作者的归一化与书籍无关，循环外计算一次即可（原先每本书重复计算）
+                normalized_keywords = [normalize_match_text(k) for k in keywords] if keywords else []
+                normalized_author = (
+                    normalize_match_text(actual_search_author)
+                    if actual_search_author != "all" else ""
+                )
                 
                 for i, book in enumerate(all_books):
                     # 更新筛选进度
@@ -695,14 +701,12 @@ class BookshelfScreen(Screen[None]):
                     # 检查作者匹配（简繁 / 大小写统一后再比较）
                     author_match = True
                     if actual_search_author != "all":
-                        author_match = (normalize_match_text(book.author) ==
-                                        normalize_match_text(actual_search_author))
+                        author_match = normalize_match_text(book.author) == normalized_author
                     
                     # 检查关键词匹配
                     keyword_match = False
                     if format_match and author_match:
                         if keywords:
-                            normalized_keywords = [normalize_match_text(k) for k in keywords]
                             normalized_fields = (
                                 normalize_match_text(getattr(book, 'title', '') or ''),
                                 normalize_match_text(getattr(book, 'author', '') or ''),

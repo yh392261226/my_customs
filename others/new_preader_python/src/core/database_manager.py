@@ -113,7 +113,19 @@ class DatabaseManager:
                 alter_sql += f" DEFAULT {default_value}"
             cursor.execute(alter_sql)
             logger.info(f"已为{table_name}表添加{column_name}列")
-    
+
+    @staticmethod
+    def _build_search_text(title: Any, author: Any, pinyin: Any, tags: Any) -> str:
+        """生成书的预归一化检索文本（标题/作者/拼音/标签统一简繁与大小写）。
+
+        写入时计算一次，搜索时只需对该列做 LIKE，避免每行每列调用 MATCH_NORM UDF。
+        字段间用空格分隔；单个关键词只需落在任一字段即可命中，与原四列 OR 语义一致。
+        """
+        return " ".join(
+            normalize_match_text(value or "")
+            for value in (title, author, pinyin, tags)
+        )
+
     def _init_database(self) -> None:
         """初始化数据库表结构"""
         with sqlite3.connect(self.db_path) as conn:
@@ -149,7 +161,8 @@ class DatabaseManager:
                     add_date TEXT NOT NULL,
                     tags TEXT,
                     metadata TEXT,
-                    file_size INTEGER DEFAULT 0  -- 新增文件大小字段，单位为字节
+                    file_size INTEGER DEFAULT 0,  -- 新增文件大小字段，单位为字节
+                    search_text TEXT DEFAULT ''   -- 预归一化的检索文本，避免搜索时逐行调用 UDF
                 )
             """)
             
@@ -379,10 +392,26 @@ class DatabaseManager:
             
             # 检查并添加file_size列（如果不存在）
             self._add_column_if_not_exists(cursor, "books", "file_size", "INTEGER DEFAULT 0")
-            
-            # 检查并添加file_size列（如果不存在）
-            self._add_column_if_not_exists(cursor, "books", "file_size", "INTEGER DEFAULT 0")
-            
+
+            # 检查并添加预归一化检索列（如果不存在）
+            self._add_column_if_not_exists(cursor, "books", "search_text", "TEXT DEFAULT ''")
+
+            # 旧库迁移：为存量书籍补填检索文本。只在首次升级时执行，
+            # 之后新书/更新由 add_book、update_book 等写入路径维护。
+            cursor.execute(
+                "SELECT path, title, author, pinyin, tags FROM books "
+                "WHERE search_text IS NULL OR search_text = ''"
+            )
+            pending_rows = cursor.fetchall()
+            if pending_rows:
+                for row in pending_rows:
+                    cursor.execute(
+                        "UPDATE books SET search_text = ? WHERE path = ?",
+                        (self._build_search_text(row[1], row[2], row[3], row[4]), row[0]),
+                    )
+                conn.commit()
+                logger.info(f"已为 {len(pending_rows)} 本存量书籍生成预归一化检索文本")
+
             # 创建索引以提高查询性能
             cursor.execute("CREATE INDEX IF NOT EXISTS idx_books_title ON books(title)")
             cursor.execute("CREATE INDEX IF NOT EXISTS idx_books_pinyin ON books(pinyin)")
@@ -915,10 +944,11 @@ class DatabaseManager:
             
             with sqlite3.connect(self.db_path) as conn:
                 cursor = conn.cursor()
+                tags_text = book.tags if book.tags else ""
                 cursor.execute("""
                     INSERT OR REPLACE INTO books 
-                    (path, title, pinyin, author, format, add_date, tags, metadata, file_size)
-                    VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?)
+                    (path, title, pinyin, author, format, add_date, tags, metadata, file_size, search_text)
+                    VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
                 """, (
                     book.path,
                     book.title,
@@ -926,9 +956,10 @@ class DatabaseManager:
                     book.author,
                     book.format,
                     book.add_date,
-                    book.tags if book.tags else "",  # 直接使用字符串
+                    tags_text,  # 直接使用字符串
                     metadata_json,
-                    book.file_size
+                    book.file_size,
+                    self._build_search_text(book.title, book.author, pinyin_text, tags_text)
                 ))
                 
                 # 如果提供了用户ID，记录用户归属关系
@@ -981,7 +1012,81 @@ class DatabaseManager:
         except sqlite3.Error as e:
             logger.error(f"获取所有书籍失败: {e}")
             return []
-    
+
+    def get_books_minimal(self) -> List[Dict[str, Any]]:
+        """一次性读取所有书籍的元数据字段，供书架批量比对（替代逐本 get_book 连接）"""
+        try:
+            with sqlite3.connect(self.db_path) as conn:
+                conn.row_factory = sqlite3.Row
+                cursor = conn.cursor()
+                cursor.execute(
+                    "SELECT path, title, author, pinyin, tags, format, add_date, file_size "
+                    "FROM books"
+                )
+                return [dict(row) for row in cursor.fetchall()]
+        except sqlite3.Error as e:
+            logger.error(f"读取书籍元数据失败: {e}")
+            return []
+
+    def _build_book_write_values(self, book: Book) -> Dict[str, Any]:
+        """构建写入 books 表的字段，供 add_book / update_book / save_books_batch 共用"""
+        pinyin_text = convert_to_pinyin(book.title) if book.title else ""
+        tags_text = book.tags if book.tags else ""
+        return {
+            "path": book.path,
+            "title": book.title,
+            "pinyin": pinyin_text,
+            "author": book.author,
+            "format": book.format,
+            "add_date": book.add_date,
+            "tags": tags_text,
+            "metadata": self._build_minimal_metadata(book),
+            "file_size": book.file_size,
+            "search_text": self._build_search_text(book.title, book.author, pinyin_text, tags_text),
+        }
+
+    def save_books_batch(self, books_to_add: List[Book], books_to_update: List[Book],
+                         user_id: Optional[int] = None) -> bool:
+        """在单个连接/事务内批量写入书籍，替代逐本 add_book / update_book"""
+        if not books_to_add and not books_to_update:
+            return True
+        try:
+            with sqlite3.connect(self.db_path) as conn:
+                cursor = conn.cursor()
+                for book in books_to_add:
+                    values = self._build_book_write_values(book)
+                    cursor.execute(
+                        "INSERT OR REPLACE INTO books "
+                        "(path, title, pinyin, author, format, add_date, tags, metadata, file_size, search_text) "
+                        "VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?)",
+                        (
+                            values["path"], values["title"], values["pinyin"], values["author"],
+                            values["format"], values["add_date"], values["tags"], values["metadata"],
+                            values["file_size"], values["search_text"],
+                        ),
+                    )
+                    if user_id is not None:
+                        cursor.execute(
+                            "INSERT OR REPLACE INTO user_books (user_id, book_path) VALUES (?, ?)",
+                            (user_id, book.path),
+                        )
+                for book in books_to_update:
+                    values = self._build_book_write_values(book)
+                    cursor.execute(
+                        "UPDATE books SET path = ?, title = ?, pinyin = ?, author = ?, format = ?, "
+                        "tags = ?, metadata = ?, file_size = ?, search_text = ? WHERE path = ?",
+                        (
+                            values["path"], values["title"], values["pinyin"], values["author"],
+                            values["format"], values["tags"], values["metadata"], values["file_size"],
+                            values["search_text"], book.path,
+                        ),
+                    )
+                conn.commit()
+            return True
+        except sqlite3.Error as e:
+            logger.error(f"批量保存书籍失败: {e}")
+            return False
+
     def get_books_for_user(self, user_id: int) -> List[Book]:
         """
         获取某用户的书籍列表（根据 user_books 归属表）
@@ -1043,15 +1148,13 @@ class DatabaseManager:
                 cursor = conn.cursor()
                 
                 pattern = match_like_pattern(keyword)
-                params: List[Any] = [pattern, pattern, pattern, pattern]
+                params: List[Any] = [pattern]
                 
-                # 两侧都走 MATCH_NORM：繁简中文、全半角与英文大小写统一后再 LIKE
+                # search_text 在写入时已按同一规则归一化，这里只做一次 LIKE，
+                # 避免原先每行每列调用 MATCH_NORM Python UDF 导致索引失效与全表 UDF 开销
                 sql = """
                     SELECT b.* FROM books b
-                    WHERE (MATCH_NORM(b.title) LIKE ? ESCAPE '\\'
-                        OR MATCH_NORM(b.author) LIKE ? ESCAPE '\\'
-                        OR MATCH_NORM(b.pinyin) LIKE ? ESCAPE '\\'
-                        OR MATCH_NORM(b.tags) LIKE ? ESCAPE '\\')
+                    WHERE b.search_text LIKE ? ESCAPE '\\'
                 """
                 
                 # 权限过滤：非管理员只能检索归属自己的书籍
@@ -1221,9 +1324,10 @@ class DatabaseManager:
                 # 如果提供了旧路径，使用旧路径作为WHERE条件（用于路径更新）
                 where_path = old_path if old_path is not None else book.path
                 
+                tags_text = book.tags if book.tags else ""
                 cursor.execute("""
                     UPDATE books 
-                    SET path = ?, title = ?, pinyin = ?, author = ?, format = ?, tags = ?, metadata = ?, file_size = ?
+                    SET path = ?, title = ?, pinyin = ?, author = ?, format = ?, tags = ?, metadata = ?, file_size = ?, search_text = ?
                     WHERE path = ?
                 """, (
                     book.path,
@@ -1231,9 +1335,10 @@ class DatabaseManager:
                     pinyin_text,
                     book.author,
                     book.format,
-                    book.tags if book.tags else "",
+                    tags_text,
                     metadata_json,
                     book.file_size,
+                    self._build_search_text(book.title, book.author, pinyin_text, tags_text),
                     where_path
                 ))
                 conn.commit()
@@ -1344,12 +1449,9 @@ class DatabaseManager:
                 
                 # 为每个关键词构建搜索条件
                 for k in keywords:
-                    search_pattern = match_like_pattern(k)
-                    # 每个关键词在标题、拼音、作者、标签中搜索（两侧统一简繁与大小写）
-                    condition = ("(MATCH_NORM(title) LIKE ? ESCAPE '\\' OR MATCH_NORM(pinyin) LIKE ? ESCAPE '\\' "
-                                 "OR MATCH_NORM(author) LIKE ? ESCAPE '\\' OR MATCH_NORM(tags) LIKE ? ESCAPE '\\')")
-                    conditions.append(condition)
-                    params.extend([search_pattern, search_pattern, search_pattern, search_pattern])
+                    # 检索文本在写入时已统一简繁与大小写，每个关键词只需一次 LIKE
+                    conditions.append("search_text LIKE ? ESCAPE '\\'")
+                    params.append(match_like_pattern(k))
                 
                 # 组合所有条件（OR关系）
                 where_clause = " OR ".join(conditions)
@@ -3448,9 +3550,18 @@ class DatabaseManager:
         if not file_path or file_path == 'already_exists' or not new_title:
             return False
         try:
+            new_pinyin = convert_to_pinyin(new_title)
+            cursor.execute("SELECT author, tags FROM books WHERE path = ?", (file_path,))
+            current = cursor.fetchone()
+            search_text = self._build_search_text(
+                new_title,
+                current[0] if current else "",
+                new_pinyin,
+                current[1] if current else "",
+            )
             cursor.execute(
-                "UPDATE books SET title = ?, pinyin = ? WHERE path = ?",
-                (new_title, convert_to_pinyin(new_title), file_path),
+                "UPDATE books SET title = ?, pinyin = ?, search_text = ? WHERE path = ?",
+                (new_title, new_pinyin, search_text, file_path),
             )
             book_updated = cursor.rowcount > 0
             cursor.execute(
@@ -4261,12 +4372,21 @@ class DatabaseManager:
                             if site_row:
                                 site_name = site_row['name']
                                 
-                                # 更新书籍作者为网站名称
+                                # 更新书籍作者为网站名称，并同步预归一化检索列
+                                cursor.execute(
+                                    "SELECT title, pinyin, tags FROM books WHERE path = ?",
+                                    (book_path,),
+                                )
+                                current = cursor.fetchone() or ("", "", "")
                                 cursor.execute("""
                                     UPDATE books 
-                                    SET author = ?
+                                    SET author = ?, search_text = ?
                                     WHERE path = ?
-                                """, (site_name, book_path))
+                                """, (
+                                    site_name,
+                                    self._build_search_text(current[0], site_name, current[1], current[2]),
+                                    book_path,
+                                ))
                                 
                                 detail['new_author'] = site_name
                                 detail['status'] = 'fixed'

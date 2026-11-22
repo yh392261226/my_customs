@@ -39,7 +39,9 @@ _ACTIVE_MANAGERS_LOCK = threading.Lock()
 class IdleAutoCrawlManager:
     """绑定在 App 实例上的静置检测器（每个 App 实例一份）。"""
 
-    CHECK_INTERVAL = 1.0
+    # 静置间隔以分钟为量级，3 秒的轮询精度足够；原先每秒在主线程做配置读取、
+    # 文件锁探测与运行状态查询，书库/配置变大后会形成持续的背景卡顿。
+    CHECK_INTERVAL = 3.0
 
     def __init__(self, app) -> None:
         self.app = app
@@ -50,6 +52,8 @@ class IdleAutoCrawlManager:
         self._crawl_lock: Optional[NonBlockingFileLock] = None
         self._timer = None
         self._started = False
+        self._config_cache = None
+        self._config_cached_at = 0.0
 
     # ------------------------------------------------------------------
     # 生命周期
@@ -103,6 +107,11 @@ class IdleAutoCrawlManager:
         return config_manager.get_config() or {}
 
     def _read_config(self):
+        # get_config 可能涉及文件 IO 且在 UI 主线程执行，缓存 10 秒；
+        # 设置变更最多延迟一个缓存周期生效，对静置触发场景无感。
+        now = time.monotonic()
+        if self._config_cache is not None and now - self._config_cached_at < 10.0:
+            return self._config_cache
         cfg = self._get_config()
         idle_cfg = cfg.get("idle", {}) or {}
         enabled = bool(idle_cfg.get(
@@ -125,7 +134,9 @@ class IdleAutoCrawlManager:
             interval_min, interval_max = interval_max, interval_min
         interval_min = max(1, interval_min)
         interval_max = max(interval_min, interval_max)
-        return enabled, interval_min, interval_max
+        self._config_cache = (enabled, interval_min, interval_max)
+        self._config_cached_at = now
+        return self._config_cache
 
     def _is_one_click_running(self) -> bool:
         try:

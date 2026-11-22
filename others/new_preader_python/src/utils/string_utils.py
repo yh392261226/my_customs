@@ -47,21 +47,35 @@ def normalize_match_text(text: str, *, remove_punctuation: bool = False,
     return value.casefold()
 
 
+# 单字符归一化结果缓存：key 为 Unicode 码点，value 为该字符归一化后的字符串。
+# 单字符种类远少于正文长度（几千 vs 数百万），填充后可用 str.translate 在 C 层
+# 完成整串归一化，替代原先逐字符调用 normalize_match_text 的百万次函数调用。
+_CHAR_NORM_TRANSLATE: Dict[int, str] = {}
+
+
 def normalize_match_text_with_map(text: str) -> Tuple[str, List[int]]:
     """同 :func:`normalize_match_text`，但返回归一化串到原文字符下标的映射。
 
     正文搜索在归一化文本上命中后，用该映射换回原文位置，保证上下文和高亮仍是原文。
+
+    性能：逐字符调用 normalize_match_text 曾是 O(正文长度) 次 Python 函数调用；
+    这里先按去重字符填充缓存，再由 str.translate 一次完成整串归一化，
+    语义与原逐字符版本完全一致（每个字符独立归一化后拼接）。
     """
     if not text:
         return "", []
-    normalized: List[str] = []
+    text = str(text)
+    table = _CHAR_NORM_TRANSLATE
+    # 只为正文中出现过的字符填充缓存（去重后通常只有几千种）
+    for ch in set(text):
+        code = ord(ch)
+        if code not in table:
+            table[code] = normalize_match_text(ch, collapse_spaces=False)
+    normalized = text.translate(table)
     mapping: List[int] = []
-    for idx, ch in enumerate(str(text)):
-        part = normalize_match_text(ch, collapse_spaces=False)
-        for c in part:
-            normalized.append(c)
-            mapping.append(idx)
-    return "".join(normalized), mapping
+    for idx, ch in enumerate(text):
+        mapping.extend([idx] * len(table[ord(ch)]))
+    return normalized, mapping
 
 
 def find_match_positions(content: str, keyword: str) -> List[Tuple[int, int, str]]:
@@ -1038,6 +1052,8 @@ class _ChineseConverter:
     _t2s: Dict[str, str] = {}  # 繁体 → 简体
     _use_opencc = False
     _opencc_converter = None
+    _t2s_multi_sorted: List[Tuple[str, str]] = []  # 预排序的多字词映射，只构建一次
+    _t2s_single_translate: Dict[int, str] = {}     # 单字映射的 str.translate 表，只构建一次
 
     @classmethod
     def _init_converter(cls):
@@ -1312,6 +1328,15 @@ class _ChineseConverter:
             cls._s2t[s_char] = t_char
             cls._t2s[t_char] = s_char
 
+        # 预计算替换结构：避免 to_simplified 每次调用都重建/排序词表并做上千次 replace
+        cls._t2s_multi_sorted = [
+            (key, value) for key, value in cls._t2s.items() if len(key) > 1
+        ]
+        cls._t2s_multi_sorted.sort(key=lambda item: len(item[0]), reverse=True)
+        cls._t2s_single_translate = {
+            ord(key): value for key, value in cls._t2s.items() if len(key) == 1
+        }
+
         cls._initialized = True
         logger.info(f"初始化内置繁简转换表: {len(cls._s2t)} 个映射")
 
@@ -1330,22 +1355,12 @@ class _ChineseConverter:
             except Exception:
                 pass
 
-        # 使用内置映射表（逐字替换 + 短语优先匹配）
+        # 使用预计算的内置映射表：短语优先 + 单字一次 translate
         result = text
-
-        # 先处理多字词（按长度降序排列，避免子串问题）
-        multi_char_keys = [k for k in cls._t2s.keys() if len(k) > 1]
-        multi_char_keys.sort(key=len, reverse=True)
-
-        for phrase in multi_char_keys:
-            result = result.replace(phrase, cls._t2s[phrase])
-
-        # 再处理单字
-        for t_char, s_char in cls._t2s.items():
-            if len(t_char) == 1:
-                result = result.replace(t_char, s_char)
-
-        return result
+        for phrase, simplified in cls._t2s_multi_sorted:
+            if phrase in result:
+                result = result.replace(phrase, simplified)
+        return result.translate(cls._t2s_single_translate)
 
     @classmethod
     def to_traditional(cls, text: str) -> str:

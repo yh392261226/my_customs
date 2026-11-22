@@ -493,13 +493,14 @@ class FileExplorerScreen(ScreenStyleMixin, Screen[Optional[Union[str, List[str]]
             if not os.path.isdir(base_dir):
                 return []
             
-            # 获取匹配的目录和文件
+            # 获取匹配的目录和文件：搜索模式的归一化与条目无关，循环外计算一次
             completions = []
+            normalized_pattern = normalize_match_text(search_pattern)
             for item in os.listdir(base_dir):
                 item_path = os.path.join(base_dir, item)
                 
                 # 检查是否匹配搜索模式（简繁 / 大小写统一）
-                if normalize_match_text(search_pattern) in normalize_match_text(item):
+                if normalized_pattern in normalize_match_text(item):
                     if os.path.isdir(item_path):
                         # 如果是目录，添加斜杠
                         completions.append(item + "/")
@@ -541,10 +542,11 @@ class FileExplorerScreen(ScreenStyleMixin, Screen[Optional[Union[str, List[str]]
                 self._hide_completion_list()
                 return
             
-            # 获取匹配的目录（只补全目录，不补全文件名）
+            # 获取匹配的目录（只补全目录，不补全文件名）：模式归一化与条目无关
             matches = []
+            normalized_pattern = normalize_match_text(search_pattern)
             for item in os.listdir(base_dir):
-                if normalize_match_text(item).startswith(normalize_match_text(search_pattern)):
+                if normalize_match_text(item).startswith(normalized_pattern):
                     item_path = os.path.join(base_dir, item)
                     if os.path.isdir(item_path):
                         # 只添加目录，添加斜杠

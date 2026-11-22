@@ -368,6 +368,16 @@ class SmartDuplicateDetectorV3:
             if executor in cls._active_executors:
                 cls._active_executors.remove(executor)
     
+    _CACHE_MAX_ENTRIES = 500
+
+    @classmethod
+    def _cache_put(cls, cache: Dict, key: str, value) -> None:
+        """写入缓存并限制条目数，避免长时间运行后内存无限增长。"""
+        with cls._cache_lock:
+            if key not in cache and len(cache) >= cls._CACHE_MAX_ENTRIES:
+                cache.pop(next(iter(cache)), None)
+            cache[key] = value
+
     @classmethod
     def clear_cache(cls):
         with cls._cache_lock:
@@ -630,7 +640,9 @@ class SmartDuplicateDetectorV3:
             
             if file_size <= sample_size:
                 with open(path, 'r', encoding='utf-8', errors='ignore') as f:
-                    return f.read(sample_size)
+                    content = f.read(sample_size)
+                self._cache_put(self._content_cache, cache_key, content)
+                return content
             else:
                 parts = 8 if not self.ENABLE_ENHANCED_SAMPLING else 5
                 part_size = sample_size // parts
@@ -650,7 +662,9 @@ class SmartDuplicateDetectorV3:
                     f.seek(max(0, file_size - part_size))
                     samples.append(f.read(part_size))
                 
-                return ''.join(samples)
+                content = ''.join(samples)
+                self._cache_put(self._content_cache, cache_key, content)
+                return content
         except Exception as e:
             logger.error(f"读取失败: {path}, {e}")
             return ""
@@ -1990,8 +2004,7 @@ class SmartDuplicateDetectorV3:
             if os.path.exists(path):
                 from src.utils.file_utils import FileUtils
                 h = FileUtils.calculate_file_sha256(path)
-                with self._cache_lock:
-                    self._hash_cache[path] = h
+                self._cache_put(self._hash_cache, path, h)
                 return h
         except Exception:
             pass

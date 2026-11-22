@@ -133,40 +133,43 @@ class Bookshelf:
             bool: 保存是否成功
         """
         try:
-            # 只保存有变化的书籍，避免不必要的数据库操作
-            changed_count = 0
-            total_count = 0
-            
+            total_count = len(self.books)
+            # 一次查询取回所有书的元数据，避免原来的 N+1 次 get_book() 连接与查询
+            existing = {
+                row["path"]: row for row in self.db_manager.get_books_minimal()
+            }
+
+            to_add: List[Book] = []
+            to_update: List[Book] = []
             for book in self.books.values():
-                total_count += 1
-                
-                # 检查书籍是否已存在，如果存在则使用更新，不存在才添加
-                existing_book = self.db_manager.get_book(book.path)
-                if existing_book:
-                    # 检查书籍是否有实际变化（比较关键字段）
-                    if (existing_book.title != book.title or 
-                        existing_book.author != book.author or 
-                        existing_book.reading_progress != book.reading_progress or
-                        existing_book.current_page != book.current_page or
-                        existing_book.last_read_date != book.last_read_date):
-                        # 书籍已存在且有变化，使用更新操作
-                        if not self.db_manager.update_book(book):
-                            logger.error(f"更新书籍到数据库失败: {book.title}")
-                            return False
-                        changed_count += 1
-                else:
-                    # 书籍不存在，使用添加操作
-                    if not self.db_manager.add_book(book, self.current_user_id):
-                        logger.error(f"添加书籍到数据库失败: {book.title}")
-                        return False
-                    changed_count += 1
-            
-            if changed_count > 0:
-                logger.info(f"书架数据已保存到数据库（{changed_count}/{total_count} 本书籍有变化）")
-            else:
+                row = existing.get(book.path)
+                if row is None:
+                    to_add.append(book)
+                    continue
+                # 只比较 books 表实际存储的字段。原实现比较的
+                # reading_progress/current_page/last_read_date 属于 reading_history，
+                # get_book() 查不到这些值（恒为默认 0/None），导致每次保存都全量 UPDATE。
+                if (
+                    row.get("title") != book.title
+                    or row.get("author") != book.author
+                    or row.get("tags") != (book.tags or "")
+                    or row.get("pinyin") != (book.pinyin or "")
+                    or row.get("format") != book.format
+                    or (row.get("file_size") or 0) != (book.file_size or 0)
+                ):
+                    to_update.append(book)
+
+            if not to_add and not to_update:
                 logger.debug(f"书架数据无变化，跳过保存（{total_count} 本书籍）")
-            
-            return True
+                return True
+
+            success = self.db_manager.save_books_batch(to_add, to_update, self.current_user_id)
+            if success:
+                logger.info(
+                    f"书架数据已保存到数据库（新增 {len(to_add)} / 更新 {len(to_update)}，"
+                    f"共 {total_count} 本）"
+                )
+            return success
         except Exception as e:
             logger.error(f"保存书架数据时出错: {e}")
             return False

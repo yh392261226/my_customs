@@ -6288,10 +6288,20 @@ class BrowserReader:
                 if (port === currentPort) continue; // 当前地址已确认失败，跳过
                 tried++;
                 try {{
-                    const response = await fetch("http://" + host + ":" + port + "/health_check", {{
-                        method: 'GET',
-                        cache: 'no-cache'
-                    }});
+                    // 每个端口的探测都必须有超时：后端离线时原本会串行等待上百个
+                    // 无响应的连接，阻塞保存进度等主线程流程。
+                    const controller = new AbortController();
+                    const timeoutId = setTimeout(() => controller.abort(), 2000);
+                    let response;
+                    try {{
+                        response = await fetch("http://" + host + ":" + port + "/health_check", {{
+                            method: 'GET',
+                            cache: 'no-cache',
+                            signal: controller.signal
+                        }});
+                    }} finally {{
+                        clearTimeout(timeoutId);
+                    }}
                     if (response && response.ok) {{
                         let instance = '';
                         try {{
@@ -6436,12 +6446,8 @@ class BrowserReader:
                 }}
             }});
             
-            // 每隔一段时间更新连接状态
-            setInterval(function() {{
-                updateServerConnectionInfo();
-            }}, 5000);
-            
-            // 每30秒检查一次后端状态
+            // 连接信息已在 checkBackendStatus 内更新，移除独立的 5 秒轮询定时器
+            // 每30秒检查一次后端状态（探测带超时与退避，见 checkBackendStatus）
             setInterval(function() {{
                 checkBackendStatus();
             }}, 30000);
@@ -7997,8 +8003,9 @@ class BrowserReader:
                 return;
             }}
 
-            // 检测后端是否在线（必须 await，否则拿到的是 Promise，恒为真）
-            const backendOnline = await checkBackendStatus();
+            // 使用已缓存的后端状态，不在翻页保存路径上同步探测端口
+            const backendOnline = (typeof isBackendOnline === 'undefined')
+                ? !!SAVE_PROGRESS_URL : isBackendOnline;
             if (!backendOnline) {{
                 console.log('后端离线，仅保存翻页进度到本地');
                 updateBackendStatusDisplay();
@@ -8715,8 +8722,8 @@ class BrowserReader:
             }}
         }}
 
-        // 每10秒更新一次阅读统计
-        setInterval(updateReadingStats, 10000);
+        // 低频兜底更新阅读统计（秒级刷新由阅读计时器负责）
+        setInterval(updateReadingStats, 30000);
 
         
         // 更新进度条
@@ -8868,8 +8875,10 @@ class BrowserReader:
                 return;
             }}
 
-            // 检测后端是否在线
-            const backendOnline = await checkBackendStatus();
+            // 使用已缓存的后端状态，不在保存路径上同步探测端口。
+            // 完整探测（含故障转移扫描）由定时任务与请求失败回调负责，避免滚动时卡顿。
+            const backendOnline = (typeof isBackendOnline === 'undefined')
+                ? !!SAVE_PROGRESS_URL : isBackendOnline;
             if (!backendOnline) {{
                 console.log('后端离线，仅保存到本地');
                 updateBackendStatusDisplay();
@@ -11076,8 +11085,8 @@ class BrowserReader:
             // 启动阅读统计定时器
             readingTimer = setInterval(updateReadingStats, 1000);
             
-            // 启动增强阅读统计定时器
-            setInterval(updateEnhancedReadingStats, 5000);
+            // 启动增强阅读统计定时器（降频，避免持续 DOM 操作）
+            setInterval(updateEnhancedReadingStats, 30000);
         }};
         
         // 进度同步相关函数
