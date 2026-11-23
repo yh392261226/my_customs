@@ -175,10 +175,14 @@ class UltraBookDuplicateDetector:
     @classmethod
     def request_cancel(cls):
         """请求取消正在运行的检测"""
-        cls._cancel_requested = True
-        
-        # 【关键】立即关闭所有活跃的executor（这是解决卡死的核心！）
+        # 退出清理时会无条件调用本方法；只有确实有检测任务在跑时才打印取消日志，
+        # 否则用日志判断“是否执行过去重”会被这条固定输出误导。
         with cls._executors_lock:
+            had_active_tasks = bool(cls._active_executors)
+            first_request = not cls._cancel_requested
+            cls._cancel_requested = True
+
+            # 【关键】立即关闭所有活跃的executor（这是解决卡死的核心！）
             for executor in cls._active_executors:
                 try:
                     logger.info(f"  🔴 强制关闭线程池: {id(executor)}")
@@ -186,8 +190,11 @@ class UltraBookDuplicateDetector:
                 except Exception as e:
                     logger.debug(f"关闭executor失败: {e}")
             cls._active_executors.clear()
-        
-        logger.info("⚠️ 收到取消请求，正在停止去重检测...")
+
+        if had_active_tasks and first_request:
+            logger.info("⚠️ 收到取消请求，正在停止去重检测...")
+        elif had_active_tasks:
+            logger.debug("去重检测取消请求已重复收到，忽略")
     
     @classmethod
     def is_cancelled(cls) -> bool:

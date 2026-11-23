@@ -165,6 +165,8 @@ class BatchOpsDialog(ModalScreen[Dict[str, Any]]):
         # 执行过会改动书籍数据的操作时置位；弹窗不自动关闭，
         # 等用户主动退出时再把该标志返回给书库页面做一次刷新
         self._needs_refresh = False
+        # 是否真的启动了去重检测（用于 ESC 退出时避免误报“停止去重检测”日志）
+        self._dedup_detection_active = False
         
         # 分页相关属性
         self._current_page = 1
@@ -639,8 +641,10 @@ class BatchOpsDialog(ModalScreen[Dict[str, Any]]):
             
         #     event.stop()
         if event.key == "escape":
-            # ESC键返回 - 强制停止后台去重检测并立即退出
-            logger.info("用户按ESC，强制停止后台去重检测...")
+            # ESC键返回 - 只在确实有去重检测在跑时才记录这条日志，
+            # 否则进入页面后直接按 ESC 也会产生“停止去重检测”的误导记录
+            if getattr(self, '_dedup_detection_active', False):
+                logger.info("用户按ESC，强制停止后台去重检测...")
             
             try:
                 # 1. 【关键修复】设置所有取消标志（包括V3检测器）
@@ -3040,11 +3044,14 @@ class BatchOpsDialog(ModalScreen[Dict[str, Any]]):
     
     async def _find_duplicate_books(self) -> None:
         """查找重复书籍（使用智能V2引擎）"""
+        # 只有真正走到这里才算启动了一次去重检测
+        self._dedup_detection_active = True
         try:
             # 获取所有书籍
             all_books = self.bookshelf.get_all_books()
             
             if len(all_books) < 2:
+                self._dedup_detection_active = False
                 self.notify(
                     get_global_i18n().t("duplicate_books.need_at_least_two"),
                     severity="warning"
@@ -3213,6 +3220,7 @@ class BatchOpsDialog(ModalScreen[Dict[str, Any]]):
         try:
             # 标记所有批次已完成
             self._all_batches_completed = True
+            self._dedup_detection_active = False
             
             # 【关键修复】合并所有阶段的结果（包括batch_callback中已添加的）
             all_results = list(self._shown_duplicate_groups) if hasattr(self, '_shown_duplicate_groups') else []
@@ -3294,6 +3302,7 @@ class BatchOpsDialog(ModalScreen[Dict[str, Any]]):
     
     def _on_duplicate_search_error(self, error) -> None:
         """重复搜索出错时的回调"""
+        self._dedup_detection_active = False
         logger.error(f"查找重复书籍失败: {error}")
         self.notify(
             get_global_i18n().t("duplicate_books.find_failed"),
