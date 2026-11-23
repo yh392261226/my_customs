@@ -1727,9 +1727,11 @@ class DatabaseManager:
         Returns:
             Book: 书籍对象
         """
-        # 优先使用独立字段创建书籍对象
-        pinyin_value = row['pinyin'] if 'pinyin' in row else None
-        
+        # sqlite3.Row 的 `in` 检查的是“值”，不是列名；必须用 row.keys() 判断列是否存在，
+        # 否则这里恒为 None，导致每本书都现场用 pypinyin 重新生成拼音（上万本时耗时数秒）。
+        columns = row.keys()
+        pinyin_value = row['pinyin'] if 'pinyin' in columns else None
+
         # 创建基础书籍对象
         book = Book(
             path=row['path'],
@@ -1746,12 +1748,7 @@ class DatabaseManager:
         book.add_date = row['add_date']
         
         # 设置文件大小字段
-        if 'file_size' in row:
-            book.file_size = row['file_size']
-            book.size = book.file_size  # 保持兼容性
-        
-        # 设置文件大小字段
-        if 'file_size' in row:
+        if 'file_size' in columns:
             book.file_size = row['file_size']
             book.size = book.file_size  # 保持兼容性
         
@@ -1760,11 +1757,11 @@ class DatabaseManager:
         # 这些字段将通过其他方法从reading_history表获取
         
         # 设置拼音字段（如果存在）
-        if 'pinyin' in row:
+        if 'pinyin' in columns:
             book.pinyin = row['pinyin'] or ""
         
         # 设置标签字段（如果存在）
-        if 'tags' in row:
+        if 'tags' in columns:
             book.tags = row['tags'] or ""
         
         # 只有在独立字段缺失或需要补充数据时，才使用metadata字段
