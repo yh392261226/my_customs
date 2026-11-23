@@ -844,6 +844,9 @@ LABELS: Dict[str, Dict[str, str]] = {
         "portal_offline_tip": "后端已关闭，显示本机缓存", "portal_online_tip": "已连接后端",
         "portal_no_offline": "还没有离线缓存的书籍，请在线打开一次",
         "portal_settings": "设置", "portal_back": "返回",
+        "portal_auto_refresh": "书库自动刷新间隔（分钟）",
+        "portal_auto_refresh_hint": "默认 30 分钟，修改后立即生效；仅保存在本浏览器，不同步到服务端。",
+        "portal_refresh_saved": "已设置自动刷新间隔",
         "portal_clear_cache": "清除离线缓存", "portal_cleared": "已清除",
         "portal_open_failed": "打开失败，请检查后端与密钥",
         "portal_loading": "正在打开书籍",
@@ -880,6 +883,9 @@ LABELS: Dict[str, Dict[str, str]] = {
         "portal_offline_tip": "Backend offline, showing local cache", "portal_online_tip": "Connected to backend",
         "portal_no_offline": "No cached books yet — open one while online",
         "portal_settings": "Settings", "portal_back": "Back",
+        "portal_auto_refresh": "Library auto-refresh (minutes)",
+        "portal_auto_refresh_hint": "Default 30 minutes; takes effect immediately. Saved in this browser only, never synced to the server.",
+        "portal_refresh_saved": "Auto-refresh interval saved",
         "portal_clear_cache": "Clear offline cache", "portal_cleared": "Cleared",
         "portal_open_failed": "Failed to open, check backend and API key",
         "portal_loading": "Opening book",
@@ -2707,6 +2713,11 @@ __APP_SHELL_CSS__
     <p style="font-size:12px;opacity:.65;margin:10px 0 0">__OFFLINE_HINT__</p>
   </div>
   <div class="br-settings-group">
+    <h3>__PORTAL_TITLE__</h3>
+    <div class="br-setting-row"><label for="refreshIntervalInput">__PORTAL_AUTO_REFRESH__</label><input type="number" id="refreshIntervalInput" min="1" max="1440" step="1" value="30"></div>
+    <p style="font-size:12px;opacity:.65;margin:10px 0 0">__PORTAL_AUTO_REFRESH_HINT__</p>
+  </div>
+  <div class="br-settings-group">
     <h3>__APPEARANCE__</h3>
     <div class="br-setting-row"><label for="fontSizeInput">__FONT_SIZE__</label><input type="range" id="fontSizeInput" min="12" max="32" value="18"><span class="br-value" id="fontSizeValue">18</span></div>
     <div class="br-setting-row"><label for="lineHeightInput">__LINE_HEIGHT__</label><input type="range" id="lineHeightInput" min="12" max="28" value="18"><span class="br-value" id="lineHeightValue">1.8</span></div>
@@ -2950,6 +2961,9 @@ _PORTAL_JS = r"""
     var OFFLINE = window.__BR_OFFLINE_MODE__ === true;
     var OFFLINE_BOOKS = window.__BR_OFFLINE_BOOKS__ || [];
     var KEY_STORE = 'br_api_secret', BACK_STORE = 'br_backend_override';
+    /* 书库自动刷新间隔（分钟）：纯浏览器端设置，默认 30，不同步服务端 */
+    var REFRESH_KEY = 'br_library_refresh_minutes', REFRESH_DEFAULT = 30;
+    var autoRefreshTimer = null;
     /* v2：旧缓存里含真实 path，整体弃用，避免继续在浏览器本地暴露目录。 */
     var CACHE_KEY = 'br_portal_books_v2', CACHE_TIME_KEY = 'br_portal_books_v2_synced_at';
     var DB_NAME = 'br_offline_books', STORE = 'books', INDEX_STORE = 'book_index';
@@ -3711,6 +3725,22 @@ _PORTAL_JS = r"""
         loadBooks(1);
     }
 
+    /* 书库自动刷新：间隔只存 localStorage，网络版/离线版共用；修改后立即重新计时 */
+    function getRefreshMinutes() {
+        var v = parseInt(safe(function () { return localStorage.getItem(REFRESH_KEY); }) || '', 10);
+        return (isFinite(v) && v >= 1) ? v : REFRESH_DEFAULT;
+    }
+    function restartAutoRefresh() {
+        if (autoRefreshTimer) { clearInterval(autoRefreshTimer); autoRefreshTimer = null; }
+        var minutes = getRefreshMinutes();
+        /* 非书库视图（如阅读页）不刷新列表，避免无谓的数据请求 */
+        autoRefreshTimer = setInterval(function () {
+            /* 只在书库视图刷新；阅读页或设置页时不打断用户 */
+            var view = safe(function () { return window.BRAppRouter && window.BRAppRouter.current(); });
+            if (view && view !== 'library') { return; }
+            loadBooks(page);
+        }, minutes * 60 * 1000);
+    }
     function openSettings() {
         $('brSettingsView').classList.add('open');
         $('backendInput').value = backend();
@@ -3721,6 +3751,7 @@ _PORTAL_JS = r"""
         $('lineHeightInput').value = Math.round(parseFloat(s.line_height || 1.8) * 10);
         $('lineHeightValue').textContent = parseFloat(s.line_height || 1.8).toFixed(1);
         $('darkInput').checked = document.documentElement.classList.contains('br-dark');
+        if ($('refreshIntervalInput')) { $('refreshIntervalInput').value = getRefreshMinutes(); }
         location.hash = 'settings';
         checkNet();
     }
@@ -3930,6 +3961,17 @@ _PORTAL_JS = r"""
         $('fontSizeInput').addEventListener('input', function () { $('fontSizeValue').textContent = this.value; saveSettings(); });
         $('lineHeightInput').addEventListener('input', function () { $('lineHeightValue').textContent = (this.value / 10).toFixed(1); saveSettings(); });
         $('darkInput').addEventListener('change', saveSettings);
+        var refreshInput = $('refreshIntervalInput');
+        if (refreshInput) {
+            refreshInput.addEventListener('change', function () {
+                var v = parseInt(this.value, 10);
+                if (!isFinite(v) || v < 1) { v = REFRESH_DEFAULT; }
+                this.value = v;
+                safe(function () { localStorage.setItem(REFRESH_KEY, String(v)); });
+                restartAutoRefresh();
+                if (L.portal_refresh_saved) { setTip(L.portal_refresh_saved); }
+            });
+        }
         function closeOfflineReader() {
             $('offlineReader').classList.remove('open');
             $('portalRoot').style.display = '';
@@ -3972,6 +4014,7 @@ _PORTAL_JS = r"""
            导致从阅读页返回书库时三个 tab 全空、必须整页刷新。初始化只渲染
            书库 DOM（bookGrid），与 reader 视图互不干扰，可安全提前。 */
         bind();
+        restartAutoRefresh();
         paintNet();
         /* 立即探测后端并刷新在线徽章：netOnline 初始为 false，若只 paintNet 不 checkNet，
            页面刚打开会一直显示「离线」，要等 setInterval(checkNet,30000) 30 秒后才纠正。
@@ -4059,6 +4102,8 @@ def build_portal_html(locale: Optional[str] = None, secret: str = "",
         "__PORTAL_LOCAL_BOOKS__": labels["portal_local_books"],
         "__PORTAL_NETWORK_BOOKS__": labels["portal_network_books"],
         "__PORTAL_SETTINGS__": labels["portal_settings"],
+        "__PORTAL_AUTO_REFRESH__": labels["portal_auto_refresh"],
+        "__PORTAL_AUTO_REFRESH_HINT__": labels["portal_auto_refresh_hint"],
         "__PORTAL_CLEAR_CACHE__": labels["portal_clear_cache"],
         "__PORTAL_LOADING__": labels["portal_loading"],
         "__PORTAL_MANAGE_LOCAL__": labels["portal_manage_local"],
