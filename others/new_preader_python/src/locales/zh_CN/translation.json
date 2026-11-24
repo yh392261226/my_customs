@@ -869,6 +869,7 @@
     "site_not_found": "未找到站点",
     "site_url": "网站网址",
     "size": "大小",
+    "crawl_time": "爬取时间",
     "skip": "跳过",
     "skip_group": "跳过此组",
     "sort": "排序",

@@ -1747,8 +1747,9 @@ class DatabaseManager:
         # 设置日期字段
         book.add_date = row['add_date']
         
-        # 设置文件大小字段
-        if 'file_size' in columns:
+        # 设置文件大小字段：数据库里 file_size 可能为 0（历史数据未回填），
+        # 此时保留 Book 构造时由 os.path.getsize 得到的真实大小，避免显示为空白。
+        if 'file_size' in columns and row['file_size'] and row['file_size'] > 0:
             book.file_size = row['file_size']
             book.size = book.file_size  # 保持兼容性
         

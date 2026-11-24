@@ -869,6 +869,7 @@
     "site_not_found": "Site not found",
     "site_url": "Site URL",
     "size": "Size",
+    "crawl_time": "Crawled",
     "skip": "Skip",
     "skip_group": "Skip This Group",
     "sort": "Sort",

@@ -3,6 +3,7 @@
 """
 
 import os
+from datetime import datetime
 from typing import List, Dict, Any, Optional
 from textual.screen import ModalScreen
 from textual.app import ComposeResult
@@ -310,6 +311,7 @@ class DuplicateBooksDialog(ModalScreen[Dict[str, Any]]):
             table.add_column(get_global_i18n().t("common.bookshelf"), key="title")
             table.add_column(get_global_i18n().t("common.author"), key="author")
             table.add_column(get_global_i18n().t("common.size"), key="size")
+            table.add_column(get_global_i18n().t("common.crawl_time"), key="crawl_time")
             table.add_column(get_global_i18n().t("common.format"), key="format")
             table.add_column(get_global_i18n().t("duplicate_books.recommended"), key="recommended")
             table.add_column(get_global_i18n().t("common.view_file"), key="view_action")  # 查看文件按钮列
@@ -413,19 +415,29 @@ class DuplicateBooksDialog(ModalScreen[Dict[str, Any]]):
             if is_selected:
                 selected_keys.add(book.path)
             
-            # 获取文件大小
-            size_str = ""
+            # 获取文件大小：无大小时显示"未知"，避免出现空白单元格
+            size_str = "未知"
             try:
-                if hasattr(book, 'size') and book.size:
-                    # 格式化文件大小
-                    if book.size < 1024 * 1024:  # 小于1MB
-                        size_kb = book.size / 1024.0
-                        size_str = f"{size_kb:.1f} KB"
+                size = getattr(book, 'size', 0) or getattr(book, 'file_size', 0) or 0
+                if size > 0:
+                    if size < 1024 * 1024:  # 小于1MB
+                        size_str = f"{size / 1024.0:.1f} KB"
                     else:
-                        size_mb = book.size / (1024.0 * 1024.0)
-                        size_str = f"{size_mb:.1f} MB"
-            except:
+                        size_str = f"{size / (1024.0 * 1024.0):.1f} MB"
+            except Exception:
                 size_str = "未知"
+
+            # 爬取/入库时间：add_date 为 ISO 字符串，只显示到日期（哪天爬取到的）
+            crawl_time_str = "未知"
+            try:
+                add_date = getattr(book, 'add_date', None)
+                if add_date:
+                    if isinstance(add_date, datetime):
+                        crawl_time_str = add_date.strftime("%Y-%m-%d")
+                    else:
+                        crawl_time_str = datetime.fromisoformat(str(add_date)).strftime("%Y-%m-%d")
+            except Exception:
+                crawl_time_str = "未知"
             
             # 添加查看文件按钮
             view_file_button = f"[{get_global_i18n().t('common.view_file')}]"
@@ -440,6 +452,7 @@ class DuplicateBooksDialog(ModalScreen[Dict[str, Any]]):
                     book.title,
                     book.author,
                     size_str,
+                    crawl_time_str,
                     book.format.upper() if book.format else "",
                     recommended_text,
                     view_file_button,  # 查看文件按钮
@@ -466,11 +479,12 @@ class DuplicateBooksDialog(ModalScreen[Dict[str, Any]]):
                     row_data[2],       # 书名
                     row_data[3],       # 作者
                     row_data[4],       # 大小
-                    row_data[5],       # 格式
-                    row_data[6],       # 推荐
-                    row_data[7],       # 查看文件按钮
-                    row_data[8],       # 预览按钮
-                    row_data[9],       # 选中标记（已在准备数据时设置）
+                    row_data[5],       # 爬取时间
+                    row_data[6],       # 格式
+                    row_data[7],       # 推荐
+                    row_data[8],       # 查看文件按钮
+                    row_data[9],       # 预览按钮
+                    row_data[10],      # 选中标记（已在准备数据时设置）
                     key=book_path      # 使用书籍路径作为键
                 )
             except Exception as add_error:
@@ -1413,22 +1427,22 @@ class DuplicateBooksDialog(ModalScreen[Dict[str, Any]]):
                 return
             
             # 列索引映射：
-            # 0=索引, 1=书名, 2=作者, 3=大小, 4=格式, 5=推荐, 6=查看文件按钮, 7=预览按钮, 8=已选择列
+            # 0=索引, 1=书名, 2=作者, 3=大小, 4=爬取时间, 5=格式, 6=推荐, 7=查看文件按钮, 8=预览按钮, 9=已选择列
             
-            # 处理查看文件按钮列的点击（索引6）
-            if event.coordinate.column == 6:
+            # 处理查看文件按钮列的点击（索引7）
+            if event.coordinate.column == 7:
                 self._view_file(book.path)
                 event.stop()
                 return
             
-            # 处理预览按钮列的点击（索引7）
-            if event.coordinate.column == 7:
+            # 处理预览按钮列的点击（索引8）
+            if event.coordinate.column == 8:
                 self._preview_book(book)
                 event.stop()
                 return
             
-            # 处理已选择列的点击（最后一列，索引8）
-            if event.coordinate.column == 8:
+            # 处理已选择列的点击（最后一列，索引9）
+            if event.coordinate.column == 9:
                 # 切换选中状态
                 if book_path in self.selected_books:
                     self.selected_books.remove(book_path)
