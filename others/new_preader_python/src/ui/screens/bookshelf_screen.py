@@ -5,6 +5,7 @@
 
 import os
 import re
+import unicodedata
 from typing import Dict, Any, Optional, List, ClassVar, Set
 from webbrowser import get
 from src.core import book
@@ -30,6 +31,7 @@ from src.core.statistics_direct import StatisticsManagerDirect
 from src.ui.dialogs.crawler_merge_mode_dialog import normalize_book_title
 from src.core.database_manager import DatabaseManager
 from src.ui.dialogs.batch_ops_dialog import BatchOpsDialog
+from src.ui.dialogs.category_picker_dialog import CategoryPickerDialog
 from src.ui.dialogs.search_dialog import SearchDialog
 from src.ui.dialogs.sort_dialog import SortDialog
 from src.ui.dialogs.directory_dialog import DirectoryDialog
@@ -148,6 +150,8 @@ class BookshelfScreen(Screen[None]):
             (get_global_i18n().t("bookshelf.last_read"), "last_read"),
             (get_global_i18n().t("common.progress"), "progress"),
             (get_global_i18n().t("common.tag"), "tags"),
+            (get_global_i18n().t("common.categories"), "categories"),
+            (get_global_i18n().t("common.set_categories"), "categories_action"),
             (get_global_i18n().t("common.read"), "read_action"),  # 阅读按钮列
             (get_global_i18n().t("common.browser"), "browser_read_action"),  # 浏览器阅读按钮列
             (get_global_i18n().t("common.view_file"), "view_action"),  # 查看文件按钮列
@@ -350,7 +354,8 @@ class BookshelfScreen(Screen[None]):
                 continue
             cols.append((label, key))
         for col in cols:
-            table.add_column(col[0], key=col[1])
+            width = 20 if col[1] == "categories" else None
+            table.add_column(col[0], key=col[1], width=width)
         
         # 启用隔行变色效果
         table.zebra_stripes = True
@@ -417,6 +422,38 @@ class BookshelfScreen(Screen[None]):
         # 挂载后，后台为尚未索引的书籍补建全文搜索索引（幂等，仅在有未索引书籍时触发）
         self._ensure_search_index()
     
+    @staticmethod
+    def _display_width(text: str) -> int:
+        """按终端显示宽度计算字符串（中文占 2 列）。"""
+        return sum(2 if unicodedata.east_asian_width(ch) in ("W", "F") else 1 for ch in text)
+
+    @classmethod
+    def _truncate_for_cell(cls, text: str, max_width: int = 18) -> str:
+        """按显示宽度截断，超出时用省略号。"""
+        if not text or cls._display_width(text) <= max_width:
+            return text
+        suffix = "…"
+        result: List[str] = []
+        width = 0
+        for ch in text:
+            ch_width = 2 if unicodedata.east_asian_width(ch) in ("W", "F") else 1
+            if width + ch_width + len(suffix) > max_width:
+                break
+            result.append(ch)
+            width += ch_width
+        return "".join(result).rstrip(" |,") + suffix
+
+    @classmethod
+    def _format_categories(cls, categories: Any) -> str:
+        """分类以竖线分隔；超长部分截断，完整内容交给 tooltip。"""
+        if isinstance(categories, str):
+            values = [c.strip() for c in categories.split(",") if c.strip()]
+        elif isinstance(categories, (list, tuple, set)):
+            values = [str(c).strip() for c in categories if str(c).strip()]
+        else:
+            values = []
+        return cls._truncate_for_cell(" | ".join(values))
+
     def _add_table_columns(self, table) -> None:
         """添加表格列定义"""
         # 根据权限过滤操作列
@@ -437,7 +474,8 @@ class BookshelfScreen(Screen[None]):
             cols.append((label, key))
         
         for col in cols:
-            table.add_column(col[0], key=col[1])
+            width = 20 if col[1] == "categories" else None
+            table.add_column(col[0], key=col[1], width=width)
         
         # 启用隔行变色效果
         table.zebra_stripes = True
@@ -813,6 +851,9 @@ class BookshelfScreen(Screen[None]):
             # 非页面切换时，确保列已正确设置
             table.clear(columns=True)
             self._add_table_columns(table)
+
+        # 分类单元格的完整内容提示（与按钮快捷键 tooltip 共用同一机制）
+        table._cell_tooltips = {}
         
         # 准备虚拟滚动数据
         virtual_data = []
@@ -833,6 +874,14 @@ class BookshelfScreen(Screen[None]):
             
             # 格式化标签显示（直接显示逗号分隔的字符串）
             tags_display = book.tags if book.tags else ""
+
+            # 分类：竖线分隔，超长截断；完整内容放入单元格 tooltip
+            categories_full = " | ".join(
+                c.strip() for c in (getattr(book, "categories", []) or []) if str(c).strip()
+            )
+            if categories_full:
+                table._cell_tooltips[(row_key, "categories")] = categories_full
+            categories_display = self._format_categories(categories_full)
             
             # 如果文件不存在，在标题前添加标记
             display_title = book.title
@@ -853,6 +902,8 @@ class BookshelfScreen(Screen[None]):
                 'last_read': last_read,
                 'progress': f"{progress:.1f}%",
                 'tags': tags_display,
+                'categories': categories_display,
+                'categories_action': f"[{get_global_i18n().t('common.set_categories')}]",
                 'read_action': '',
                 'browser_read_action': '',
                 'view_action': '',
@@ -1367,6 +1418,8 @@ class BookshelfScreen(Screen[None]):
                 # 非页面切换时，确保列已正确设置
                 table.clear(columns=True)
                 self._add_table_columns(table)
+
+            table._cell_tooltips = {}
             
             # 准备虚拟滚动数据
             virtual_data = []
@@ -1387,6 +1440,14 @@ class BookshelfScreen(Screen[None]):
                 
                 # 格式化标签显示（直接显示逗号分隔的字符串）
                 tags_display = book.tags if book.tags else ""
+
+                # 分类：竖线分隔，超长截断；完整内容放入单元格 tooltip
+                categories_full = " | ".join(
+                    c.strip() for c in (getattr(book, "categories", []) or []) if str(c).strip()
+                )
+                if categories_full:
+                    table._cell_tooltips[(row_key, "categories")] = categories_full
+                categories_display = self._format_categories(categories_full)
                 
                 # 添加操作按钮
                 # 文件不存在时，不显示阅读、浏览器阅读、查看文件、重命名、预览按钮
@@ -1427,6 +1488,8 @@ class BookshelfScreen(Screen[None]):
                     "last_read": last_read,
                     "progress": f"{progress:.1f}%",
                     "tags": tags_display,
+                    "categories": categories_display,
+                    "categories_action": f"[{get_global_i18n().t('common.set_categories')}]",
                     "read_action": read_button,
                     "browser_read_action": browser_read_button,
                     "view_action": view_file_button,
@@ -1580,6 +1643,9 @@ class BookshelfScreen(Screen[None]):
         elif column_key == "tags":
             # 标签排序
             return book.tags or ""
+        elif column_key == "categories":
+            # 分类排序
+            return " | ".join(getattr(book, "categories", []) or [])
         elif column_key == "add_date":
             # 添加日期排序
             from datetime import datetime
@@ -1632,51 +1698,53 @@ class BookshelfScreen(Screen[None]):
                         self._view_book_details(book_id)
                         event.stop()
                     
-                    # 处理操作按钮列（阅读、浏览器阅读、查看文件、重命名、预览、删除）
-                    # 列索引从0开始：8=阅读, 9=浏览器阅读, 10=查看文件, 11=重命名, 12=预览, 13=删除
-                    if column_key in [8, 9, 10, 11, 12, 13]:
-                        
-                        # 根据列索引执行不同的操作
-                        if column_key == 8:  # 阅读按钮列
+                    # 处理操作按钮列：统一按列键识别，避免新增列后索引偏移
+                    action_keys = (
+                        "read_action", "browser_read_action", "view_action",
+                        "rename_action", "preview_action", "delete_action",
+                        "categories_action",
+                    )
+                    if col_key_value in action_keys:
+                        if col_key_value == "read_action":
                             self.logger.info(f"点击阅读按钮打开书籍: {book_id}")
                             if getattr(self.app, "has_permission", lambda k: True)("bookshelf.read"):
                                 self._open_book_fallback(book_id)
                             else:
                                 self.notify(get_global_i18n().t("bookshelf.np_read"), severity="warning")
-                        elif column_key == 9:  # 浏览器阅读按钮列
+                        elif col_key_value == "browser_read_action":
                             self.logger.info(f"点击浏览器阅读按钮打开书籍: {book_id}")
                             if getattr(self.app, "has_permission", lambda k: True)("bookshelf.read"):
                                 self._open_book_in_browser(book_id)
                             else:
                                 self.notify(get_global_i18n().t("bookshelf.np_read"), severity="warning")
-                        elif column_key == 10:  # 查看文件按钮列
+                        elif col_key_value == "view_action":
                             self.logger.info(f"点击查看文件按钮: {book_id}")
                             if getattr(self.app, "has_permission", lambda k: True)("bookshelf.view_file"):
                                 self._view_file(book_id)
                             else:
                                 self.notify(get_global_i18n().t("bookshelf.np_view_file"), severity="warning")
-                        elif column_key == 11:  # 重命名按钮列
+                        elif col_key_value == "rename_action":
                             self.logger.info(f"点击重命名按钮: {book_id}")
                             if getattr(self.app, "has_permission", lambda k: True)("bookshelf.rename_book"):
                                 self._rename_book(book_id)
                             else:
                                 self.notify(get_global_i18n().t("bookshelf.np_rename"), severity="warning")
-                        elif column_key == 12:  # 预览按钮列
+                        elif col_key_value == "preview_action":
                             self.logger.info(f"点击预览按钮: {book_id}")
                             self._preview_book(book_id)
-                        elif column_key == 13:  # 删除按钮列
+                        elif col_key_value == "delete_action":
                             self.logger.info(f"点击删除按钮: {book_id}")
                             if getattr(self.app, "has_permission", lambda k: True)("bookshelf.delete_book"):
                                 self._delete_book(book_id)
                             else:
                                 self.notify(get_global_i18n().t("bookshelf.np_delete"), severity="warning")
-                        
-                        # 阻止事件冒泡，避免触发其他处理程序
+                        elif col_key_value == "categories_action":
+                            self.logger.info(f"点击设置分类按钮: {book_id}")
+                            self._edit_book_categories(book_id)
                         event.stop()
                     
-                    # 处理标题列点击：复制书名到剪贴板
-                    # 列索引从0开始：1=标题列
-                    elif column_key == 1:
+                    # 处理标题列点击：复制书名到剪贴板（按列键识别）
+                    elif col_key_value == "title" or column_key == 1:
                         self._copy_book_title_to_clipboard(book.title)
                         event.stop()
 
@@ -1729,6 +1797,40 @@ class BookshelfScreen(Screen[None]):
         except Exception as e:
             self.logger.error(f"复制书名到剪贴板失败: {e}")
             self.notify(get_global_i18n().t("cannot_copy"), severity="error")
+
+    def _edit_book_categories(self, book_path: str) -> None:
+        """打开分类选择器，为单本书籍设置或修改分类。"""
+        book = self.bookshelf.get_book(book_path)
+        if book is None:
+            self.notify(get_global_i18n().t("cannot_copy"), severity="warning")
+            return
+
+        def _on_categories(categories: Optional[List[str]]) -> None:
+            if categories is None:
+                return
+            try:
+                if self.bookshelf.db_manager.update_book_categories(book_path, categories):
+                    book.categories = list(categories)
+                    self._load_books()
+                    self.notify(
+                        get_global_i18n().t("common.categories_updated"),
+                        severity="information",
+                    )
+                else:
+                    self.notify(
+                        get_global_i18n().t("common.category_update_failed"),
+                        severity="error",
+                    )
+            except Exception as exc:
+                self.logger.error(f"更新分类失败: {exc}")
+                self.notify(
+                    get_global_i18n().t("common.category_update_failed"),
+                    severity="error",
+                )
+
+        self.app.push_screen(
+            CategoryPickerDialog(self.theme_manager, book.categories), _on_categories
+        )
 
     def _copy_focused_book_title(self) -> None:
         """复制当前焦点所在行的书籍标题到剪贴板"""
@@ -2340,6 +2442,7 @@ class BookshelfScreen(Screen[None]):
                 # 更新表格显示排序后的书籍
                 table = self.query_one("#books-table", DataTable)
                 table.clear()
+                table._cell_tooltips = {}
 
                 # 更新序号到书籍路径的映射
                 self._book_index_mapping = {}
@@ -2361,6 +2464,14 @@ class BookshelfScreen(Screen[None]):
 
                     # 格式化标签显示（直接显示逗号分隔的字符串）
                     tags_display = book.tags if book.tags else ""
+
+                    # 分类：竖线分隔，超长截断；完整内容放入单元格 tooltip
+                    categories_full = " | ".join(
+                        c.strip() for c in (getattr(book, "categories", []) or []) if str(c).strip()
+                    )
+                    if categories_full:
+                        table._cell_tooltips[(row_key, "categories")] = categories_full
+                    categories_display = self._format_categories(categories_full)
 
                     # 添加操作按钮
                     # 文件不存在时，不显示阅读、浏览器阅读、查看文件、重命名、预览按钮
@@ -2401,6 +2512,8 @@ class BookshelfScreen(Screen[None]):
                         "last_read": last_read,
                         "progress": f"{progress:.1f}%",
                         "tags": tags_display,
+                        "categories": categories_display,
+                        "categories_action": f"[{get_global_i18n().t('common.set_categories')}]",
                         "read_action": read_button,
                         "browser_read_action": browser_read_button,
                         "view_action": view_file_button,
@@ -3182,7 +3295,10 @@ class BookshelfScreen(Screen[None]):
         condition = getattr(self, "_library_filter", None)
         if not condition or condition.is_empty():
             return "all"
-        return "|".join(condition.active_keys())
+        parts = list(condition.active_keys())
+        if condition.categories:
+            parts.append("categories=" + ",".join(condition.categories))
+        return "|".join(parts)
 
     def _get_cache_key(self) -> str:
         """生成缓存键"""

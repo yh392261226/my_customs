@@ -218,6 +218,12 @@ RESPONSIVE_CSS = r"""
         border: 1px solid var(--br-nav-border, #ddd); background: var(--br-card-bg, #fff); color: inherit;
     }
     .br-setting-row input[type=range] { flex: 1 1 160px; min-height: 40px; }
+    .br-setting-row input[type=number] {
+        flex: 1 1 160px; min-height: 40px; max-width: 180px; padding: 6px 10px; border-radius: 10px;
+        border: 1px solid var(--br-nav-border, #ddd); background: var(--br-card-bg, #fff); color: inherit;
+        outline: none;
+    }
+    .br-setting-row input[type=number]:focus { border-color: var(--br-accent, #4f7cff); box-shadow: 0 0 0 3px var(--br-accent-soft, rgba(79,124,255,.10)); }
     .br-setting-row .br-value { font-size: 13px; opacity: .65; min-width: 42px; text-align: right; }
     .br-setting-actions { display: flex; flex-wrap: wrap; gap: 8px; }
     .br-setting-actions button {
@@ -277,9 +283,14 @@ RESPONSIVE_CSS = r"""
     .br-settings-view.open .br-settings-group { max-width: 720px; margin: 16px auto; padding: 14px; border-radius: 12px; background: var(--br-card-bg, #fff); }
     .br-settings-view.open .br-setting-row { display: flex; align-items: center; justify-content: space-between; gap: 12px; min-height: 48px; }
     .br-settings-view.open .br-setting-row input[type=text],
-    .br-settings-view.open .br-setting-row input[type=password] {
-        flex: 1 1 200px; min-height: 40px; padding: 6px 10px; border-radius: 8px;
+    .br-settings-view.open .br-setting-row input[type=password],
+    .br-settings-view.open .br-setting-row input[type=number] {
+        flex: 1 1 200px; min-height: 40px; max-width: 220px; padding: 6px 10px; border-radius: 10px;
         border: 1px solid var(--br-nav-border, #ddd); background: var(--br-card-bg, #fff); color: inherit;
+        outline: none;
+    }
+    .br-settings-view.open .br-setting-row input[type=number]:focus {
+        border-color: var(--br-accent, #4f7cff); box-shadow: 0 0 0 3px var(--br-accent-soft, rgba(79,124,255,.10));
     }
     .br-settings-view.open .br-setting-actions { display: flex; flex-wrap: wrap; gap: 8px; }
     .br-settings-view.open .br-setting-actions button {
@@ -837,6 +848,12 @@ LABELS: Dict[str, Dict[str, str]] = {
         "portal_prev": "上一页", "portal_next": "下一页",
         "portal_refresh": "刷新", "portal_upload": "上传书籍", "portal_empty": "暂无书籍", "portal_no_match": "没有找到匹配的书籍",
         "portal_history": "阅读历史", "portal_local_books": "本地书籍", "portal_network_books": "网络书籍",
+        "portal_filter": "筛选", "portal_filter_title": "书库筛选", "portal_filter_desc": "分类可多选（命中任一）；其他条件并行组合；留空表示不限制",
+        "portal_filter_categories": "题材分类（可多选）", "portal_no_category": "无分类",
+        "portal_filter_author": "作者", "portal_filter_tags": "标签", "portal_filter_file": "文件情况", "portal_filter_pinyin": "拼音",
+        "portal_filter_any": "不限", "portal_filter_no": "无", "portal_filter_has": "有",
+        "portal_filter_size": "文件大小（MB）", "portal_filter_min": "最小值", "portal_filter_max": "最大值", "portal_filter_added": "入库时间",
+        "portal_filter_apply": "应用", "portal_filter_reset": "重置",
         "sync_to_backend": "同步到后端", "synced": "已同步", "history_empty": "暂无阅读历史", "local_empty": "本地书库暂无书籍",
         "upload_ok": "上传成功", "upload_failed": "上传失败", "offline_upload_text_only": "离线版目前仅支持上传 TXT/MD 文本文件",
         "binary_local_hint": "该格式暂不支持浏览器内直接阅读，请先同步到后端。",
@@ -876,6 +893,12 @@ LABELS: Dict[str, Dict[str, str]] = {
         "portal_prev": "Previous page", "portal_next": "Next page",
         "portal_refresh": "Refresh", "portal_upload": "Upload", "portal_empty": "No books", "portal_no_match": "No matching books",
         "portal_history": "History", "portal_local_books": "Local", "portal_network_books": "Network",
+        "portal_filter": "Filter", "portal_filter_title": "Library Filter", "portal_filter_desc": "Categories allow multi-select (match any); other conditions combine (AND); leave empty to skip",
+        "portal_filter_categories": "Categories (multi-select)", "portal_no_category": "No Category",
+        "portal_filter_author": "Author", "portal_filter_tags": "Tags", "portal_filter_file": "File", "portal_filter_pinyin": "Pinyin",
+        "portal_filter_any": "Any", "portal_filter_no": "No", "portal_filter_has": "Has",
+        "portal_filter_size": "File size (MB)", "portal_filter_min": "Min", "portal_filter_max": "Max", "portal_filter_added": "Added date",
+        "portal_filter_apply": "Apply", "portal_filter_reset": "Reset",
         "sync_to_backend": "Sync to server", "synced": "Synced", "history_empty": "No reading history", "local_empty": "No local books",
         "upload_ok": "Uploaded", "upload_failed": "Upload failed", "offline_upload_text_only": "Offline mode supports TXT/MD text files only",
         "binary_local_hint": "This format cannot be read directly in the browser yet. Please sync it to the server first.",
@@ -1244,6 +1267,49 @@ html.br-dark{
   opacity:1; font-weight:650; color:var(--br-accent); background:var(--br-card-bg);
   box-shadow:0 2px 8px rgba(31,55,110,.10);
 }
+/* ---- 书库筛选弹窗 ---- */
+.br-filter-modal{
+  position:fixed; inset:0; z-index:10000; display:none; align-items:center; justify-content:center;
+  padding:16px; background:rgba(16,24,40,.42); backdrop-filter:blur(3px);
+}
+.br-filter-modal.open{ display:flex; }
+.br-filter-panel{
+  width:min(540px,94vw); max-height:88vh; overflow:auto; padding:18px 20px;
+  border-radius:18px; border:1px solid var(--br-nav-border); background:var(--br-card-bg); color:var(--br-page-fg);
+  box-shadow:0 18px 50px rgba(16,24,40,.22);
+}
+.br-filter-head{ display:flex; align-items:center; justify-content:space-between; }
+.br-filter-head h3{ margin:0; font-size:17px; font-weight:700; }
+.br-filter-close{
+  width:32px; height:32px; border:0; border-radius:9px; background:transparent; color:inherit;
+  font-size:20px; line-height:1; cursor:pointer; opacity:.55;
+}
+.br-filter-close:hover{ opacity:1; background:var(--br-accent-soft); }
+.br-filter-desc{ margin:8px 0 0; font-size:12px; opacity:.58; }
+.br-filter-section{ display:block; margin:14px 0 5px; font-size:13px; font-weight:650; color:var(--br-accent); }
+.br-filter-modal select[multiple]{
+  width:100%; min-height:118px; padding:6px; border-radius:12px; border:1px solid var(--br-nav-border);
+  background:var(--br-card-bg); color:inherit; font-size:13px; outline:none;
+}
+.br-filter-modal select[multiple]:focus{ border-color:var(--br-accent); box-shadow:0 0 0 3px var(--br-accent-soft); }
+.br-filter-modal select[multiple] option{ padding:5px 7px; border-radius:7px; }
+.br-filter-options{ display:flex; flex-wrap:wrap; gap:12px; }
+.br-filter-options label{ display:inline-flex; align-items:center; gap:5px; font-size:13px; cursor:pointer; }
+.br-filter-options input[type=radio]{ accent-color:var(--br-accent); }
+.br-filter-inputs{ display:flex; gap:10px; margin-top:5px; }
+.br-filter-inputs input{
+  flex:1; min-width:0; height:38px; padding:0 10px; border-radius:10px; border:1px solid var(--br-nav-border);
+  background:var(--br-card-bg); color:inherit; outline:none; font-size:13px;
+}
+.br-filter-inputs input:focus{ border-color:var(--br-accent); box-shadow:0 0 0 3px var(--br-accent-soft); }
+.br-filter-actions{ display:flex; justify-content:flex-end; gap:8px; margin-top:18px; }
+.br-filter-actions button{
+  height:38px; padding:0 14px; border-radius:10px; border:1px solid var(--br-nav-border);
+  background:transparent; color:inherit; cursor:pointer; font-size:13px;
+}
+.br-filter-actions button:hover{ border-color:var(--br-accent); }
+.br-filter-actions .br-filter-primary{ background:var(--br-accent); border-color:var(--br-accent); color:#fff; font-weight:650; }
+.br-filter-actions .br-filter-primary:hover{ filter:brightness(1.05); }
 /* ---- 本地书籍管理（清理）---- */
 .br-manage-local-btn{ display:none; }
 .br-portal-tabs.manage-visible .br-manage-local-btn{ display:inline-flex; align-items:center; }
@@ -1305,6 +1371,10 @@ html.br-dark .br-local-manage-bar button.br-local-danger{ color:#ff8a80; border-
 }
 .br-portal .book-card .book-author{
   margin:0; font-size:12.5px; opacity:.6; white-space:nowrap; overflow:hidden; text-overflow:ellipsis;
+}
+.br-portal .book-card .book-categories{
+  margin:3px 0 0; font-size:12px; opacity:.75; color:var(--br-accent, #4c8bf5);
+  white-space:nowrap; overflow:hidden; text-overflow:ellipsis;
 }
 .book-chips{ display:flex; flex-wrap:wrap; gap:6px; margin-top:9px; }
 .book-chip{
@@ -1603,10 +1673,27 @@ DATA_SOURCE_JS = r"""
         .then(function (d) { return !!(d && d.status === 'ok'); })
         .catch(function () { return false; });
     },
-    listBooks: function (page, pageSize, keyword) {
+    listBooks: function (page, pageSize, keyword, filters) {
       var url = rt.apiUrl('/api/portal/books') + '?page=' + encodeURIComponent(page) +
         '&page_size=' + encodeURIComponent(pageSize) +
         (keyword ? '&q=' + encodeURIComponent(keyword) : '');
+      var f = filters || {};
+      (f.categories || []).forEach(function (name) { url += '&categories=' + encodeURIComponent(name); });
+      var flags = [
+        ['no_author', f.author === 'no'], ['has_author', f.author === 'has'],
+        ['no_tags', f.tags === 'no'], ['has_tags', f.tags === 'has'],
+        ['no_file', f.file === 'no'], ['file_exists', f.file === 'has'],
+        ['no_pinyin', f.pinyin === 'no'], ['has_pinyin', f.pinyin === 'has']
+      ];
+      flags.forEach(function (item) { if (item[1]) { url += '&' + item[0] + '=1'; } });
+      if (f.size_min) { url += '&size_min=' + encodeURIComponent(f.size_min); }
+      if (f.size_max) { url += '&size_max=' + encodeURIComponent(f.size_max); }
+      if (f.added_after) { url += '&added_after=' + encodeURIComponent(f.added_after); }
+      if (f.added_before) { url += '&added_before=' + encodeURIComponent(f.added_before); }
+      return jsonFetch(rt.withKey(url), { headers: rt.apiHeaders(), cache: 'no-store' });
+    },
+    distinctCategories: function () {
+      var url = rt.apiUrl('/api/distinct?collection=books&field=categories');
       return jsonFetch(rt.withKey(url), { headers: rt.apiHeaders(), cache: 'no-store' });
     },
     bookIndex: function () {
@@ -2648,6 +2735,10 @@ __APP_SHELL_CSS__
           <span>__PORTAL_UPLOAD__</span>
         </button>
         <input type="file" id="uploadInput" accept=".txt,.md,.html,.htm,.epub,.pdf,.mobi,.azw,.azw3" multiple hidden>
+        <button type="button" id="portalFilterBtn" class="br-portal-icon-btn" title="__PORTAL_FILTER__" aria-label="__PORTAL_FILTER__">
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M4 6h16M7 12h10M10 18h4"/></svg>
+          <span>__PORTAL_FILTER__</span>
+        </button>
         <button type="button" id="portalSettingsBtn" class="br-portal-icon-btn br-portal-settings-btn" title="__PORTAL_SETTINGS__" aria-label="__PORTAL_SETTINGS__">
           <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" aria-hidden="true"><path d="M4 7h9M17 7h3M4 17h3M11 17h9"/><circle cx="15" cy="7" r="2"/><circle cx="9" cy="17" r="2"/></svg>
           <span>__PORTAL_SETTINGS__</span>
@@ -2931,6 +3022,34 @@ __APP_SHELL_CSS__
   <iframe id="appReaderFrame" title="阅读器"></iframe>
 </div>
 
+<div id="portalFilterModal" class="br-filter-modal">
+  <div class="br-filter-panel">
+    <div class="br-filter-head">
+      <h3>__PORTAL_FILTER_TITLE__</h3>
+      <button type="button" class="br-filter-close" onclick="closePortalFilter()" aria-label="__PORTAL_CANCEL__">×</button>
+    </div>
+    <p class="br-filter-desc">__PORTAL_FILTER_DESC__</p>
+    <label class="br-filter-section" for="portalFilterCategories">__PORTAL_FILTER_CATEGORIES__</label>
+    <select id="portalFilterCategories" multiple size="6"></select>
+    <label class="br-filter-section">__PORTAL_FILTER_AUTHOR__</label>
+    <div class="br-filter-options"><label><input type="radio" name="pfAuthor" value="any" checked> __PORTAL_FILTER_ANY__</label> <label><input type="radio" name="pfAuthor" value="no"> __PORTAL_FILTER_NO__</label> <label><input type="radio" name="pfAuthor" value="has"> __PORTAL_FILTER_HAS__</label></div>
+    <label class="br-filter-section">__PORTAL_FILTER_TAGS__</label>
+    <div class="br-filter-options"><label><input type="radio" name="pfTags" value="any" checked> __PORTAL_FILTER_ANY__</label> <label><input type="radio" name="pfTags" value="no"> __PORTAL_FILTER_NO__</label> <label><input type="radio" name="pfTags" value="has"> __PORTAL_FILTER_HAS__</label></div>
+    <label class="br-filter-section">__PORTAL_FILTER_FILE__</label>
+    <div class="br-filter-options"><label><input type="radio" name="pfFile" value="any" checked> __PORTAL_FILTER_ANY__</label> <label><input type="radio" name="pfFile" value="no"> __PORTAL_FILTER_NO__</label> <label><input type="radio" name="pfFile" value="has"> __PORTAL_FILTER_HAS__</label></div>
+    <label class="br-filter-section">__PORTAL_FILTER_PINYIN__</label>
+    <div class="br-filter-options"><label><input type="radio" name="pfPinyin" value="any" checked> __PORTAL_FILTER_ANY__</label> <label><input type="radio" name="pfPinyin" value="no"> __PORTAL_FILTER_NO__</label> <label><input type="radio" name="pfPinyin" value="has"> __PORTAL_FILTER_HAS__</label></div>
+    <label class="br-filter-section" for="portalFilterSizeMin">__PORTAL_FILTER_SIZE__</label>
+    <div class="br-filter-inputs"><input type="number" id="portalFilterSizeMin" placeholder="__PORTAL_FILTER_MIN__"><input type="number" id="portalFilterSizeMax" placeholder="__PORTAL_FILTER_MAX__"></div>
+    <label class="br-filter-section" for="portalFilterAfter">__PORTAL_FILTER_ADDED__</label>
+    <div class="br-filter-inputs"><input type="date" id="portalFilterAfter"><input type="date" id="portalFilterBefore"></div>
+    <div class="br-filter-actions">
+      <button type="button" onclick="resetPortalFilter()">__PORTAL_FILTER_RESET__</button>
+      <button type="button" onclick="closePortalFilter()">__PORTAL_CANCEL__</button>
+      <button type="button" class="br-filter-primary" onclick="applyPortalFilter()">__PORTAL_FILTER_APPLY__</button>
+    </div>
+  </div>
+</div>
 <script>
 __APP_RUNTIME_JS__
 __DATA_SOURCE_JS__
@@ -2953,6 +3072,34 @@ __STARTUP_GATE_HTML__
 </html>
 """
 
+CATEGORY_CLASSIFIER_JS = r"""
+/* 本地上传书籍的分类识别：规则由 Python 端注入，与后端自动分类保持一致。 */
+var CATEGORY_RULES = __CATEGORY_RULES__;
+function normalizeCategoryText(text) {
+    return String(text || '').normalize('NFKC').toLowerCase();
+}
+function matchesCategoryAlias(source, alias) {
+    var value = normalizeCategoryText(alias);
+    if (!value) { return false; }
+    if (/^[a-z0-9]{1,5}$/.test(value)) {
+        var escaped = value.replace(/[.*+?^${}()|[\]\\]/g, '\\$&');
+        return new RegExp('(^|[^a-z0-9])' + escaped + '($|[^a-z0-9])').test(source);
+    }
+    return source.indexOf(value) >= 0;
+}
+function classifyCategoriesLocally(title, tags, content) {
+    var source = normalizeCategoryText([title || '', tags || '', String(content || '').slice(0, 4000)].join(' '));
+    var result = [];
+    Object.keys(CATEGORY_RULES).forEach(function (name) {
+        var aliases = CATEGORY_RULES[name] || [];
+        if (aliases.some(function (alias) { return matchesCategoryAlias(source, alias); })) {
+            result.push(name);
+        }
+    });
+    return result.join(',');
+}
+"""
+
 _PORTAL_JS = r"""
 (function () {
     'use strict';
@@ -2972,6 +3119,7 @@ _PORTAL_JS = r"""
     var page = 1, total = 0, keyword = '', reqSeq = 0, searchTimer = null, syncing = false;
     /* 本地书籍管理模式：manageMode=true 时点卡片切换选中而非打开书 */
     var manageMode = false, selectedBooks = Object.create(null);
+    var portalFilter = null;
 
     function $(id) { return document.getElementById(id); }
     function setTip(text) { var el = $('tip'); if (el) { el.textContent = text || ''; } }
@@ -3066,6 +3214,87 @@ _PORTAL_JS = r"""
     function keywordOf() {
         return (($('searchInput') || {}).value || '').trim();
     }
+    function pfSetRadio(name, value) {
+        var inputs = document.getElementsByName(name);
+        for (var i = 0; i < inputs.length; i++) {
+            if (inputs[i].value === value) { inputs[i].checked = true; }
+        }
+    }
+    function pfGetRadio(name) {
+        var inputs = document.getElementsByName(name);
+        for (var i = 0; i < inputs.length; i++) {
+            if (inputs[i].checked) { return inputs[i].value; }
+        }
+        return 'any';
+    }
+    function openPortalFilter() {
+        var f = portalFilter || {};
+        pfSetRadio('pfAuthor', f.author || 'any');
+        pfSetRadio('pfTags', f.tags || 'any');
+        pfSetRadio('pfFile', f.file || 'any');
+        pfSetRadio('pfPinyin', f.pinyin || 'any');
+        $('portalFilterSizeMin').value = f.size_min || '';
+        $('portalFilterSizeMax').value = f.size_max || '';
+        $('portalFilterAfter').value = f.added_after || '';
+        $('portalFilterBefore').value = f.added_before || '';
+        var sel = $('portalFilterCategories');
+        var current = f.categories || [];
+        window.BRDataSource.http.distinctCategories().then(function (d) {
+            var values = (d && d.values) || (d && d.data && d.data.values) || [];
+            if (!values.length) { values = ['__no_category__']; }
+            sel.innerHTML = '';
+            values.forEach(function (name) {
+                var opt = document.createElement('option');
+                opt.value = name;
+                opt.textContent = name === '__no_category__' ? (L.portal_no_category || '无分类') : name;
+                opt.selected = current.indexOf(name) >= 0;
+                sel.appendChild(opt);
+            });
+            $('portalFilterModal').classList.add('open');
+        }).catch(function () {
+            var opt = document.createElement('option');
+            opt.value = '__no_category__';
+            opt.textContent = L.portal_no_category || '无分类';
+            sel.innerHTML = '';
+            sel.appendChild(opt);
+            $('portalFilterModal').classList.add('open');
+        });
+    }
+    function closePortalFilter() {
+        var modal = $('portalFilterModal');
+        if (modal) { modal.classList.remove('open'); }
+    }
+    function resetPortalFilter() {
+        portalFilter = null;
+        closePortalFilter();
+        loadBooks(1);
+    }
+    function applyPortalFilter() {
+        var sel = $('portalFilterCategories');
+        var categories = [];
+        if (sel) {
+            Array.prototype.forEach.call(sel.selectedOptions || [], function (opt) { categories.push(opt.value); });
+        }
+        portalFilter = {
+            categories: categories,
+            author: pfGetRadio('pfAuthor'),
+            tags: pfGetRadio('pfTags'),
+            file: pfGetRadio('pfFile'),
+            pinyin: pfGetRadio('pfPinyin'),
+            size_min: $('portalFilterSizeMin').value,
+            size_max: $('portalFilterSizeMax').value,
+            added_after: $('portalFilterAfter').value,
+            added_before: $('portalFilterBefore').value
+        };
+        closePortalFilter();
+        loadBooks(1);
+    }
+    document.addEventListener('keydown', function (e) { if (e.key === 'Escape') { closePortalFilter(); } });
+    // 弹窗按钮使用内联 onclick，需要把处理函数挂到全局作用域
+    window.openPortalFilter = openPortalFilter;
+    window.closePortalFilter = closePortalFilter;
+    window.resetPortalFilter = resetPortalFilter;
+    window.applyPortalFilter = applyPortalFilter;
     function pickItems(d) {
         if (Array.isArray(d)) { return d; }
         if (!d) { return []; }
@@ -3081,7 +3310,7 @@ _PORTAL_JS = r"""
     }
     function matchLocal(b, kw) {
         if (!kw) { return true; }
-        var hay = [b.title, b.novel_title, b.name, b.book_name, b.author, b.pinyin, b.tags]
+        var hay = [b.title, b.novel_title, b.name, b.book_name, b.author, b.pinyin, b.tags, b.categories]
             .map(function (v) { return v == null ? '' : String(v); }).join(' ').toLowerCase();
         return hay.indexOf(kw.toLowerCase()) >= 0;
     }
@@ -3100,7 +3329,7 @@ _PORTAL_JS = r"""
             reader_url: b.reader_url || '',
             title: b.title || b.novel_title || b.name || '',
             author: b.author || '', format: b.format || '', status: b.status || '',
-            pinyin: b.pinyin || '', tags: b.tags || ''
+            pinyin: b.pinyin || '', tags: b.tags || '', categories: b.categories || ''
         };
     }
     function mergeCache(items) {
@@ -3161,7 +3390,7 @@ _PORTAL_JS = r"""
                 netOnline = false; paintNet();
                 return renderOfflineFallback(seq);
             }
-            return window.BRDataSource.http.listBooks(page, PAGE_SIZE, keyword)
+            return window.BRDataSource.http.listBooks(page, PAGE_SIZE, keyword, portalFilter)
                 .then(function (d) {
                     if (seq !== reqSeq) { return; }   /* 丢弃快速翻页/输入时的过期响应 */
                     var items = pickItems(d);
@@ -3438,6 +3667,13 @@ _PORTAL_JS = r"""
         author.textContent = b.author || (mode === 'local' ? L.portal_local_books : '—');
         meta.appendChild(h);
         meta.appendChild(author);
+
+        var categories = document.createElement('p');
+        categories.className = 'book-categories';
+        var categoriesFull = String(b.categories || '').split(',').map(function (x) { return x.trim(); }).filter(Boolean).join(' | ');
+        categories.textContent = categoriesFull;
+        categories.title = categoriesFull;
+        if (categoriesFull) { meta.appendChild(categories); }
 
         var chips = document.createElement('div');
         chips.className = 'book-chips';
@@ -3803,6 +4039,7 @@ _PORTAL_JS = r"""
             reader.onload = function () {
                 var k = randomBookKey();
                 var title = file.name.replace(/\.[^.]+$/, '');
+                var categories = classifyCategoriesLocally(title, '', isText ? String(reader.result || '') : '');
                 var html = isText
                     ? '<h2>' + escapeHtml(title) + '</h2><pre style="white-space:pre-wrap;font:inherit">' +
                       escapeHtml(String(reader.result || '')) + '</pre>'
@@ -3810,12 +4047,12 @@ _PORTAL_JS = r"""
                 saveLocalBook({
                     id: k, book_key: k, title: title, html: html,
                     path: '', format: ext.toUpperCase(), file_name: file.name,
-                    blob: file, synced: false, savedAt: Date.now()
+                    categories: categories, blob: file, synced: false, savedAt: Date.now()
                 }).then(function (ok) {
                     if (!ok) { reject(new Error(L.upload_failed)); return; }
                     OFFLINE_BOOKS.push({
                         book_key: k, book_id: k, title: title, author: '',
-                        format: ext.toUpperCase(), tags: '', pinyin: '',
+                        format: ext.toUpperCase(), tags: '', pinyin: '', categories: categories,
                         reader_url: 'indexeddb:' + k, savedAt: Date.now()
                     });
                     resolve(true);
@@ -3878,6 +4115,7 @@ _PORTAL_JS = r"""
 
     function bind() {
         $('refreshBtn').addEventListener('click', function () { loadBooks(1); });
+        $('portalFilterBtn').addEventListener('click', openPortalFilter);
         var uploadBtn = $('uploadBtn'), uploadInput = $('uploadInput');
         if (uploadBtn && uploadInput) {
             uploadBtn.addEventListener('click', function () { uploadInput.click(); });
@@ -4063,6 +4301,11 @@ def build_portal_html(locale: Optional[str] = None, secret: str = "",
     """
     labels = get_labels(locale)
     lang = "zh-CN" if (locale or "zh_CN") == "zh_CN" else "en"
+    try:
+        from src.core.book_categories import load_category_rules
+        category_rules = load_category_rules()
+    except Exception:
+        category_rules = {}
     replacements = {
         "__LANG__": lang,
         "__APP_RUNTIME_JS__": APP_RUNTIME_JS,
@@ -4077,7 +4320,9 @@ def build_portal_html(locale: Optional[str] = None, secret: str = "",
         "__BACKEND_URL_JSON__": _js_json(backend_url or ""),
         "__RESPONSIVE_CSS__": RESPONSIVE_CSS,
         "__PORTAL_CSS__": PORTAL_CSS,
-        "__PORTAL_JS__": _PORTAL_JS,
+        "__PORTAL_JS__": CATEGORY_CLASSIFIER_JS.replace(
+            "__CATEGORY_RULES__", _js_json(category_rules)
+        ) + "\n" + _PORTAL_JS,
         "__STARTUP_GATE_EARLY__": render_startup_gate_early_js(
             bool(startup_password_enabled), startup_password_hash(startup_password)),
         "__STARTUP_GATE_CSS__": STARTUP_GATE_CSS,
@@ -4101,6 +4346,24 @@ def build_portal_html(locale: Optional[str] = None, secret: str = "",
         "__PORTAL_HISTORY__": labels["portal_history"],
         "__PORTAL_LOCAL_BOOKS__": labels["portal_local_books"],
         "__PORTAL_NETWORK_BOOKS__": labels["portal_network_books"],
+        "__PORTAL_FILTER__": labels["portal_filter"],
+        "__PORTAL_FILTER_TITLE__": labels["portal_filter_title"],
+        "__PORTAL_FILTER_DESC__": labels["portal_filter_desc"],
+        "__PORTAL_FILTER_CATEGORIES__": labels["portal_filter_categories"],
+        "__PORTAL_NO_CATEGORY__": labels["portal_no_category"],
+        "__PORTAL_FILTER_AUTHOR__": labels["portal_filter_author"],
+        "__PORTAL_FILTER_TAGS__": labels["portal_filter_tags"],
+        "__PORTAL_FILTER_FILE__": labels["portal_filter_file"],
+        "__PORTAL_FILTER_PINYIN__": labels["portal_filter_pinyin"],
+        "__PORTAL_FILTER_ANY__": labels["portal_filter_any"],
+        "__PORTAL_FILTER_NO__": labels["portal_filter_no"],
+        "__PORTAL_FILTER_HAS__": labels["portal_filter_has"],
+        "__PORTAL_FILTER_SIZE__": labels["portal_filter_size"],
+        "__PORTAL_FILTER_MIN__": labels["portal_filter_min"],
+        "__PORTAL_FILTER_MAX__": labels["portal_filter_max"],
+        "__PORTAL_FILTER_ADDED__": labels["portal_filter_added"],
+        "__PORTAL_FILTER_APPLY__": labels["portal_filter_apply"],
+        "__PORTAL_FILTER_RESET__": labels["portal_filter_reset"],
         "__PORTAL_SETTINGS__": labels["portal_settings"],
         "__PORTAL_AUTO_REFRESH__": labels["portal_auto_refresh"],
         "__PORTAL_AUTO_REFRESH_HINT__": labels["portal_auto_refresh_hint"],

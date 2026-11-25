@@ -23,6 +23,7 @@ from src.themes.theme_manager import ThemeManager
 from src.core.bookshelf import Bookshelf
 from src.core.library_filter import UNKNOWN_AUTHORS, LibraryFilter, filter_books
 from src.ui.dialogs.confirm_dialog import ConfirmDialog
+from src.ui.dialogs.category_picker_dialog import CategoryPickerDialog
 from src.ui.dialogs.duplicate_books_dialog import DuplicateBooksDialog
 from src.config.default_config import SUPPORTED_FORMATS
 from src.utils.book_duplicate_detector_optimized import OptimizedBookDuplicateDetector, DuplicateGroup
@@ -30,6 +31,7 @@ from src.utils.book_duplicate_detector_ultra import UltraBookDuplicateDetector  
 from src.utils import dedup_staging
 from src.utils.logger import get_logger
 from src.utils.string_utils import normalize_match_text
+from src.ui.utils.cell_text_utils import category_text, format_categories_for_cell
 from src.ui.dialogs.log_viewer_popup import LogViewerPopup  # noqa: F401 兼容旧导入路径
 
 logger = get_logger(__name__)
@@ -221,6 +223,7 @@ class BatchOpsDialog(ModalScreen[Dict[str, Any]]):
                     Button(get_global_i18n().t("duplicate_books.discard_staging"), id="clear-dedup-staging-btn", classes="hidden"),
                     Button(get_global_i18n().t("common.set_author"), id="set-author-btn", variant="primary"),
                     Button(get_global_i18n().t("common.set_tags"), id="set-tags-btn", variant="primary"),
+                    Button(get_global_i18n().t("common.batch_set_categories"), id="set-categories-btn", variant="primary"),
                     Button(get_global_i18n().t("common.clear_tags"), id="clear-tags-btn", variant="warning"),
                     Button(get_global_i18n().t("common.trad_to_simp"), id="convert-traditional-btn", variant="primary"),
                     Button(get_global_i18n().t("crawler.mark_crawled"), id="mark-crawled-btn", variant="primary"),
@@ -301,6 +304,7 @@ class BatchOpsDialog(ModalScreen[Dict[str, Any]]):
         table.add_column(get_global_i18n().t("common.format"), key="format")
         table.add_column(get_global_i18n().t("common.crawl_time"), key="crawl_time")
         table.add_column(get_global_i18n().t("common.tag"), key="tags")
+        table.add_column(get_global_i18n().t("common.categories"), key="categories", width=20)
         table.add_column(get_global_i18n().t("common.view_file"), key="view_action")  # 查看文件按钮列
         table.add_column(get_global_i18n().t("common.preview"), key="preview_action")  # 预览按钮列
         table.add_column(get_global_i18n().t("common.selected"), key="selected")
@@ -486,6 +490,7 @@ class BatchOpsDialog(ModalScreen[Dict[str, Any]]):
                 old_focus_path = str(row_key)
         
         table.clear()
+        table._cell_tooltips = {}
         
         # 创建全局排序序号映射
         global_sort_order = {}
@@ -518,6 +523,12 @@ class BatchOpsDialog(ModalScreen[Dict[str, Any]]):
             
             # 格式化标签显示，直接显示逗号分隔的字符串
             tags_display = book.tags if book.tags else ""
+
+            # 分类：竖线分隔，超长截断；完整内容放入单元格 tooltip
+            categories_full = category_text(getattr(book, "categories", []))
+            if categories_full:
+                table._cell_tooltips[(book.path, "categories")] = categories_full
+            categories_display = format_categories_for_cell(categories_full)
             
             # 检查书籍是否已经被选中
             is_selected = book.path in self.selected_books
@@ -545,6 +556,7 @@ class BatchOpsDialog(ModalScreen[Dict[str, Any]]):
                 book.format.upper() if book.format else "",
                 crawl_time_display,
                 tags_display,
+                categories_display,
                 view_file_button,  # 查看文件按钮
                 preview_button,  # 预览按钮
                 selection_marker,  # 根据选中状态显示不同的标记
@@ -1831,6 +1843,8 @@ class BatchOpsDialog(ModalScreen[Dict[str, Any]]):
             await self._set_author_for_selected_books()
         elif event.button.id == "set-tags-btn":
             await self._set_tags_for_selected_books()
+        elif event.button.id == "set-categories-btn":
+            await self._set_categories_for_selected_books()
         elif event.button.id == "clear-tags-btn":
             await self._clear_tags_for_selected_books()
         elif event.button.id == "convert-traditional-btn":
@@ -2160,6 +2174,40 @@ class BatchOpsDialog(ModalScreen[Dict[str, Any]]):
                 get_global_i18n().t("common.set_tags") + "\n" + get_global_i18n().t("common.comma_separated") + "\n" + "请输入完整的标签，如：小说,科幻,经典"
             ),
             callback=on_tags_input
+        )
+
+    async def _set_categories_for_selected_books(self) -> None:
+        """为选中的书籍批量设置分类。"""
+        if not self.selected_books:
+            self.notify(get_global_i18n().t("common.no_book_selected"), severity="warning")
+            return
+
+        def on_categories(categories: Optional[List[str]]) -> None:
+            if categories is None:
+                return
+            try:
+                count = self.bookshelf.batch_set_categories(
+                    list(self.selected_books), categories
+                )
+                self.notify(
+                    get_global_i18n().t("common.categories_updated") + f" ({count})",
+                    severity="information",
+                )
+                self._load_books()
+                self.selected_books.clear()
+                self._clear_table_selection()
+                self._update_status()
+                self._mark_changed()
+            except Exception as exc:
+                logger.error(f"批量设置分类失败: {exc}")
+                self.notify(
+                    get_global_i18n().t("common.category_update_failed"),
+                    severity="error",
+                )
+
+        self.app.push_screen(
+            CategoryPickerDialog(self.theme_manager),
+            callback=on_categories,
         )
     
     async def _convert_traditional_to_simplified(self) -> None:

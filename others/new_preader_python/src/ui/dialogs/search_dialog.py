@@ -4,9 +4,9 @@
 
 from typing import List, Optional, Any
 from textual.app import ComposeResult
-from textual.containers import Vertical, Horizontal
+from textual.containers import Vertical, Horizontal, VerticalScroll
 from textual.screen import ModalScreen
-from textual.widgets import Button, Input, Label, Select, Header, Footer
+from textual.widgets import Button, Checkbox, Input, Label, Select, Header, Footer
 from textual.widgets import DataTable
 from textual import events
 
@@ -54,6 +54,7 @@ class SearchDialog(ModalScreen[Optional[SearchResult]]):
         self.results: List[SearchResult] = []
         # 输入防抖定时器，避免逐字符触发检索
         self._search_timer: Optional[Any] = None
+        self._category_options: List[str] = []
     
     def compose(self) -> ComposeResult:
         """组合对话框界面"""
@@ -76,6 +77,19 @@ class SearchDialog(ModalScreen[Optional[SearchResult]]):
                     id="format-filter",
                     prompt=get_global_i18n().t("common.select_ext_prompt")
                 )
+                try:
+                    from src.core.book_categories import NO_CATEGORY, get_filter_category_options
+                    self._category_options = get_filter_category_options()
+                except Exception:
+                    self._category_options = []
+                yield Label(get_global_i18n().t("library_filter.cat_categories"), classes="section-title")
+                with VerticalScroll(id="search-category-filters", classes="search-categories"):
+                    for idx, name in enumerate(self._category_options):
+                        label = (
+                            get_global_i18n().t("common.no_category")
+                            if name == "__no_category__" else name
+                        )
+                        yield Checkbox(label, id=f"search-category-{idx}")
             yield DataTable(id="results-table")
             with Horizontal(id="search-buttons", classes="btn-row"):
                 yield Button("← " + get_global_i18n().t("common.cancel"), id="cancel-btn", variant="primary")
@@ -95,6 +109,11 @@ class SearchDialog(ModalScreen[Optional[SearchResult]]):
         self.query_one("#search-input", Input).value = ""
         self.query_one("#search-input", Input).placeholder = get_global_i18n().t("search.placeholder")
         self.query_one("#format-filter", Select).value = "all"
+        for idx in range(len(self._category_options)):
+            try:
+                self.query_one(f"#search-category-{idx}", Checkbox).value = False
+            except Exception:
+                pass
         await self._perform_search()
 
     def on_mount(self) -> None:
@@ -136,6 +155,11 @@ class SearchDialog(ModalScreen[Optional[SearchResult]]):
         """文件类型选择变化时执行搜索"""
         if event.select.id == "format-filter":
             await self._perform_search()
+
+    def on_checkbox_changed(self, event: Checkbox.Changed) -> None:
+        """分类勾选变化时重新检索。"""
+        if (event.checkbox.id or "").startswith("search-category-"):
+            self._schedule_search()
     
     async def _perform_search(self) -> None:
         """执行搜索操作"""
@@ -159,6 +183,28 @@ class SearchDialog(ModalScreen[Optional[SearchResult]]):
             bookshelf = Bookshelf()
         
         books = bookshelf.search_books(search_input.value, format=selected_format)
+
+        # 分类多选：命中任意一个即可（与书架高级筛选、Web API 语义一致）
+        selected_categories: List[str] = []
+        for idx, name in enumerate(self._category_options):
+            try:
+                if self.query_one(f"#search-category-{idx}", Checkbox).value:
+                    selected_categories.append(name)
+            except Exception:
+                continue
+        if selected_categories:
+            from src.core.book_categories import NO_CATEGORY
+            from src.utils.string_utils import normalize_match_text
+            wanted = {normalize_match_text(c) for c in selected_categories}
+            want_no_category = NO_CATEGORY in selected_categories
+            wanted.discard(NO_CATEGORY)
+            books = [
+                book for book in books
+                if (wanted & {
+                    normalize_match_text(c)
+                    for c in (getattr(book, "categories", []) or [])
+                }) or (want_no_category and not (getattr(book, "categories", []) or []))
+            ]
         
         table = self.query_one("#results-table", DataTable)
         table.clear()

@@ -46,8 +46,16 @@ def main():
     parser.add_argument("--debug", action="store_true", help="启用调试模式")
     parser.add_argument("--host", default="localhost", help="Web 服务绑定地址，默认 localhost")
     parser.add_argument("--port", type=int, default=8000, help="Web 服务端口，默认 8000，若被占用将自动顺延")
+    parser.add_argument("--classify-books", action="store_true", help="为已有书籍回填题材分类后退出")
     parser.add_argument("book_file", nargs="?", help="直接打开指定的小说文件")
     args = parser.parse_args()
+
+    # 单独的分类回填模式：扫描全库后退出，不启动 UI
+    if args.classify_books:
+        from src.core.book_categories import backfill_library_categories
+        count = backfill_library_categories()
+        print(f"已为 {count} 本书籍更新题材分类")
+        return
     
     # 如果指定了小说文件，验证文件是否存在
     if args.book_file:

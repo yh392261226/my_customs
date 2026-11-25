@@ -47,7 +47,7 @@ COLLECTIONS: Dict[str, Dict[str, Any]] = {
         "table": "books",
         "pk": "path",
         "pk_type": "text",
-        "search": ["title", "author", "pinyin", "tags", "format", "metadata", "path"],
+        "search": ["title", "author", "pinyin", "tags", "categories", "format", "metadata", "path"],
         "order_by": "add_date DESC",
     },
     "websites": {
@@ -89,7 +89,7 @@ def get_columns(table: str) -> List[str]:
 
 
 # 离线书单索引只取轻量字段，避免把 metadata（章节正文）整表读进内存与 JSON
-BOOK_INDEX_COLUMNS = ("path", "title", "author", "format", "pinyin", "tags", "status")
+BOOK_INDEX_COLUMNS = ("path", "title", "author", "format", "pinyin", "tags", "categories", "status")
 
 
 def list_book_index() -> List[Dict[str, Any]]:
@@ -120,15 +120,19 @@ def query_paginated(collection: str, q: str, page: int, page_size: int, offset: 
     search_cols = [c for c in search_cols if c in actual_cols]
     if q:
         pattern = match_like_pattern(q)
+        search_clauses = []
         for col in search_cols:
-            where_clauses.append(f"MATCH_NORM({col}) LIKE ? ESCAPE '\\'")
+            search_clauses.append(f"MATCH_NORM({col}) LIKE ? ESCAPE '\\'")
             params.append(pattern)
+        if search_clauses:
+            # 关键词在列之间取 OR；与额外筛选条件之间取 AND
+            where_clauses.append("(" + " OR ".join(search_clauses) + ")")
     if extra_where:
         where_clauses.append("(" + extra_where + ")")
         if extra_params:
             params.extend(extra_params)
 
-    where_sql = ("WHERE " + " OR ".join(where_clauses)) if where_clauses else ""
+    where_sql = ("WHERE " + " AND ".join(where_clauses)) if where_clauses else ""
 
     conn = get_conn()
     try:

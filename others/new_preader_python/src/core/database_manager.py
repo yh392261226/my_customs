@@ -115,15 +115,16 @@ class DatabaseManager:
             logger.info(f"已为{table_name}表添加{column_name}列")
 
     @staticmethod
-    def _build_search_text(title: Any, author: Any, pinyin: Any, tags: Any) -> str:
-        """生成书的预归一化检索文本（标题/作者/拼音/标签统一简繁与大小写）。
+    def _build_search_text(title: Any, author: Any, pinyin: Any, tags: Any,
+                           categories: Any = "") -> str:
+        """生成书的预归一化检索文本（标题/作者/拼音/标签/分类统一简繁与大小写）。
 
         写入时计算一次，搜索时只需对该列做 LIKE，避免每行每列调用 MATCH_NORM UDF。
         字段间用空格分隔；单个关键词只需落在任一字段即可命中，与原四列 OR 语义一致。
         """
         return " ".join(
             normalize_match_text(value or "")
-            for value in (title, author, pinyin, tags)
+            for value in (title, author, pinyin, tags, categories)
         )
 
     def _init_database(self) -> None:
@@ -162,9 +163,12 @@ class DatabaseManager:
                     tags TEXT,
                     metadata TEXT,
                     file_size INTEGER DEFAULT 0,  -- 新增文件大小字段，单位为字节
-                    search_text TEXT DEFAULT ''   -- 预归一化的检索文本，避免搜索时逐行调用 UDF
+                    search_text TEXT DEFAULT '',  -- 预归一化的检索文本，避免搜索时逐行调用 UDF
+                    categories TEXT DEFAULT ''    -- 题材分类，逗号分隔
                 )
             """)
+            # 兼容已有数据库：补建题材分类列
+            self._add_column_if_not_exists(cursor, "books", "categories", "TEXT", "''")
             
             # 伪用户系统：用户、权限、归属表
             cursor.execute("""
@@ -945,10 +949,26 @@ class DatabaseManager:
             with sqlite3.connect(self.db_path) as conn:
                 cursor = conn.cursor()
                 tags_text = book.tags if book.tags else ""
+                categories_text = ",".join(
+                    c.strip() for c in getattr(book, "categories", []) if str(c).strip()
+                )
+                # 兜底：文件浏览器直接打开、API 直写等路径可能没有预先分类，
+                # 这里在落库前补做一次，避免书籍永远没有分类。
+                if not categories_text:
+                    try:
+                        from src.core.book_categories import classify_book_file
+                        detected = classify_book_file(
+                            book.path, title=book.title or "", tags=tags_text
+                        )
+                        if detected:
+                            book.categories = detected
+                            categories_text = ",".join(detected)
+                    except Exception as exc:
+                        logger.debug(f"入库时自动分类失败: {book.path}, 错误: {exc}")
                 cursor.execute("""
                     INSERT OR REPLACE INTO books 
-                    (path, title, pinyin, author, format, add_date, tags, metadata, file_size, search_text)
-                    VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
+                    (path, title, pinyin, author, format, add_date, tags, metadata, file_size, search_text, categories)
+                    VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
                 """, (
                     book.path,
                     book.title,
@@ -959,7 +979,8 @@ class DatabaseManager:
                     tags_text,  # 直接使用字符串
                     metadata_json,
                     book.file_size,
-                    self._build_search_text(book.title, book.author, pinyin_text, tags_text)
+                    self._build_search_text(book.title, book.author, pinyin_text, tags_text, categories_text),
+                    categories_text,
                 ))
                 
                 # 如果提供了用户ID，记录用户归属关系
@@ -1020,7 +1041,7 @@ class DatabaseManager:
                 conn.row_factory = sqlite3.Row
                 cursor = conn.cursor()
                 cursor.execute(
-                    "SELECT path, title, author, pinyin, tags, format, add_date, file_size "
+                    "SELECT path, title, author, pinyin, tags, format, add_date, file_size, categories "
                     "FROM books"
                 )
                 return [dict(row) for row in cursor.fetchall()]
@@ -1032,6 +1053,9 @@ class DatabaseManager:
         """构建写入 books 表的字段，供 add_book / update_book / save_books_batch 共用"""
         pinyin_text = convert_to_pinyin(book.title) if book.title else ""
         tags_text = book.tags if book.tags else ""
+        categories_text = ",".join(
+            c.strip() for c in getattr(book, "categories", []) if str(c).strip()
+        )
         return {
             "path": book.path,
             "title": book.title,
@@ -1042,7 +1066,8 @@ class DatabaseManager:
             "tags": tags_text,
             "metadata": self._build_minimal_metadata(book),
             "file_size": book.file_size,
-            "search_text": self._build_search_text(book.title, book.author, pinyin_text, tags_text),
+            "search_text": self._build_search_text(book.title, book.author, pinyin_text, tags_text, categories_text),
+            "categories": categories_text,
         }
 
     def save_books_batch(self, books_to_add: List[Book], books_to_update: List[Book],
@@ -1057,12 +1082,12 @@ class DatabaseManager:
                     values = self._build_book_write_values(book)
                     cursor.execute(
                         "INSERT OR REPLACE INTO books "
-                        "(path, title, pinyin, author, format, add_date, tags, metadata, file_size, search_text) "
-                        "VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?)",
+                        "(path, title, pinyin, author, format, add_date, tags, metadata, file_size, search_text, categories) "
+                        "VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)",
                         (
                             values["path"], values["title"], values["pinyin"], values["author"],
                             values["format"], values["add_date"], values["tags"], values["metadata"],
-                            values["file_size"], values["search_text"],
+                            values["file_size"], values["search_text"], values["categories"],
                         ),
                     )
                     if user_id is not None:
@@ -1074,11 +1099,11 @@ class DatabaseManager:
                     values = self._build_book_write_values(book)
                     cursor.execute(
                         "UPDATE books SET path = ?, title = ?, pinyin = ?, author = ?, format = ?, "
-                        "tags = ?, metadata = ?, file_size = ?, search_text = ? WHERE path = ?",
+                        "tags = ?, metadata = ?, file_size = ?, search_text = ?, categories = ? WHERE path = ?",
                         (
                             values["path"], values["title"], values["pinyin"], values["author"],
                             values["format"], values["tags"], values["metadata"], values["file_size"],
-                            values["search_text"], book.path,
+                            values["search_text"], values["categories"], book.path,
                         ),
                     )
                 conn.commit()
@@ -1325,9 +1350,12 @@ class DatabaseManager:
                 where_path = old_path if old_path is not None else book.path
                 
                 tags_text = book.tags if book.tags else ""
+                categories_text = ",".join(
+                    c.strip() for c in getattr(book, "categories", []) if str(c).strip()
+                )
                 cursor.execute("""
                     UPDATE books 
-                    SET path = ?, title = ?, pinyin = ?, author = ?, format = ?, tags = ?, metadata = ?, file_size = ?, search_text = ?
+                    SET path = ?, title = ?, pinyin = ?, author = ?, format = ?, tags = ?, metadata = ?, file_size = ?, search_text = ?, categories = ?
                     WHERE path = ?
                 """, (
                     book.path,
@@ -1338,7 +1366,8 @@ class DatabaseManager:
                     tags_text,
                     metadata_json,
                     book.file_size,
-                    self._build_search_text(book.title, book.author, pinyin_text, tags_text),
+                    self._build_search_text(book.title, book.author, pinyin_text, tags_text, categories_text),
+                    categories_text,
                     where_path
                 ))
                 conn.commit()
@@ -1350,6 +1379,30 @@ class DatabaseManager:
                 return success
         except sqlite3.Error as e:
             logger.error(f"更新书籍信息失败: {e}")
+            return False
+
+    def update_book_categories(self, book_path: str, categories: Any) -> bool:
+        """只更新题材分类及对应的检索文本（爬取增量更新时使用）。"""
+        from src.core.book_categories import categories_to_storage
+
+        stored = categories_to_storage(categories)
+        try:
+            with sqlite3.connect(self.db_path) as conn:
+                cursor = conn.cursor()
+                row = cursor.execute(
+                    "SELECT title, author, pinyin, tags FROM books WHERE path = ?", (book_path,)
+                ).fetchone()
+                if row is None:
+                    return False
+                search_text = self._build_search_text(row[0], row[1], row[2], row[3], stored)
+                cursor.execute(
+                    "UPDATE books SET categories = ?, search_text = ? WHERE path = ?",
+                    (stored, search_text, book_path),
+                )
+                conn.commit()
+                return cursor.rowcount > 0
+        except sqlite3.Error as e:
+            logger.error(f"更新书籍分类失败: {e}")
             return False
     
     def delete_book(self, book_path: str, cleanup_associated: bool = True,
@@ -1764,6 +1817,12 @@ class DatabaseManager:
         # 设置标签字段（如果存在）
         if 'tags' in columns:
             book.tags = row['tags'] or ""
+
+        # 设置题材分类字段（旧库可能尚未回填，默认空列表）
+        if 'categories' in columns:
+            book.categories = [
+                c.strip() for c in (row['categories'] or '').split(',') if c.strip()
+            ]
         
         # 只有在独立字段缺失或需要补充数据时，才使用metadata字段
         if row['metadata']:

@@ -153,6 +153,7 @@ class Bookshelf:
                     row.get("title") != book.title
                     or row.get("author") != book.author
                     or row.get("tags") != (book.tags or "")
+                    or (row.get("categories") or "") != ",".join(getattr(book, "categories", []))
                     or row.get("pinyin") != (book.pinyin or "")
                     or row.get("format") != book.format
                     or (row.get("file_size") or 0) != (book.file_size or 0)
@@ -174,6 +175,21 @@ class Bookshelf:
             logger.error(f"保存书架数据时出错: {e}")
             return False
     
+    @staticmethod
+    def _refresh_book_categories(book: Book) -> bool:
+        """按书名/标签/正文摘要刷新题材分类，返回是否发生变化。"""
+        try:
+            from src.core.book_categories import classify_book_file
+            new_categories = classify_book_file(
+                book.path, title=book.title or "", tags=book.tags or ""
+            )
+            if set(new_categories) != set(getattr(book, "categories", []) or []):
+                book.categories = new_categories
+                return True
+        except Exception as exc:
+            logger.debug(f"识别书籍分类失败: {book.path}, 错误: {exc}")
+        return False
+
     @debug_logged
     def add_book(self, path: str, title: Optional[str] = None, author: Optional[str] = None, tags: Optional[str] = None) -> Optional[Book]:
         """
@@ -195,6 +211,12 @@ class Bookshelf:
             # 使用数据库检查书籍是否已存在
             existing_book = self.db_manager.get_book(abs_path)
             if existing_book:
+                # 增量爬取会在原文件上追加内容，借机刷新分类，避免老书永远没有分类
+                if self._refresh_book_categories(existing_book):
+                    self.db_manager.update_book_categories(
+                        existing_book.path, existing_book.categories
+                    )
+                self.books[abs_path] = existing_book
                 logger.warning(f"书籍已存在于书架中: {abs_path}")
                 return existing_book
             
@@ -219,6 +241,9 @@ class Bookshelf:
             except Exception:
                 # 静默忽略，保证导入流程不中断
                 pass
+
+            # 爬取/导入落库前完成题材分类（失败不影响书籍入库）
+            self._refresh_book_categories(book)
             
             # 将书籍保存到数据库，并记录用户归属关系
             self.db_manager.add_book(book, self.current_user_id)
@@ -1021,7 +1046,24 @@ class Bookshelf:
                     success_count += 1
         
         return success_count
-    
+
+    def batch_set_categories(self, book_paths: List[str], categories: List[str]) -> int:
+        """批量设置书籍分类，返回成功数量。"""
+        success_count = 0
+        names = [str(c).strip() for c in (categories or []) if str(c).strip()]
+        for path in book_paths:
+            abs_path = os.path.abspath(path)
+            book = self.books.get(abs_path) or self.books.get(os.path.normpath(abs_path))
+            if book is None:
+                book = self.db_manager.get_book(abs_path)
+            if book is None:
+                continue
+            book.categories = list(names)
+            if self.db_manager.update_book_categories(book.path, names):
+                if book.path in self.books:
+                    self.books[book.path].categories = list(names)
+                success_count += 1
+        return success_count
 
     
     def batch_delete_books(self, book_paths: List[str], *,

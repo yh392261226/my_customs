@@ -543,27 +543,26 @@ def update_hovered_cell_tooltip(table, coordinate) -> None:
         return
     if screen is None:
         return
-    index = get_action_index(screen)
-    if not index:
-        return
+    index = get_action_index(screen) or {}
     try:
         value = table.get_cell_at(coordinate)
     except Exception:
-        return
+        value = ""
 
     tips: List[str] = []
     used_labels: set[str] = set()
-    for label, min_score in extract_cell_labels(_cell_text(value)):
-        if label in used_labels:
-            continue
-        used_labels.add(label)
-        action = match_binding_by_label(label, index, min_score=min_score)
-        if not action:
-            continue
-        key, description, _priority = index[action]
-        tip = build_tooltip_text(key, description)
-        if tip and tip not in tips:
-            tips.append(tip)
+    if index:
+        for label, min_score in extract_cell_labels(_cell_text(value)):
+            if label in used_labels:
+                continue
+            used_labels.add(label)
+            action = match_binding_by_label(label, index, min_score=min_score)
+            if not action:
+                continue
+            key, description, _priority = index[action]
+            tip = build_tooltip_text(key, description)
+            if tip and tip not in tips:
+                tips.append(tip)
 
     # 列级显式映射：作用于「当前光标行」的快捷键没有真实按钮，
     # 借表格 tooltip 在悬停对应列时给出提示（与文字按钮提示合并、去重）。
@@ -579,6 +578,20 @@ def update_hovered_cell_tooltip(table, coordinate) -> None:
                 tip = build_tooltip_text(entry[0], entry[1])
                 if tip and tip not in tips:
                     tips.append(tip)
+
+    # 表格自定义单元格提示：书籍列表分类列显示省略号，悬停时展示完整内容。
+    # 与快捷键提示共用表格 tooltip，因此这里把两者合并展示。
+    try:
+        cell_tooltips = getattr(table, "_cell_tooltips", None)
+        if cell_tooltips:
+            cell_key = table.coordinate_to_cell_key(coordinate)
+            row_key = getattr(getattr(cell_key, "row_key", None), "value", None)
+            column_key = getattr(getattr(cell_key, "column_key", None), "value", None)
+            custom_tip = cell_tooltips.get((row_key, column_key))
+            if custom_tip and custom_tip not in tips:
+                tips.insert(0, str(custom_tip))
+    except Exception:
+        pass
 
     new_tip = " · ".join(tips) if tips else None
 

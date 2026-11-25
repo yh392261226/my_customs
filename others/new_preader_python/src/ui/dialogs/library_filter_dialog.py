@@ -17,6 +17,7 @@ from textual.containers import Container, Horizontal, VerticalScroll
 from textual.screen import ModalScreen
 from textual.widgets import (
     Button,
+    Checkbox,
     Footer,
     Header,
     Input,
@@ -26,6 +27,7 @@ from textual.widgets import (
     Static,
 )
 
+from src.core.book_categories import NO_CATEGORY, get_filter_category_options
 from src.core.library_filter import LibraryFilter
 from src.locales.i18n_manager import get_global_i18n
 from src.themes.theme_manager import ThemeManager
@@ -69,6 +71,7 @@ class LibraryFilterDialog(ModalScreen[Optional[Dict[str, Any]]]):
         super().__init__()
         self.theme_manager = theme_manager
         self.current = current or LibraryFilter()
+        self._category_options: List[str] = []
 
     def _axis_suffix(self, axis: str, no_field: str, has_field: str) -> str:
         """根据当前筛选值推断该轴应选的分段（none/no/has）。"""
@@ -94,6 +97,22 @@ class LibraryFilterDialog(ModalScreen[Optional[Dict[str, Any]]]):
                             RadioButton(t("library_filter.tri_no"), id=f"{axis}-no"),
                             RadioButton(t("library_filter.tri_has"), id=f"{axis}-has"),
                             id=f"cond-{axis}",
+                        )
+                # 题材分类：多选框，命中任意一个即保留
+                yield Label(t("library_filter.cat_categories"), classes="library-filter-cat")
+                try:
+                    self._category_options = get_filter_category_options()
+                except Exception:
+                    self._category_options = [NO_CATEGORY]
+                with VerticalScroll(id="category-options", classes="library-filter-cats"):
+                    for idx, name in enumerate(self._category_options):
+                        label = (
+                            t("common.no_category") if name == NO_CATEGORY else name
+                        )
+                        yield Checkbox(
+                            label,
+                            value=name in self.current.categories,
+                            id=f"category-{idx}",
                         )
                 # 阅读状态：不限 / 未读 / 已读 / 已读完
                 yield Label(t("library_filter.cat_status"), classes="library-filter-cat")
@@ -172,6 +191,16 @@ class LibraryFilterDialog(ModalScreen[Optional[Dict[str, Any]]]):
             suffix = self._radio_suffix(f"cond-{axis}")
             state[no_field] = (suffix == "no")
             state[has_field] = (suffix == "has")
+        # 题材分类多选组
+        selected_categories: List[str] = []
+        for idx, name in enumerate(self._category_options):
+            try:
+                if self.query_one(f"#category-{idx}", Checkbox).value:
+                    selected_categories.append(name)
+            except Exception:
+                continue
+        state["categories"] = selected_categories
+
         # 阅读状态单选组
         status_suffix = self._radio_suffix("cond-status")
         for key, _ in STATUS_OPTIONS[1:]:

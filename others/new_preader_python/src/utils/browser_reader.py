@@ -1414,7 +1414,10 @@ SYNC_JS = r"""
       if(state.col==='books'){
         var btitle = it.title || it.name || ('#'+(it.book_key || it.id));
         var sub = [it.author, it.format].filter(Boolean).join(' · ');
+        var cats = String(it.categories || '').split(',').map(function(x){{return x.trim();}}).filter(Boolean).join(' | ');
+        var catMeta = cats ? '<span title="'+escAttr(cats)+'">分类:'+esc(trunc(cats,24))+'</span>' : '';
         var meta = [it.add_date, it.tags?('标签:'+it.tags):'', it.file_size?fmtSize(it.file_size):''].filter(Boolean).join(' · ');
+        meta = [meta, catMeta].filter(Boolean).join(' · ');
         html += '<div class="br-sync-item" data-open="book" data-book-key="'+escAttr(it.book_key||'')+'">'
               + '<span class="idx">'+idx+'</span>'
               + '<div class="c">'
@@ -2211,6 +2214,11 @@ class BrowserReader:
         # 将文件路径安全地序列化为 JS 字符串（用于「查看文件」功能）
         import json as _json
         file_path_js = _json.dumps(file_path or "")
+        try:
+            from src.core.book_categories import load_category_rules
+            category_rules_js = _json.dumps(load_category_rules(), ensure_ascii=False)
+        except Exception:
+            category_rules_js = "{}"
 
         # 局域网阅读页专用：工具栏/文件信息弹窗的「下载 TXT」入口。
         # 文案占位符由下方的 t(...) 正则统一替换，保持多语言一致。
@@ -2235,6 +2243,31 @@ class BrowserReader:
             value = value.replace(new RegExp(`{{${{param}}}}`, 'g'), val);
         }}
         return value;
+    }}
+    // 本地导入书籍的分类规则（与 Python 端规则一致），仅用于浏览器离线导入
+    const CATEGORY_RULES = {category_rules_js};
+    function normalizeCategoryText(text) {{
+        return String(text || '').normalize('NFKC').toLowerCase();
+    }}
+    function matchesCategoryAlias(source, alias) {{
+        const value = normalizeCategoryText(alias);
+        if (!value) return false;
+        if (/^[a-z0-9]{{1,5}}$/.test(value)) {{
+            return new RegExp('(^|[^a-z0-9])' + escapeRegExp(value) + '($|[^a-z0-9])').test(source);
+        }}
+        return source.indexOf(value) >= 0;
+    }}
+    function classifyCategoriesLocally(title, tags, content) {{
+        const source = normalizeCategoryText(
+            [title || '', tags || '', String(content || '').slice(0, 4000)].join(' ')
+        );
+        const result = [];
+        for (const [name, aliases] of Object.entries(CATEGORY_RULES)) {{
+            if (aliases.some(alias => matchesCategoryAlias(source, alias))) {{
+                result.push(name);
+            }}
+        }}
+        return result.join(',');
     }}
     </script>
     <meta charset="UTF-8">
@@ -5517,6 +5550,8 @@ class BrowserReader:
                         <option value="author asc">作者 ↑</option>
                         <option value="file_size desc">大小 ↓</option>
                     </select>
+                    <select id="apiCategoryFilter" multiple size="3" style="min-width:150px;" title="题材分类（可多选，Ctrl/Cmd 可多选）" onchange="apiPage=1;loadApiBooks()"></select>
+                    <button onclick="openApiFilter()">筛选</button>
                     <button onclick="loadApiBooks()">刷新</button>
                 </div>
                 <div class="book-list" id="apiBookList">
@@ -5526,6 +5561,34 @@ class BrowserReader:
                     <button onclick="apiPrev()">上一页</button>
                     <span id="apiPageInfo">—</span>
                     <button onclick="apiNext()">下一页</button>
+                </div>
+                <div id="apiFilterModal" style="position:fixed;top:0;left:0;width:100%;height:100%;background:rgba(0,0,0,.45);display:none;z-index:10000;align-items:center;justify-content:center;">
+                    <div style="background:#fff;color:#222;width:min(520px,92vw);max-height:88vh;overflow:auto;padding:18px;border-radius:10px;box-shadow:0 8px 32px rgba(0,0,0,.25);">
+                        <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:12px;">
+                            <h3 style="margin:0;">书库筛选</h3>
+                            <button onclick="closeApiFilter()" style="border:none;background:none;font-size:20px;">×</button>
+                        </div>
+                        <p style="font-size:12px;color:#666;margin:0 0 10px;">分类可多选（命中任一）；其他条件并行组合；留空表示不限制</p>
+                        <label style="display:block;font-weight:600;margin:10px 0 4px;">题材分类（可多选）</label>
+                        <select id="apiFilterCategories" multiple size="6" style="width:100%;"></select>
+                        <label style="display:block;font-weight:600;margin:10px 0 4px;">作者</label>
+                        <div><label><input type="radio" name="apiAuthor" value="any" checked> 不限</label> <label><input type="radio" name="apiAuthor" value="no"> 无作者</label> <label><input type="radio" name="apiAuthor" value="has"> 有作者</label></div>
+                        <label style="display:block;font-weight:600;margin:10px 0 4px;">标签</label>
+                        <div><label><input type="radio" name="apiTags" value="any" checked> 不限</label> <label><input type="radio" name="apiTags" value="no"> 无标签</label> <label><input type="radio" name="apiTags" value="has"> 有标签</label></div>
+                        <label style="display:block;font-weight:600;margin:10px 0 4px;">文件情况</label>
+                        <div><label><input type="radio" name="apiFile" value="any" checked> 不限</label> <label><input type="radio" name="apiFile" value="no"> 无文件</label> <label><input type="radio" name="apiFile" value="has"> 有文件</label></div>
+                        <label style="display:block;font-weight:600;margin:10px 0 4px;">拼音</label>
+                        <div><label><input type="radio" name="apiPinyin" value="any" checked> 不限</label> <label><input type="radio" name="apiPinyin" value="no"> 无拼音</label> <label><input type="radio" name="apiPinyin" value="has"> 有拼音</label></div>
+                        <label style="display:block;font-weight:600;margin:10px 0 4px;">文件大小（MB）</label>
+                        <div style="display:flex;gap:8px;"><input type="number" id="apiFilterSizeMin" placeholder="最小值" style="flex:1;"><input type="number" id="apiFilterSizeMax" placeholder="最大值" style="flex:1;"></div>
+                        <label style="display:block;font-weight:600;margin:10px 0 4px;">入库时间</label>
+                        <div style="display:flex;gap:8px;"><input type="date" id="apiFilterAfter" style="flex:1;"><input type="date" id="apiFilterBefore" style="flex:1;"></div>
+                        <div style="display:flex;gap:8px;justify-content:flex-end;margin-top:16px;">
+                            <button onclick="resetApiFilter()">重置</button>
+                            <button onclick="closeApiFilter()">取消</button>
+                            <button onclick="applyApiFilter()" style="background:#4c8bf5;color:#fff;border:none;padding:6px 16px;border-radius:4px;">应用</button>
+                        </div>
+                    </div>
                 </div>
             </div>
         </div>
@@ -11535,7 +11598,8 @@ class BrowserReader:
                 isLoaded: true, // 标记为已加载
                 isBinary: isBinaryFormat,
                 fileSize: selectedFile.size,
-                fileType: fileName.substring(fileName.lastIndexOf('.'))
+                fileType: fileName.substring(fileName.lastIndexOf('.')),
+                categories: classifyCategoriesLocally(title, '', fileContent)
             }};
 
             // 保存书籍内容到 IndexedDB
@@ -11868,6 +11932,122 @@ class BrowserReader:
         // 后端书库（API）加载与渲染
         let apiPage = 1;
         const API_PS = 60;
+        let _apiCategoriesLoaded = false;
+        function loadApiCategories() {{
+            if (_apiCategoriesLoaded || !window.brSync || !window.brSync.api) return;
+            window.brSync.api('GET', '/api/distinct?collection=books&field=categories').then(function (r) {{
+                if (r.status !== 200 || !r.data || !r.data.values) return;
+                const sel = document.getElementById('apiCategoryFilter');
+                if (!sel) return;
+                const current = Array.from(sel.selectedOptions || []).map(function (o) {{ return o.value; }});
+                sel.innerHTML = '';
+                r.data.values.forEach(function (name) {{
+                    const opt = document.createElement('option');
+                    opt.value = name;
+                    opt.textContent = (name === '__no_category__') ? '无分类' : name;
+                    opt.selected = current.indexOf(name) >= 0;
+                    sel.appendChild(opt);
+                }});
+                _apiCategoriesLoaded = true;
+            }}).catch(function () {{}});
+        }}
+        let apiAdvancedFilter = null;
+        function apiSetRadio(name, value) {{
+            const inputs = document.getElementsByName(name);
+            for (const input of inputs) {{
+                if (input.value === value) {{ input.checked = true; }}
+            }}
+        }}
+        function apiGetRadio(name) {{
+            const inputs = document.getElementsByName(name);
+            for (const input of inputs) {{
+                if (input.checked) {{ return input.value; }}
+            }}
+            return 'any';
+        }}
+        function apiFillFilterCategories(callback) {{
+            if (!window.brSync || !window.brSync.api) {{ if (callback) callback(); return; }}
+            window.brSync.api('GET', '/api/distinct?collection=books&field=categories').then(function (r) {{
+                const sel = document.getElementById('apiFilterCategories');
+                if (sel && r.status === 200 && r.data && r.data.values) {{
+                    const current = (apiAdvancedFilter && apiAdvancedFilter.categories) || [];
+                    sel.innerHTML = '';
+                    r.data.values.forEach(function (name) {{
+                        const opt = document.createElement('option');
+                        opt.value = name;
+                        opt.textContent = (name === '__no_category__') ? '无分类' : name;
+                        opt.selected = current.indexOf(name) >= 0;
+                        sel.appendChild(opt);
+                    }});
+                }}
+                if (callback) callback();
+            }}).catch(function () {{ if (callback) callback(); }});
+        }}
+        function openApiFilter() {{
+            const f = apiAdvancedFilter || {{}};
+            apiSetRadio('apiAuthor', f.author || 'any');
+            apiSetRadio('apiTags', f.tags || 'any');
+            apiSetRadio('apiFile', f.file || 'any');
+            apiSetRadio('apiPinyin', f.pinyin || 'any');
+            document.getElementById('apiFilterSizeMin').value = f.size_min || '';
+            document.getElementById('apiFilterSizeMax').value = f.size_max || '';
+            document.getElementById('apiFilterAfter').value = f.added_after || '';
+            document.getElementById('apiFilterBefore').value = f.added_before || '';
+            apiFillFilterCategories(function () {{
+                document.getElementById('apiFilterModal').style.display = 'flex';
+            }});
+        }}
+        function closeApiFilter() {{
+            const modal = document.getElementById('apiFilterModal');
+            if (modal) {{ modal.style.display = 'none'; }}
+        }}
+        document.addEventListener('keydown', function (e) {{
+            if (e.key === 'Escape') {{ closeApiFilter(); }}
+        }});
+        function resetApiFilter() {{
+            apiAdvancedFilter = null;
+            closeApiFilter();
+            apiPage = 1;
+            loadApiBooks();
+        }}
+        function applyApiFilter() {{
+            const sel = document.getElementById('apiFilterCategories');
+            const categories = sel ? Array.from(sel.selectedOptions || []).map(function (o) {{ return o.value; }}) : [];
+            apiAdvancedFilter = {{
+                categories: categories,
+                author: apiGetRadio('apiAuthor'),
+                tags: apiGetRadio('apiTags'),
+                file: apiGetRadio('apiFile'),
+                pinyin: apiGetRadio('apiPinyin'),
+                size_min: document.getElementById('apiFilterSizeMin').value,
+                size_max: document.getElementById('apiFilterSizeMax').value,
+                added_after: document.getElementById('apiFilterAfter').value,
+                added_before: document.getElementById('apiFilterBefore').value
+            }};
+            closeApiFilter();
+            apiPage = 1;
+            loadApiBooks();
+        }}
+        function appendApiFilterParams(url) {{
+            const f = apiAdvancedFilter;
+            if (!f) {{ return url; }}
+            (f.categories || []).forEach(function (name) {{
+                url += '&categories=' + encodeURIComponent(name);
+            }});
+            if (f.author === 'no') {{ url += '&no_author=1'; }}
+            if (f.author === 'has') {{ url += '&has_author=1'; }}
+            if (f.tags === 'no') {{ url += '&no_tags=1'; }}
+            if (f.tags === 'has') {{ url += '&has_tags=1'; }}
+            if (f.file === 'no') {{ url += '&no_file=1'; }}
+            if (f.file === 'has') {{ url += '&file_exists=1'; }}
+            if (f.pinyin === 'no') {{ url += '&no_pinyin=1'; }}
+            if (f.pinyin === 'has') {{ url += '&has_pinyin=1'; }}
+            if (f.size_min) {{ url += '&size_min=' + encodeURIComponent(f.size_min); }}
+            if (f.size_max) {{ url += '&size_max=' + encodeURIComponent(f.size_max); }}
+            if (f.added_after) {{ url += '&added_after=' + encodeURIComponent(f.added_after); }}
+            if (f.added_before) {{ url += '&added_before=' + encodeURIComponent(f.added_before); }}
+            return url;
+        }}
         function loadApiBooks() {{
             const list = document.getElementById('apiBookList');
             if (!list) return;
@@ -11876,12 +12056,20 @@ class BrowserReader:
                 return;
             }}
             list.innerHTML = '<p style="color:#666;text-align:center;padding:20px;">加载中…</p>';
+            loadApiCategories();
             const q = (document.getElementById('apiSearchInput') || {{}}).value || '';
             const sortSel = document.getElementById('apiSortSelect');
             const sort = sortSel ? sortSel.value : 'add_date desc';
             const sp = sort.split(' ');
-            const url = '/api/books?page=' + apiPage + '&page_size=' + API_PS + '&q=' + encodeURIComponent(q) +
+            let url = '/api/books?page=' + apiPage + '&page_size=' + API_PS + '&q=' + encodeURIComponent(q) +
                 '&sort=' + encodeURIComponent(sp[0]) + '&order=' + encodeURIComponent(sp[1] || 'desc');
+            const catSel = document.getElementById('apiCategoryFilter');
+            if (catSel) {{
+                Array.from(catSel.selectedOptions || []).forEach(function (opt) {{
+                    url += '&categories=' + encodeURIComponent(opt.value);
+                }});
+            }}
+            url = appendApiFilterParams(url);
             window.brSync.api('GET', url).then(function (r) {{
                 if (r.status === 200 && r.data && r.data.items) {{
                     renderApiBooks(r.data.items);
@@ -11929,7 +12117,10 @@ class BrowserReader:
             list.innerHTML = '';
             items.forEach(function (it, i) {{
                 const title = it.title || it.name || ('#' + (it.book_key || it.id));
+                const catsFull = it.categories ? String(it.categories).split(',').map(function(x){{return x.trim();}}).filter(Boolean).join(' | ') : '';
+                const catHtml = catsFull ? '<span title="' + escapeHtml(catsFull) + '">分类:' + escapeHtml(trunc(catsFull, 24)) + '</span>' : '';
                 const sub = it.author ? ('作者: ' + it.author) : '';
+                const metaHtml = [sub ? escapeHtml(sub) : '', catHtml].filter(Boolean).join(' · ');
                 const idx = (apiPage - 1) * API_PS + i + 1;
                 const row = document.createElement('div');
                 row.className = 'book-item';
@@ -11937,7 +12128,7 @@ class BrowserReader:
                 row.setAttribute('data-book-key', it.book_key || '');
                 row.innerHTML = '<span class="idx">' + idx + '</span>' +
                     '<div class="book-title br-t" data-copy="' + escapeHtml(title) + '" title="点击复制书名">' + escapeHtml(title) + '</div>' +
-                    (sub ? '<div class="book-meta">' + escapeHtml(sub) + '</div>' : '');
+                    (metaHtml ? '<div class="book-meta">' + metaHtml + '</div>' : '');
                 list.appendChild(row);
             }});
         }}
@@ -12160,7 +12351,7 @@ class BrowserReader:
             const _sInput = document.getElementById('importedSearchInput');
             const term = ((_sInput && _sInput.value) || '').toLowerCase().trim();
             const filtered = term
-                ? importedBooks.filter(b => (b.title || '').toLowerCase().includes(term) || (b.fileName || '').toLowerCase().includes(term))
+                ? importedBooks.filter(b => (b.title || '').toLowerCase().includes(term) || (b.fileName || '').toLowerCase().includes(term) || (b.categories || '').toLowerCase().includes(term))
                 : importedBooks;
             const total = filtered.length;
             const totalPages = Math.max(1, Math.ceil(total / IMPORTED_PS));
@@ -12180,13 +12371,15 @@ class BrowserReader:
                 const date = new Date(book.importTime);
                 const dateStr = date.toLocaleDateString();
                 const statusIcon = book.isLoaded === false ? '❌' : '✅';
+                const catsFull = String(book.categories || '').split(',').map(function(x){{return x.trim();}}).filter(Boolean).join(' | ');
+                const catMeta = catsFull ? ' · <span title="' + escapeHtml(catsFull) + '">分类:' + escapeHtml(trunc(catsFull, 24)) + '</span>' : '';
 
                 html += '<div class="book-item" onclick="openImportedBook(\\'' + book.id + '\\')">' +
                     '<span class="idx">' + idx + '</span>' +
                     '<div class="book-cover">' + statusIcon + '</div>' +
                     '<div class="book-info">' +
                         '<div class="book-title">' + (book.title || '') + '</div>' +
-                        '<div class="book-meta">' + dateStr + ' · ' + book.fileName + '</div>' +
+                        '<div class="book-meta">' + dateStr + ' · ' + book.fileName + catMeta + '</div>' +
                     '</div>' +
                     '<div class="book-actions">' +
                         '<button onclick="event.stopPropagation(); copyBookName(\\'' + book.title + '\\')" title="复制书名">复制书名</button>' +
@@ -12940,6 +13133,7 @@ class BrowserReader:
 
                                     const bookData = importedBooks.find(b => b.fileName === file.name);
                                     if (bookData) {{
+                                        bookData.categories = classifyCategoriesLocally(bookData.title, '', textContent);
                                         const formattedContent = '<div style="padding: 20px; line-height: 1.8; white-space: pre-wrap;">' +
                                                               textContent.replace(/</g, '&lt;').replace(/>/g, '&gt;') + '</div>';
 
@@ -12983,7 +13177,8 @@ class BrowserReader:
                                     fileName: file.name,
                                     importTime: Date.now(),
                                     filePath: file.webkitRelativePath,
-                                    isLoaded: true
+                                    isLoaded: true,
+                                    categories: classifyCategoriesLocally(file.name.replace(/\.[^/.]+$/, ""), '', '')
                                 }});
                                 addedCount++;
 

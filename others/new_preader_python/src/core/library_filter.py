@@ -10,7 +10,7 @@
 from __future__ import annotations
 
 import os
-from dataclasses import dataclass, fields
+from dataclasses import dataclass, field, fields
 from typing import Any, Callable, Dict, Iterable, List, Optional, Tuple
 
 from src.utils.string_utils import normalize_match_text
@@ -85,6 +85,8 @@ class LibraryFilter:
     # 拼音
     no_pinyin: bool = False
     has_pinyin: bool = False
+    # 题材分类（多选，命中任一即保留；空列表表示不限制）
+    categories: List[str] = field(default_factory=list)
     # 大小（MB），None 表示不限制
     size_min: Optional[float] = None
     size_max: Optional[float] = None
@@ -107,7 +109,14 @@ class LibraryFilter:
             if name not in data:
                 continue
             v = data[name]
-            if name in ("size_min", "size_max"):
+            if name == "categories":
+                if isinstance(v, str):
+                    kwargs[name] = [c.strip() for c in v.split(",") if c.strip()]
+                elif isinstance(v, (list, tuple, set)):
+                    kwargs[name] = [str(c).strip() for c in v if str(c).strip()]
+                else:
+                    kwargs[name] = []
+            elif name in ("size_min", "size_max"):
                 kwargs[name] = float(v) if v not in (None, "", "None") else None
             elif name in ("added_after", "added_before"):
                 kwargs[name] = str(v) if v not in (None, "", "None") else None
@@ -119,6 +128,9 @@ class LibraryFilter:
         for f in fields(self):
             v = getattr(self, f.name)
             if isinstance(v, bool):
+                if v:
+                    return False
+            elif isinstance(v, list):
                 if v:
                     return False
             elif v not in (None, ""):
@@ -133,15 +145,26 @@ class LibraryFilter:
             if isinstance(v, bool):
                 if v:
                     keys.append(f.name)
+            elif isinstance(v, list):
+                if v:
+                    keys.append(f.name)
             elif v not in (None, ""):
                 keys.append(f.name)
         return keys
 
     def describe(self) -> str:
         parts: List[str] = []
-        for field in BOOL_FIELDS:
-            if getattr(self, field):
-                parts.append(CONDITION_LABELS.get(field, field))
+        for field_name in BOOL_FIELDS:
+            if getattr(self, field_name):
+                parts.append(CONDITION_LABELS.get(field_name, field_name))
+        if self.categories:
+            from src.core.book_categories import NO_CATEGORY
+            from src.locales.i18n_manager import get_global_i18n
+            names = [
+                get_global_i18n().t("common.no_category") if c == NO_CATEGORY else c
+                for c in self.categories
+            ]
+            parts.append("分类 " + " | ".join(names))
         if self.size_min is not None or self.size_max is not None:
             lo = f"{self.size_min}MB" if self.size_min is not None else "*"
             hi = f"{self.size_max}MB" if self.size_max is not None else "*"
@@ -197,6 +220,26 @@ def matches_book(book: Any, condition: Optional[LibraryFilter],
     )
     if any(enabled and not matched for enabled, matched in bool_checks):
         return False
+
+    # 题材分类：多选按“命中任一”处理；「无分类」与其他分类同样按 OR 组合
+    if condition.categories:
+        from src.core.book_categories import NO_CATEGORY
+
+        book_categories = {
+            normalize_match_text(c)
+            for c in (getattr(book, "categories", []) or [])
+        }
+        wanted = {
+            normalize_match_text(c) for c in condition.categories if str(c).strip()
+        }
+        want_no_category = NO_CATEGORY in condition.categories
+        if wanted:
+            wanted.discard(NO_CATEGORY)
+        matched = bool(wanted & book_categories) or (
+            want_no_category and not book_categories
+        )
+        if not matched:
+            return False
 
     # 大小范围（输入框为 MB，book.file_size 为字节）
     if condition.size_min is not None or condition.size_max is not None:

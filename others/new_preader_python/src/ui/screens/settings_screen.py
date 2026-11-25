@@ -26,6 +26,7 @@ from src.config.settings.setting_observer import notify_setting_change
 from src.config.settings.setting_types import SelectSetting
 from src.ui.dialogs.directory_dialog import DirectoryDialog
 from src.ui.dialogs.confirm_dialog import ConfirmDialog
+from src.ui.dialogs.category_manage_dialog import CategoryManageDialog
 from src.ui.screens.theme_filter_screen import ThemeFilterScreen
 
 from src.utils.logger import get_logger
@@ -960,6 +961,16 @@ class SettingsScreen(Screen[Any]):
                 id="rebuild-index-btn",
                 variant="warning"
             )
+
+            # 分类维护
+            yield Horizontal(id="category-manage-separator", classes="setting-separator")
+            yield Label(get_global_i18n().t("common.manage_categories"), classes="setting-section-title")
+            yield Label(get_global_i18n().t("category_manage.subtitle"), classes="setting-description")
+            yield Button(
+                get_global_i18n().t("common.manage_categories"),
+                id="category-manage-btn",
+                variant="primary"
+            )
     
     def _compose_path_settings(self) -> ComposeResult:
         """组合路径相关设置"""
@@ -1180,6 +1191,8 @@ class SettingsScreen(Screen[Any]):
             self._sync_current_theme()
         elif event.button.id == "rebuild-index-btn":
             self._confirm_rebuild_index()
+        elif event.button.id == "category-manage-btn":
+            self.app.push_screen(CategoryManageDialog(self.theme_manager))
         # elif event.button.id == "library-browse-btn":
         #     self._browse_library_path()
 

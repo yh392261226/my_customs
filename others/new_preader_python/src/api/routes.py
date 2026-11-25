@@ -58,7 +58,7 @@ def _with_public_ids(items: List[Dict[str, Any]]) -> List[Dict[str, Any]]:
 # 浏览器书库只拿这些字段；尤其不能把物理路径 path 下发给浏览器。
 _PORTAL_BOOK_FIELDS = (
     "book_key", "book_id", "title", "novel_title", "name", "author",
-    "format", "status", "pinyin", "tags", "add_date", "file_size",
+    "format", "status", "pinyin", "tags", "categories", "add_date", "file_size",
 )
 
 
@@ -150,6 +150,94 @@ def _build_filters(collection: str, query: Dict[str, List[str]]) -> tuple:
     return " AND ".join(clauses), params
 
 
+def _flag(query: Dict[str, List[str]], name: str) -> bool:
+    return get_str(query, name).lower() in ("1", "true", "yes", "on")
+
+
+def _build_library_filter_conditions(query: Dict[str, List[str]]) -> tuple:
+    """把书库高级筛选（有/无、大小、入库时间）转成 SQL 条件。"""
+    from src.core.library_filter import UNKNOWN_AUTHORS
+
+    clauses: List[str] = []
+    params: List[Any] = []
+
+    unknown = sorted({str(a).lower() for a in UNKNOWN_AUTHORS if str(a)})
+    placeholders = ",".join("?" for _ in unknown) or "''"
+    if _flag(query, "no_author"):
+        clauses.append(f"LOWER(COALESCE(author, '')) IN ({placeholders})")
+        params.extend(unknown)
+    if _flag(query, "has_author"):
+        clauses.append(f"LOWER(COALESCE(author, '')) NOT IN ({placeholders})")
+        params.extend(unknown)
+
+    if _flag(query, "no_tags"):
+        clauses.append("COALESCE(tags, '') = ''")
+    if _flag(query, "has_tags"):
+        clauses.append("COALESCE(tags, '') != ''")
+    if _flag(query, "no_pinyin"):
+        clauses.append("COALESCE(pinyin, '') = ''")
+    if _flag(query, "has_pinyin"):
+        clauses.append("COALESCE(pinyin, '') != ''")
+    if _flag(query, "no_file"):
+        clauses.append("COALESCE(file_size, 0) = 0")
+    if _flag(query, "file_exists"):
+        clauses.append("COALESCE(file_size, 0) > 0")
+
+    size_min = get_str(query, "size_min")
+    size_max = get_str(query, "size_max")
+    try:
+        if size_min:
+            clauses.append("COALESCE(file_size, 0) >= ?")
+            params.append(float(size_min) * 1024 * 1024)
+        if size_max:
+            clauses.append("COALESCE(file_size, 0) <= ?")
+            params.append(float(size_max) * 1024 * 1024)
+    except ValueError:
+        pass
+
+    added_after = get_str(query, "added_after")
+    added_before = get_str(query, "added_before")
+    if added_after:
+        clauses.append("add_date >= ?")
+        params.append(added_after + "T00:00:00")
+    if added_before:
+        clauses.append("substr(add_date, 1, 10) <= ?")
+        params.append(added_before)
+
+    if not clauses:
+        return None, []
+    return " AND ".join(clauses), params
+
+
+def _build_category_filter(query: Dict[str, List[str]]) -> tuple:
+    """构造多分类筛选（OR：命中任一分类即可，可含「无分类」哨兵）。"""
+    from src.core.book_categories import NO_CATEGORY
+    from src.utils.string_utils import normalize_match_text
+
+    values: List[str] = []
+    for raw in query.get("categories", []) or []:
+        for part in str(raw).split(","):
+            name = part.strip()
+            if name and name not in values:
+                values.append(name)
+    if not values:
+        return None, []
+
+    want_no_category = NO_CATEGORY in values
+    values = [name for name in values if name != NO_CATEGORY]
+
+    clauses: List[str] = []
+    params: List[str] = []
+    if want_no_category:
+        clauses.append("(categories IS NULL OR categories = '')")
+    for name in values:
+        escaped = normalize_match_text(name)
+        escaped = escaped.replace('\\', '\\\\').replace('%', '\\%').replace('_', '\\_')
+        clauses.append("(',' || COALESCE(categories, '') || ',') LIKE ? ESCAPE '\\'")
+        params.append(f"%,{escaped},%")
+    return "(" + " OR ".join(clauses) + ")", params
+
+
 def _build_order_by(collection: str, query: Dict[str, List[str]]) -> Optional[str]:
     sort = get_str(query, "sort")
     if sort and sort in ALLOWED_SORT.get(collection, []):
@@ -162,16 +250,36 @@ def _build_order_by(collection: str, query: Dict[str, List[str]]) -> Optional[st
 
 def route_distinct(collection: str, query: Dict[str, List[str]]) -> Dict[str, Any]:
     field = get_str(query, "field")
-    allowed = ALLOWED_FILTER.get(collection, []) + ["author", "format", "status", "book_type", "site_id", "parser", "tags"]
+    allowed = ALLOWED_FILTER.get(collection, []) + ["author", "format", "status", "book_type", "site_id", "parser", "tags", "categories"]
     if field not in allowed:
         return {"success": False, "error": "不允许的字段: %s" % field}
-    return {"success": True, "field": field, "values": db.distinct(collection, field)}
+    values = db.distinct(collection, field)
+    if field == "categories":
+        split_values: List[str] = []
+        for raw in values:
+            for name in str(raw or "").split(","):
+                name = name.strip()
+                if name and name not in split_values:
+                    split_values.append(name)
+        values = split_values
+        from src.core.book_categories import NO_CATEGORY
+        if NO_CATEGORY not in values:
+            values.append(NO_CATEGORY)
+    return {"success": True, "field": field, "values": values}
 
 
 def route_list(collection: str, query: Dict[str, List[str]]) -> Dict[str, Any]:
     q = get_str(query, "q")
     page, page_size, offset, _ = parse_pagination(query)
     extra_where, extra_params = _build_filters(collection, query)
+    if collection == "books":
+        category_where, category_params = _build_category_filter(query)
+        library_where, library_params = _build_library_filter_conditions(query)
+        clauses = [c for c in (extra_where, category_where, library_where) if c]
+        extra_where = " AND ".join(f"({c})" for c in clauses) if clauses else None
+        extra_params = (
+            list(extra_params or []) + list(category_params or []) + list(library_params or [])
+        )
     order_by = _build_order_by(collection, query)
     items, total = db.query_paginated(
         collection, q, page, page_size, offset,
@@ -272,6 +380,7 @@ def _create_book(body: Dict[str, Any], handler) -> Optional[Dict[str, Any]]:
             pinyin = convert_to_pinyin(title)
         except Exception:
             pinyin = ""
+    tags = body.get("tags", "") or ""
     row = {
         "path": path,
         "title": title,
@@ -279,10 +388,25 @@ def _create_book(body: Dict[str, Any], handler) -> Optional[Dict[str, Any]]:
         "author": body.get("author", "未知"),
         "format": body.get("format") or (os.path.splitext(path)[1].lstrip(".").lower() or "txt"),
         "add_date": body.get("add_date") or _now(),
-        "tags": body.get("tags", "") or "",
+        "tags": tags,
         "file_size": int(body.get("file_size", 0) or 0),
         "metadata": meta_str,
     }
+    # API 直接建书同样要做分类，并写入预归一化检索文本
+    from src.core.database_manager import DatabaseManager
+    try:
+        from src.core.book_categories import classify_book_file
+        detected = classify_book_file(path, title=title, tags=tags)
+        categories = ",".join(detected)
+        row["categories"] = categories
+        row["search_text"] = DatabaseManager._build_search_text(
+            title, row["author"], pinyin, tags, categories
+        )
+    except Exception:
+        row["categories"] = ""
+        row["search_text"] = DatabaseManager._build_search_text(
+            title, row["author"], pinyin, tags, ""
+        )
     try:
         db.insert_row("books", row)
     except Exception as e:  # noqa: BLE001

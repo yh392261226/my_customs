@@ -67,7 +67,7 @@ logger = get_logger(__name__)
 class Book:
     """书籍类，表示一本书籍及其元数据"""
     
-    def __init__(self, path: str, title: Optional[str] = None, author: Optional[str] = None, password: Optional[str] = None, pinyin: Optional[str] = None, tags: Optional[str] = None):
+    def __init__(self, path: str, title: Optional[str] = None, author: Optional[str] = None, password: Optional[str] = None, pinyin: Optional[str] = None, tags: Optional[str] = None, categories: Any = None):
         """
         初始化书籍对象
         
@@ -78,6 +78,7 @@ class Book:
             password: PDF密码，用于加密PDF文件
             pinyin: 书籍标题的拼音，如果为None则自动生成
             tags: 书籍标签，如果为None则为空字符串
+            categories: 题材分类（列表或逗号分隔字符串）
         """
         self.path = os.path.abspath(path) if path else ""
         self.file_name = os.path.basename(path) if path else "default.txt"
@@ -109,6 +110,12 @@ class Book:
             self.title = _fu.FileUtils.strip_filename_timestamp(base_name)
         self.author = author if author else "未知作者"
         self.tags: str = tags if tags else ""  # 存储逗号分隔的标签字符串
+        if isinstance(categories, str):
+            self.categories: List[str] = [c.strip() for c in categories.split(",") if c.strip()]
+        elif isinstance(categories, (list, tuple, set)):
+            self.categories = [str(c).strip() for c in categories if str(c).strip()]
+        else:
+            self.categories = []
         self.size = os.path.getsize(path) if path and os.path.exists(path) else 0
         self.add_date = datetime.now().isoformat()
         self.password = password  # 存储PDF密码
@@ -167,6 +174,7 @@ class Book:
             "author": self.author,
             "pinyin": self.pinyin,
             "tags": self.tags,  # 直接返回字符串
+            "categories": list(self.categories),
             "size": self.size,
             "file_size": self.file_size,  # 文件大小，用于数据库存储
             "file_not_found": self.file_not_found,  # 文件不存在标记
@@ -205,6 +213,12 @@ class Book:
             book.tags = ",".join(tags_data)
         else:
             book.tags = tags_data
+        book.categories = [
+            str(c).strip() for c in (data.get("categories") or [])
+            if str(c).strip()
+        ] if not isinstance(data.get("categories"), str) else [
+            c.strip() for c in data["categories"].split(",") if c.strip()
+        ]
         book.size = data["size"]
         book.file_size = data.get("file_size", data["size"])  # 兼容旧版本，如果没有file_size字段则使用size
         book.add_date = data["add_date"]

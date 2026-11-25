@@ -1292,6 +1292,13 @@ class FileExplorerScreen(ScreenStyleMixin, Screen[Optional[Union[str, List[str]]
             book_name = FileUtils.get_file_name(self.selected_file)
             
             book = Book(self.selected_file, book_name, get_global_i18n().t("common.unknown_author"))
+            try:
+                from src.core.book_categories import classify_book_file
+                book.categories = classify_book_file(
+                    self.selected_file, title=book_name, tags=""
+                )
+            except Exception as exc:
+                self.logger.debug(f"打开文件时自动分类失败: {self.selected_file}, 错误: {exc}")
             bookmark_manager = BookmarkManager()
             
             # 打开阅读器并关闭当前文件资源管理器

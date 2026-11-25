@@ -4,6 +4,7 @@
 
 import os
 import glob
+import sqlite3
 import subprocess
 import platform
 import asyncio
@@ -30,10 +31,13 @@ from src.core.bookshelf import Bookshelf
 from src.spiders import get_parser_options
 from src.utils.logger import get_logger, is_file_logging_enabled
 from src.utils.string_utils import normalize_match_text
+from src.ui.utils.cell_text_utils import category_text, format_categories_for_cell, normalize_category_values
 from src.ui.dialogs.log_viewer_popup import LogViewerPopup
 # 兼容旧的导入路径：实现已统一到 widgets/book_view_dialog.py
 from src.ui.widgets.book_view_dialog import BookPreviewDialog
 from src.ui.dialogs.note_dialog import NoteDialog
+from src.ui.dialogs.category_picker_dialog import CategoryPickerDialog
+from src.ui.dialogs.crawler_filter_dialog import CrawlerFilter, CrawlerFilterDialog
 from src.ui.dialogs.select_books_dialog import SelectBooksDialog
 from src.utils.browser_tab_monitor import BrowserTabMonitor, BrowserType
 from src.utils.auto_crawl import collect_book_urls, AutoCrawlError
@@ -711,6 +715,7 @@ class CrawlerManagementScreen(Screen[None]):
         self.items_per_page = 10
         self.total_pages = 0
         self.db_manager = DatabaseManager()  # 数据库管理器
+        self._book_categories_map: Dict[str, str] = {}  # 书籍路径 -> 分类字符串
         
         # 后台爬取管理器
         from src.core.crawler_manager import CrawlerManager
@@ -735,6 +740,7 @@ class CrawlerManagementScreen(Screen[None]):
         
         # 搜索相关属性
         self._search_keyword = ""  # 搜索关键词
+        self._crawler_filter = CrawlerFilter()  # 高级筛选条件
         
         # 排序相关属性
         self._sorted_history: List[str] = []  # 排序后的历史记录ID顺序
@@ -919,6 +925,7 @@ class CrawlerManagementScreen(Screen[None]):
                             Input(placeholder=get_global_i18n().t('crawler.search_placeholder'), id="search-input-field"),
                             Label(get_global_i18n().t('crawler.smart_search'), id="smart-search-label"),
                             Switch(value=True, id="smart-search-switch"),
+                            Button(get_global_i18n().t("crawler_filter.button"), id="crawler-filter-btn"),
                             Button(get_global_i18n().t('common.search'), id="search-btn"),
                             Button(get_global_i18n().t('crawler.clear_search'), id="clear-search-btn"),
                             id="search-container", classes="form-row"
@@ -1041,6 +1048,7 @@ class CrawlerManagementScreen(Screen[None]):
         table.add_column(get_global_i18n().t('common.serial'), key="sequence")
         table.add_column(get_global_i18n().t('common.book_id'), key="novel_id")
         table.add_column(get_global_i18n().t('common.book_title_alt'), key="novel_title")
+        table.add_column(get_global_i18n().t('common.categories'), key="categories", width=20)
         table.add_column(get_global_i18n().t('common.type'), key="book_type")
         table.add_column(get_global_i18n().t('crawler.chapters'), key="chapter_info")
         table.add_column(get_global_i18n().t('crawler.serial_mode'), key="serial_mode")
@@ -1061,6 +1069,7 @@ class CrawlerManagementScreen(Screen[None]):
         table.add_column(get_global_i18n().t('common.preview'), key="preview")
         table.add_column(get_global_i18n().t('merge_detail.fill_missing'), key="fill_missing")
         table.add_column(get_global_i18n().t('common.search_chapter'), key="search_chapters")
+        table.add_column(get_global_i18n().t('common.set_categories'), key="categories_action")
         table.add_column(get_global_i18n().t('book_details.view_details'), key="details_action")
         
         table.zebra_stripes = True
@@ -1212,7 +1221,20 @@ class CrawlerManagementScreen(Screen[None]):
             if site_id:
                 # 为了支持分页，不限制查询数量，由UI分页控制显示
                 db_history = self.db_manager.get_crawl_history_by_site(site_id, limit=None)
-                
+
+                # 批量读取书库分类，按文件路径关联到爬取记录
+                self._book_categories_map = {}
+                try:
+                    with sqlite3.connect(self.db_manager.get_db_path()) as conn:
+                        for path, raw_categories in conn.execute(
+                            "SELECT path, categories FROM books "
+                            "WHERE categories IS NOT NULL AND categories != ''"
+                        ):
+                            if path:
+                                self._book_categories_map[path] = raw_categories or ""
+                except Exception as exc:
+                    logger.debug(f"读取书籍分类索引失败: {exc}")
+
                 # 转换数据库格式为显示格式
                 self.crawler_history = []
                 for item in db_history:
@@ -1240,8 +1262,10 @@ class CrawlerManagementScreen(Screen[None]):
                                         "id": item['id'],
                                         "novel_id": item['novel_id'],
                                         "novel_title": item['novel_title'],
+                                        "categories": self._book_categories_map.get(item['file_path'] or "", ""),
                                         "crawl_time": crawl_time,
                                         "status": status_text,
+                                        "status_raw": item['status'],
                                         "file_path": item['file_path'] or "",
                                         "file_size": file_size,
                                         "error_message": item.get('error_message', ''),
@@ -1267,20 +1291,21 @@ class CrawlerManagementScreen(Screen[None]):
         self._update_history_table(from_search=from_search)
     
     def _filter_history(self, history: List[Dict[str, Any]]) -> List[Dict[str, Any]]:
-        """根据搜索关键词过滤历史记录"""
+        """先应用高级筛选，再按关键词过滤历史记录。"""
+        filtered = history
+        if not self._crawler_filter.is_empty():
+            filtered = [
+                item for item in filtered if self._crawler_filter.matches(item)
+            ]
+
         if not self._search_keyword:
-            return history
-        
-        # 对搜索关键词进行URL解码，以便能正确匹配
+            return filtered
+
         keyword = normalize_match_text(unquote(self._search_keyword))
-        filtered_history = []
-        
-        for item in history:
-            # 获取解码后的novel_id
+        keyword_matched = []
+        for item in filtered:
             item_novel_id = item.get('novel_id', '')
             decoded_novel_id = unquote(item_novel_id) if item_novel_id else ''
-            
-            # 搜索小说标题、小说ID（解码后）、状态、拼音（简繁 / 大小写统一）
             fields = (
                 item.get('novel_title', ''),
                 decoded_novel_id,
@@ -1288,9 +1313,8 @@ class CrawlerManagementScreen(Screen[None]):
                 item.get('pinyin', ''),
             )
             if any(keyword in normalize_match_text(field or '') for field in fields):
-                filtered_history.append(item)
-        
-        return filtered_history
+                keyword_matched.append(item)
+        return keyword_matched
     
     def _update_history_table(self, from_search: bool = False) -> None:
         """更新历史记录表格
@@ -1312,6 +1336,7 @@ class CrawlerManagementScreen(Screen[None]):
             current_cursor_row = table.cursor_row
             
             table.clear()
+            table._cell_tooltips = {}
             
             # 计算当前页的起始索引
             start_index = (self.current_page - 1) * self.items_per_page
@@ -1329,6 +1354,12 @@ class CrawlerManagementScreen(Screen[None]):
                 novel_id = item.get("novel_id", "")
                 decoded_novel_id = unquote(novel_id) if novel_id else ""
                 
+                # 分类：竖线分隔，超长截断；完整内容放入单元格 tooltip
+                categories_full = category_text(item.get("categories", ""))
+                if categories_full:
+                    table._cell_tooltips[(str(item["id"]), "categories")] = categories_full
+                categories_display = format_categories_for_cell(categories_full)
+
                 # 格式化文件大小显示
                 size_display = ""
                 if "file_size" in item and item["file_size"]:
@@ -1344,6 +1375,7 @@ class CrawlerManagementScreen(Screen[None]):
                     "sequence": str(i + 1),
                     "novel_id": decoded_novel_id,
                     "novel_title": item["novel_title"],
+                    "categories": categories_display,
                     "book_type": item.get("book_type", "短篇"),
                     "chapter_info": self._format_chapter_info(item),
                     "serial_mode": "是" if item.get("serial_mode") else "否",
@@ -1351,20 +1383,21 @@ class CrawlerManagementScreen(Screen[None]):
                     "last_update_time": item.get("last_update_time", item.get("crawl_time", "")),
                     "crawl_time": item["crawl_time"],
                     "status": item["status"],
-                    "view_file": get_global_i18n().t('common.view_file') if item["status"] == get_global_i18n().t('common.success') else "",
-                    "read_book": get_global_i18n().t('common.read') if item["status"] == get_global_i18n().t('common.success') else "",
-                    "browser_read_book": get_global_i18n().t('common.browser') if item["status"] == get_global_i18n().t('common.success') else "",
-                    "edit_book": get_global_i18n().t('common.edit') if item["status"] == get_global_i18n().t('common.success') else "",
-                    "delete_file": get_global_i18n().t('common.delete_file') if item["status"] == get_global_i18n().t('common.success') else "",
-                    "delete_record": get_global_i18n().t('crawler.delete_record'),
-                    "view_reason": get_global_i18n().t('crawler.view_reason') if item["status"] == get_global_i18n().t('common.failed') else "",
-                    "retry": get_global_i18n().t('crawler.retry') if item["status"] == get_global_i18n().t('common.failed') else "",
-                    "crawl_latest": get_global_i18n().t('crawler.crawl_latest') if item.get("serial_mode") == 1 and item["status"] == get_global_i18n().t('common.success') else "",
-                    "rename_novel": get_global_i18n().t('common.rename') if item["status"] == get_global_i18n().t('common.success') else "",
-                    "preview": get_global_i18n().t('common.preview') if item["status"] == get_global_i18n().t('common.success') else "",
-                    "fill_missing": get_global_i18n().t('merge_detail.fill_missing') if item["status"] == get_global_i18n().t('common.success') else "",
-                    "search_chapters": get_global_i18n().t('common.search_chapter'),
-                    "details_action": get_global_i18n().t('book_details.view_details')
+                    "view_file": f"[{get_global_i18n().t('common.view_file')}]" if item["status"] == get_global_i18n().t('common.success') else "",
+                    "read_book": f"[{get_global_i18n().t('common.read')}]" if item["status"] == get_global_i18n().t('common.success') else "",
+                    "browser_read_book": f"[{get_global_i18n().t('common.browser')}]" if item["status"] == get_global_i18n().t('common.success') else "",
+                    "edit_book": f"[{get_global_i18n().t('common.edit')}]" if item["status"] == get_global_i18n().t('common.success') else "",
+                    "delete_file": f"[{get_global_i18n().t('common.delete_file')}]" if item["status"] == get_global_i18n().t('common.success') else "",
+                    "delete_record": f"[{get_global_i18n().t('crawler.delete_record')}]",
+                    "view_reason": f"[{get_global_i18n().t('crawler.view_reason')}]" if item["status"] == get_global_i18n().t('common.failed') else "",
+                    "retry": f"[{get_global_i18n().t('crawler.retry')}]" if item["status"] == get_global_i18n().t('common.failed') else "",
+                    "crawl_latest": f"[{get_global_i18n().t('crawler.crawl_latest')}]" if item.get("serial_mode") == 1 and item["status"] == get_global_i18n().t('common.success') else "",
+                    "rename_novel": f"[{get_global_i18n().t('common.rename')}]" if item["status"] == get_global_i18n().t('common.success') else "",
+                    "preview": f"[{get_global_i18n().t('common.preview')}]" if item["status"] == get_global_i18n().t('common.success') else "",
+                    "fill_missing": f"[{get_global_i18n().t('merge_detail.fill_missing')}]" if item["status"] == get_global_i18n().t('common.success') else "",
+                    "search_chapters": f"[{get_global_i18n().t('common.search_chapter')}]",
+                    "categories_action": f"[{get_global_i18n().t('common.set_categories')}]",
+                    "details_action": f"[{get_global_i18n().t('book_details.view_details')}]"
                 }
                 
                 # 调试：打印row_data
@@ -1530,12 +1563,30 @@ class CrawlerManagementScreen(Screen[None]):
             logger.error(f"搜索失败: {e}")
             self._update_status(get_global_i18n().t('common.search_failed'), "error")
     
+    def _open_crawler_filter(self) -> None:
+        """打开爬取高级筛选弹窗并应用结果。"""
+        def _on_filter(result: Optional[CrawlerFilter]) -> None:
+            if result is None:
+                return
+            self._crawler_filter = result
+            self.current_page = 1
+            self._load_crawl_history(from_search=True)
+            if result.is_empty():
+                self._update_status(get_global_i18n().t('crawler.search_cleared'))
+            else:
+                self._update_status(result.describe(), "success")
+
+        self.app.push_screen(
+            CrawlerFilterDialog(self.theme_manager, self._crawler_filter), _on_filter
+        )
+
     def _clear_search(self) -> None:
         """清除搜索"""
         try:
             search_input = self.query_one("#search-input-field", Input)
             search_input.value = ""
             self._search_keyword = ""
+            self._crawler_filter = CrawlerFilter()
             search_input.focus()
 
             # 重新加载历史记录
@@ -2828,7 +2879,7 @@ class CrawlerManagementScreen(Screen[None]):
             logger.debug(f"表头点击事件: column={column_key}")
 
             # 只对特定列进行排序：序号、书籍ID、书籍标题、大小、爬取时间、状态
-            sortable_columns = ["sequence", "novel_id", "novel_title", "file_size", "crawl_time", "status"]
+            sortable_columns = ["sequence", "novel_id", "novel_title", "categories", "file_size", "crawl_time", "status"]
 
             if column_key in sortable_columns:
                 # 切换排序方向
@@ -2850,6 +2901,7 @@ class CrawlerManagementScreen(Screen[None]):
                     "sequence": "序号",
                     "novel_id": "书籍ID",
                     "novel_title": "书籍标题",
+                    "categories": "分类",
                     "file_size": "大小",
                     "crawl_time": "爬取时间",
                     "status": "状态"
@@ -2881,6 +2933,9 @@ class CrawlerManagementScreen(Screen[None]):
                 elif column_key == "novel_title":
                     # 书籍标题排序
                     return item.get("novel_title", "")
+                elif column_key == "categories":
+                    # 分类排序
+                    return item.get("categories", "")
                 elif column_key == "file_size":
                     # 大小排序，使用原始文件大小数值
                     return item.get("file_size", 0)
@@ -2922,7 +2977,7 @@ class CrawlerManagementScreen(Screen[None]):
                 self._view_book_details(row_key)
 
             # 处理其他列的按钮点击
-            elif column in ["view_file", "read_book", "browser_read_book", "edit_book", "delete_file", "delete_record", "view_reason", "retry", "rename_novel", "preview", "fill_missing", "search_chapters"]:
+            elif column in ["view_file", "read_book", "browser_read_book", "edit_book", "delete_file", "delete_record", "view_reason", "retry", "rename_novel", "preview", "fill_missing", "search_chapters", "categories_action"]:
                 self._handle_button_click(column, row_key)
             
             # 处理连载列点击：切换连载模式
@@ -3465,6 +3520,8 @@ class CrawlerManagementScreen(Screen[None]):
                 self._retry_crawl(history_item)
             elif column == "rename_novel":
                 self._rename_novel(history_item)
+            elif column == "categories_action":
+                self._edit_categories(history_item)
             elif column == "preview":
                 self._preview_book(history_item)
             elif column == "fill_missing":
@@ -5375,6 +5432,31 @@ class CrawlerManagementScreen(Screen[None]):
         except Exception as e:
             logger.warning(f"发送书库刷新消息失败: {e}")
 
+    def _edit_categories(self, history_item: Dict[str, Any]) -> None:
+        """为爬取记录对应的书籍设置或修改分类。"""
+        file_path = history_item.get("file_path") or ""
+        if not file_path:
+            self._update_status(get_global_i18n().t("common.unknown_book"), "error")
+            return
+
+        current = normalize_category_values(history_item.get("categories", ""))
+
+        def _on_categories(categories: Optional[List[str]]) -> None:
+            if categories is None:
+                return
+            stored = ",".join(categories)
+            if not self.db_manager.update_book_categories(file_path, categories):
+                self._update_status(get_global_i18n().t("common.category_update_failed"), "error")
+                return
+            history_item["categories"] = stored
+            self._book_categories_map[file_path] = stored
+            self._update_history_table()
+            self._update_status(get_global_i18n().t("common.categories_updated"), "success")
+
+        self.app.push_screen(
+            CategoryPickerDialog(self.theme_manager, current), _on_categories
+        )
+
     def _rename_novel(self, history_item: Dict[str, Any]) -> None:
         """重命名小说标题"""
         try:
@@ -5970,6 +6052,8 @@ class CrawlerManagementScreen(Screen[None]):
             self._batch_delete_records()
         elif button_id == "back-btn":
             self.app.pop_screen()
+        elif button_id == "crawler-filter-btn":
+            self._open_crawler_filter()
         elif button_id == "search-btn":
             self._perform_search()
             # 执行搜索后，保持焦点在搜索框

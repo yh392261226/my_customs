@@ -1,0 +1,67 @@
+#category-manage-window {
+    width: 80%;
+    height: 85%;
+    background: $background 85%;
+    border: round $primary;
+    padding: 1;
+    layout: vertical;
+}
+
+#category-manage-title {
+    width: 100%;
+    height: 2;
+    text-align: center;
+    text-style: bold;
+    color: $accent;
+}
+
+#category-manage-subtitle {
+    width: 100%;
+    height: 2;
+    color: $text-muted;
+}
+
+.category-manage-section {
+    width: 100%;
+    height: 1;
+    margin-top: 1;
+    text-style: bold;
+    color: $accent;
+}
+
+.category-manage-row {
+    width: 100%;
+    height: 3;
+    align: center middle;
+}
+
+.category-manage-row Input {
+    width: 1fr;
+    height: 3;
+    margin: 0 1;
+}
+
+.category-manage-row Button {
+    height: 3;
+    min-width: 8;
+    margin: 0 1;
+}
+
+#category-manage-list {
+    width: 100%;
+    height: 1fr;
+    border: round $panel;
+    background: $background;
+    padding: 0 1;
+}
+
+#category-manage-buttons {
+    width: 100%;
+    height: 3;
+    align: center middle;
+}
+
+#category-manage-buttons Button {
+    min-width: 12;
+    margin: 0 1;
+}

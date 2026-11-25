@@ -35,6 +35,24 @@
     margin-bottom: 1;
 }
 
+.search-categories {
+    width: 100%;
+    height: 7;
+    border: round $panel;
+    background: $background;
+    padding: 0 1;
+    margin-bottom: 1;
+}
+
+.search-categories Checkbox {
+    width: 100%;
+    height: 2;
+    margin: 0;
+    padding: 0 1;
+    border: none;
+    background: $background;
+}
+
 #results-table {
     width: 100%;
     height: 1fr;

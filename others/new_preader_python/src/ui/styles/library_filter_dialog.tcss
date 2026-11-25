@@ -82,6 +82,23 @@ LibraryFilterDialog Footer {
     color: $accent;
 }
 
+.library-filter-cats {
+    width: 100%;
+    height: 9;
+    border: round $panel;
+    background: $background;
+    padding: 0 1;
+}
+
+.library-filter-cats Checkbox {
+    width: 100%;
+    height: 2;
+    margin: 0;
+    padding: 0 1;
+    border: none;
+    background: $background;
+}
+
 .library-filter-range {
     width: 100%;
     height: 3;
