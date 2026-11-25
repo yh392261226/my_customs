@@ -925,8 +925,8 @@ class CrawlerManagementScreen(Screen[None]):
                             Input(placeholder=get_global_i18n().t('crawler.search_placeholder'), id="search-input-field"),
                             Label(get_global_i18n().t('crawler.smart_search'), id="smart-search-label"),
                             Switch(value=True, id="smart-search-switch"),
-                            Button(get_global_i18n().t("crawler_filter.button"), id="crawler-filter-btn"),
                             Button(get_global_i18n().t('common.search'), id="search-btn"),
+                            Button(get_global_i18n().t("crawler_filter.button"), id="crawler-filter-btn"),
                             Button(get_global_i18n().t('crawler.clear_search'), id="clear-search-btn"),
                             id="search-container", classes="form-row"
                         ),
