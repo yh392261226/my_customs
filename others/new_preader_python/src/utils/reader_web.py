@@ -721,7 +721,7 @@ READER_WEB_JS = r"""
 #    后端关闭后依然能打开已访问过的页面。
 #  - /sw.js、/health_check 等不缓存，避免把「离线」误判成「在线」。
 SERVICE_WORKER_JS = r"""
-const CACHE = 'br-reader-v66';
+const CACHE = 'br-reader-v67';
 /* ---- 旧缓存页面迁移 ----
    早期窄屏 CSS 把正文字号写成 `font-size: 17px !important`，且设置页滑块还会再调
    `changeFontSize(0)`（按 getComputedStyle 反推字号，配合 body 的 transition 会把
@@ -2851,13 +2851,13 @@ __APP_SHELL_CSS__
     <button type="button" id="appUnlockBtn" data-shell-action="unlockPanel" title="解锁加密书" hidden>解锁</button>
     <button type="button" data-reader-action="fontDown" title="缩小字号">A-</button>
     <button type="button" data-reader-action="fontUp" title="放大字号">A+</button>
-    <button type="button" data-reader-action="settings" title="设置">设置</button>
+    <button type="button" data-reader-action="settings" title="字体设置">字体设置</button>
     <button type="button" data-reader-action="top" title="顶部">顶部</button>
     <button type="button" data-reader-action="bottom" title="底部">底部</button>
     <button type="button" data-shell-action="viewMode" title="阅读模式">模式</button>
     <button type="button" data-reader-action="focus" title="专注模式">专注</button>
     <button type="button" data-reader-action="fullscreen" title="全屏">全屏</button>
-    <button type="button" data-shell-action="settings" title="更多设置">设置+</button>
+    <button type="button" data-shell-action="settings" title="设置">设置</button>
   </div>
   <div class="br-app-settings" id="appReaderSettings" hidden>
     <h3>阅读设置</h3>
