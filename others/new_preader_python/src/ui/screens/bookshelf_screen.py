@@ -1809,7 +1809,12 @@ class BookshelfScreen(Screen[None]):
             if categories is None:
                 return
             try:
-                if self.bookshelf.db_manager.update_book_categories(book_path, categories):
+                saved = self.bookshelf.db_manager.update_book_categories(book_path, categories)
+                self.logger.info(
+                    "书架单本分类保存: path=%s, before=%s, after=%s, saved=%s",
+                    book_path, book.categories, categories, saved,
+                )
+                if saved:
                     book.categories = list(categories)
                     self._load_books()
                     self.notify(
@@ -1829,7 +1834,14 @@ class BookshelfScreen(Screen[None]):
                 )
 
         self.app.push_screen(
-            CategoryPickerDialog(self.theme_manager, book.categories), _on_categories
+            CategoryPickerDialog(
+                self.theme_manager,
+                book.categories,
+                suggest_path=book.path,
+                suggest_title=book.title,
+                suggest_tags=book.tags,
+            ),
+            _on_categories,
         )
 
     def _copy_focused_book_title(self) -> None:

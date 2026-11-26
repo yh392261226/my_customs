@@ -74,6 +74,13 @@ _CATEGORY_FILENAME = "book_categories.json"
 NO_CATEGORY = "__no_category__"
 _MAX_CLASSIFY_CHARS = 8000
 _ENCODINGS = ("utf-8-sig", "utf-8", "gb18030", "big5", "utf-16")
+_COMMON_CN = set(
+    "的一是在不了有和人这中大为上个国我以要他时来用们生到作地于出就分对成会可主发年动"
+    "同工也能下过子说产种面而方后多定行学法所民得经十三之进着等部度家电力里如水化高自"
+    "二理起小物现实加量都两体制机当使点从业本去把性好应开它合还因由其些然前外天政四日"
+    "那社义事平形相全表间样与关各重新线内数正心反你明看原又么利比或但质气第向道命此变"
+    "条只没结解问意建月公无系军很情者最立代想已通并提直题"
+)
 
 
 def _override_path() -> str:
@@ -270,6 +277,17 @@ def categories_from_storage(raw: Any) -> List[str]:
     return normalize_categories(raw)
 
 
+def _decode_quality(text: str) -> int:
+    """给解码结果打分：常用中文多、乱码/私用区/控制字符少则更高。"""
+    sample = text[:3000]
+    common_cn = sum(1 for ch in sample if ch in _COMMON_CN)
+    cjk = sum(1 for ch in sample if "\u4e00" <= ch <= "\u9fff")
+    pua = sum(1 for ch in sample if "\ue000" <= ch <= "\uf8ff" or "\uf900" <= ch <= "\ufaff")
+    rare = sum(1 for ch in sample if "\u3400" <= ch <= "\u4dbf")
+    controls = sum(1 for ch in sample if ord(ch) < 32 and ch not in "\n\r\t")
+    return common_cn * 5 + cjk - pua * 8 - rare * 3 - controls * 10
+
+
 def read_content_sample(path: str, max_bytes: int = 128 * 1024,
                         max_chars: int = _MAX_CLASSIFY_CHARS) -> str:
     """读取文件开头作为分类样本；只覆盖文本类文件，失败时返回空串。"""
@@ -283,14 +301,17 @@ def read_content_sample(path: str, max_bytes: int = 128 * 1024,
             raw = f.read(max_bytes)
     except OSError:
         return ""
+    candidates: List[tuple] = []
     for encoding in _ENCODINGS:
-        try:
-            text = raw.decode(encoding)
-            return text[:max_chars]
-        except UnicodeDecodeError:
-            continue
-        except Exception:
-            break
+        for errors in ("strict", "ignore"):
+            try:
+                text = raw.decode(encoding, errors=errors)
+            except Exception:
+                continue
+            candidates.append((_decode_quality(text), text))
+    if candidates:
+        candidates.sort(key=lambda item: item[0], reverse=True)
+        return candidates[0][1][:max_chars]
     return raw.decode("utf-8", errors="ignore")[:max_chars]
 
 

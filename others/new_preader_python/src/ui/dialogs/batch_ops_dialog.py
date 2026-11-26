@@ -2189,6 +2189,10 @@ class BatchOpsDialog(ModalScreen[Dict[str, Any]]):
                 count = self.bookshelf.batch_set_categories(
                     list(self.selected_books), categories
                 )
+                logger.info(
+                    "批量设置分类提交: paths=%s, categories=%s, updated=%s",
+                    list(self.selected_books), categories, count,
+                )
                 self.notify(
                     get_global_i18n().t("common.categories_updated") + f" ({count})",
                     severity="information",
@@ -2205,8 +2209,28 @@ class BatchOpsDialog(ModalScreen[Dict[str, Any]]):
                     severity="error",
                 )
 
+        picker_kwargs = {}
+        if len(self.selected_books) == 1:
+            book_path = next(iter(self.selected_books))
+            book = self.bookshelf.get_book(book_path)
+            if book is None:
+                book = next(
+                    (b for b in self._all_books if b.path == book_path), None
+                )
+            if book is not None:
+                picker_kwargs = {
+                    "categories": book.categories,
+                    "suggest_path": book.path,
+                    "suggest_title": book.title,
+                    "suggest_tags": book.tags,
+                }
+                logger.info(
+                    "批量操作单选分类弹窗启用自动识别: path=%s, title=%s",
+                    book.path, book.title,
+                )
+
         self.app.push_screen(
-            CategoryPickerDialog(self.theme_manager),
+            CategoryPickerDialog(self.theme_manager, **picker_kwargs),
             callback=on_categories,
         )
     

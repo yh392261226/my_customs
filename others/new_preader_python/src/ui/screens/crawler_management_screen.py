@@ -5445,7 +5445,12 @@ class CrawlerManagementScreen(Screen[None]):
             if categories is None:
                 return
             stored = ",".join(categories)
-            if not self.db_manager.update_book_categories(file_path, categories):
+            saved = self.db_manager.update_book_categories(file_path, categories)
+            logger.info(
+                "爬取管理单本分类保存: path=%s, before=%s, after=%s, saved=%s",
+                file_path, history_item.get("categories", ""), stored, saved,
+            )
+            if not saved:
                 self._update_status(get_global_i18n().t("common.category_update_failed"), "error")
                 return
             history_item["categories"] = stored
@@ -5454,7 +5459,14 @@ class CrawlerManagementScreen(Screen[None]):
             self._update_status(get_global_i18n().t("common.categories_updated"), "success")
 
         self.app.push_screen(
-            CategoryPickerDialog(self.theme_manager, current), _on_categories
+            CategoryPickerDialog(
+                self.theme_manager,
+                current,
+                suggest_path=file_path,
+                suggest_title=history_item.get("novel_title", ""),
+                suggest_tags=history_item.get("tags", ""),
+            ),
+            _on_categories,
         )
 
     def _rename_novel(self, history_item: Dict[str, Any]) -> None:

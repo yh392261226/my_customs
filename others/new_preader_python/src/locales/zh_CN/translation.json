@@ -66,6 +66,8 @@
   "category_picker": {
     "title": "设置书籍分类",
     "hint": "勾选已有分类，或在下方输入新分类（逗号/竖线分隔，可多选）",
+    "auto_hint": "已根据书名和正文识别到：{categories}（已预选，确认后保存），可继续增删调整",
+    "no_auto_hint": "未识别到可自动添加的分类，请手动选择或输入",
     "custom": "新分类：多个用 , 或 | 分隔"
   },
   "category_manage": {

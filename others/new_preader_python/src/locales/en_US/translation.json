@@ -66,6 +66,8 @@
   "category_picker": {
     "title": "Set Book Categories",
     "hint": "Check existing categories, or type new ones below (comma/pipe separated)",
+    "auto_hint": "Detected from title and content: {categories} (pre-selected, saved on confirm); adjust as needed",
+    "no_auto_hint": "No categories detected automatically; please select or enter them manually",
     "custom": "New categories: separate with , or |"
   },
   "category_manage": {
