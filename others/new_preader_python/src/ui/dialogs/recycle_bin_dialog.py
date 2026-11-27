@@ -511,7 +511,9 @@ class RecycleBinDialog(ModalScreen[Optional[Dict[str, Any]]]):
             count = self.recycle_bin.empty()
             self._selected.clear()
             self._load()
+            self._changed = True
             self.notify(t("recycle_bin.emptied", count=count), severity="information")
+            self.action_close()
 
         self._confirm(
             t("recycle_bin.confirm_empty"),
