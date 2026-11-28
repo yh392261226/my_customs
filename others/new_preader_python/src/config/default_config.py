@@ -108,6 +108,8 @@ DEFAULT_CONFIG = {
         "auto_one_click_crawl_enabled": False,  # 系统静置达到随机间隔后是否自动执行一键爬取
         "auto_one_click_crawl_interval_min": 1800,  # 静置自动一键爬取随机间隔下限（秒）
         "auto_one_click_crawl_interval_max": 3600,  # 静置自动一键爬取随机间隔上限（秒）
+        "auto_dedup_enabled": False,  # 系统静置达到间隔后是否自动执行批量去重（后台、无弹窗、结果暂存）
+        "auto_dedup_interval_minutes": 30,  # 静置自动批量去重间隔（分钟）
     },
 
     # 快捷键设置

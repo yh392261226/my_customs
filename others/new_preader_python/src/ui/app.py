@@ -398,6 +398,13 @@ class NewReaderApp(App[None]):
             get_idle_auto_crawl_manager(self).notify_activity("tui")
         except Exception:
             pass
+        # 静置自动去重使用独立计时，只被真实人为操作重置；
+        # 自动爬取是后台任务，不会走到这里，因此不算打破静置。
+        try:
+            from src.core.idle_auto_dedup_manager import get_idle_auto_dedup_manager
+            get_idle_auto_dedup_manager(self).notify_activity("tui")
+        except Exception:
+            pass
 
     async def on_event(self, event: events.Event) -> None:
         """在所有终端输入事件向下分发前记录人为操作。
@@ -588,6 +595,13 @@ class NewReaderApp(App[None]):
         except Exception as e:
             logger.debug(f"静置自动爬取检测启动失败（可忽略）：{e}")
 
+        # 启动静置自动批量去重检测（独立计时，后台执行、结果暂存）
+        try:
+            from src.core.idle_auto_dedup_manager import get_idle_auto_dedup_manager
+            get_idle_auto_dedup_manager(self).start()
+        except Exception as e:
+            logger.debug(f"静置自动去重检测启动失败（可忽略）：{e}")
+
         # 若通过 CLI 指定了书籍文件，直接打开阅读器并跳过登录/欢迎流程
         try:
             if getattr(self, "book_file", None):
@@ -671,6 +685,11 @@ class NewReaderApp(App[None]):
         try:
             from src.core.idle_auto_crawl_manager import stop_idle_auto_crawl_manager
             stop_idle_auto_crawl_manager(self)
+        except Exception:
+            pass
+        try:
+            from src.core.idle_auto_dedup_manager import stop_idle_auto_dedup_manager
+            stop_idle_auto_dedup_manager(self)
         except Exception:
             pass
 

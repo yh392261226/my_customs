@@ -356,6 +356,16 @@ class BatchOpsDialog(ModalScreen[Dict[str, Any]]):
     def _start_dedup_flow(self) -> None:
         """点击「批量去重」：已有暂存时先确认是否覆盖，避免误丢进度 / 白白重扫"""
         t = get_global_i18n().t
+
+        # 静置自动去重正在执行时不重复发起，避免两轮全量检测互相抢资源
+        try:
+            from src.core.idle_auto_dedup_manager import is_idle_auto_dedup_running
+            if is_idle_auto_dedup_running(self.app):
+                self.notify(t("duplicate_books.auto_dedup_in_progress"), severity="warning")
+                return
+        except Exception as e:
+            logger.debug(f"查询静置自动去重状态失败（可忽略）: {e}")
+
         summary = dedup_staging.staging_summary()
         if not summary:
             self._run_dedup_detection()

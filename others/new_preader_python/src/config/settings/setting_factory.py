@@ -814,6 +814,26 @@ def create_idle_settings() -> SettingSection:
         category="idle"
     ))
 
+    # 静置自动批量去重开关
+    section.add_setting(BooleanSetting(
+        key="idle.auto_dedup_enabled",
+        default_value=False,
+        display_name="启用静置自动批量去重",
+        description="Python 端持续静置超过设定分钟后，后台自动检测重复书籍并暂存结果，不弹窗；自动爬取不会重置静置计时",
+        category="idle"
+    ))
+
+    # 静置自动批量去重间隔（分钟）
+    section.add_setting(IntegerSetting(
+        key="idle.auto_dedup_interval_minutes",
+        default_value=30,
+        display_name="静置自动批量去重间隔（分钟）",
+        description="系统静置超过该分钟数后自动执行一次批量去重（最小 1 分钟）",
+        min_value=1,
+        max_value=1440,
+        category="idle"
+    ))
+
     return section
 
 def create_path_settings() -> SettingSection:

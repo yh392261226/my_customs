@@ -902,6 +902,25 @@ class SettingsScreen(Screen[Any]):
                 )
             yield Label(get_global_i18n().t("settings.idle_auto_crawl_interval_help"), classes="setting-description")
 
+            dedup_enabled_setting = self.setting_registry.get_setting("idle.auto_dedup_enabled")
+            yield Label(get_global_i18n().t("settings.idle_auto_dedup_enabled"), classes="setting-label")
+            if dedup_enabled_setting:
+                yield Switch(
+                    value=dedup_enabled_setting.value,
+                    id="idle-auto-dedup-enabled-switch"
+                )
+            yield Label(get_global_i18n().t("settings.idle_auto_dedup_enabled_help"), classes="setting-description")
+
+            dedup_minutes_setting = self.setting_registry.get_setting("idle.auto_dedup_interval_minutes")
+            yield Label(get_global_i18n().t("settings.idle_auto_dedup_interval_minutes"), classes="setting-label")
+            if dedup_minutes_setting:
+                yield Input(
+                    value=str(dedup_minutes_setting.value),
+                    id="idle-auto-dedup-minutes-input",
+                    placeholder=str(dedup_minutes_setting.default_value)
+                )
+            yield Label(get_global_i18n().t("settings.idle_auto_dedup_help"), classes="setting-description")
+
     def _compose_database_settings(self) -> ComposeResult:
         """组合数据库管理设置"""
         with ScrollableContainer(id="database-settings"):
@@ -1652,6 +1671,27 @@ class SettingsScreen(Screen[Any]):
             self.setting_registry.set_value("idle.auto_one_click_crawl_interval_max", interval_max)
         except Exception as e:
             logger.debug(f"保存静置自动爬取间隔区间失败（可忽略）: {e}")
+
+        # 静置自动批量去重设置
+        try:
+            dedup_enabled_switch = self.query_one("#idle-auto-dedup-enabled-switch", Switch)
+            self.setting_registry.set_value(
+                "idle.auto_dedup_enabled", dedup_enabled_switch.value
+            )
+        except Exception as e:
+            logger.debug(f"保存静置自动去重开关失败（可忽略）: {e}")
+        try:
+            dedup_minutes_input = self.query_one("#idle-auto-dedup-minutes-input", Input)
+            minutes = int((dedup_minutes_input.value or "").strip())
+            minutes_setting = self.setting_registry.get_setting(
+                "idle.auto_dedup_interval_minutes"
+            )
+            allowed_min = getattr(minutes_setting, "min_value", 1) or 1
+            allowed_max = getattr(minutes_setting, "max_value", 1440) or 1440
+            minutes = min(max(minutes, allowed_min), allowed_max)
+            self.setting_registry.set_value("idle.auto_dedup_interval_minutes", minutes)
+        except Exception as e:
+            logger.debug(f"保存静置自动去重间隔失败（可忽略）: {e}")
 
         # 局域网访问开关（修改后需重启浏览器阅读器服务才生效）
         try:
