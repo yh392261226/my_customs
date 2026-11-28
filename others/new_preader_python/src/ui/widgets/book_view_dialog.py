@@ -1,9 +1,10 @@
 """
-统一的「书籍视图」组件：一个 widget 同时提供 查看详情 / 预览 / 查看文件。
+统一的「书籍视图」组件：一个 widget 同时提供
+查看详情 / 预览 / 预览全部 / 查看文件 / 浏览器阅读。
 
 背景
 ----
-历史上这三项功能分散在多个文件：
+历史上这几项功能分散在多个文件：
 * ``widgets/book_details_dialog.py``（详情）
 * ``screens/crawler_management_screen.py`` 里的 ``BookPreviewDialog``（预览）
 * ``utils/file_helpers.py`` 的 ``reveal_in_file_manager``（查看文件）
@@ -59,10 +60,13 @@ class BookViewData:
     allow_preview: bool = True
     allow_full_preview: bool = True
     allow_view_file: bool = True
+    # 可选：页面注入专用浏览器阅读入口（复用表格按钮的逻辑）；
+    # 未注入时弹窗走 book_view_utils.open_book_in_browser，同样读取系统浏览器设置。
+    browser_read_callback: Optional[Callable[[], None]] = None
 
 
 class BookViewDialog(ModalScreen[None]):
-    """详情 / 预览 / 查看文件三合一弹窗。"""
+    """详情 / 预览 / 预览全部 / 查看文件 / 浏览器阅读合一弹窗。"""
 
     CSS_PATH = "../styles/book_view_dialog.tcss"
 
@@ -73,6 +77,7 @@ class BookViewDialog(ModalScreen[None]):
         ("v", "show_preview", _binding_desc("common.preview", "预览")),
         ("V", "toggle_preview", _binding_desc("book_view.preview_full", "预览全部")),
         ("F", "view_file", _binding_desc("common.view_file", "查看文件")),
+        ("b", "browser_read", _binding_desc("common.browser_read", "浏览器阅读")),
         ("j", "scroll_down", _binding_desc("common.scroll_down", "向下滚动")),
         ("k", "scroll_up", _binding_desc("common.scroll_up", "向上滚动")),
     ]
@@ -121,6 +126,7 @@ class BookViewDialog(ModalScreen[None]):
                 yield Button(t("book_view.preview_tab"), id="bv-preview-btn")
                 yield Button(t("book_view.preview_full"), id="bv-full-btn")
                 yield Button(t("book_view.view_file"), id="bv-view-file-btn")
+                yield Button(t("common.browser_read"), id="bv-browser-btn")
                 yield Button(t("common.close"), id="bv-close-btn", variant="primary")
         yield Footer()
 
@@ -281,6 +287,12 @@ class BookViewDialog(ModalScreen[None]):
             )
         except Exception:
             pass
+        try:
+            self.query_one("#bv-browser-btn", Button).disabled = not os.path.isfile(
+                self.file_path
+            )
+        except Exception:
+            pass
 
     def action_show_details(self) -> None:
         """i 键 —— 切到详情；详情视图下再按 i 关闭（与旧版开关一致）。"""
@@ -335,6 +347,29 @@ class BookViewDialog(ModalScreen[None]):
         from src.ui.utils.book_view_utils import reveal_book_file
         reveal_book_file(self, self.file_path)
 
+    def action_browser_read(self) -> None:
+        """b 键 —— 用系统设置中配置的浏览器阅读当前书籍。
+
+        优先走页面注入的回调（如爬取管理 / 书库表格里的同一入口），
+        否则走公共工具；两者都通过 BrowserReader -> BrowserManager
+        读取系统设置中的浏览器配置。
+        """
+        if not self.file_path or not os.path.isfile(self.file_path):
+            self.notify(get_global_i18n().t("book_view.file_not_exist"),
+                        severity="warning")
+            return
+        try:
+            callback = self.data.browser_read_callback
+            if callback is not None:
+                callback()
+            else:
+                from src.ui.utils.book_view_utils import open_book_in_browser
+                open_book_in_browser(self, self.file_path, self.theme_manager)
+        except Exception as e:
+            logger.error(f"弹窗内浏览器阅读失败: {e}")
+            self.notify(f"{get_global_i18n().t('common.action_failed')}: {e}",
+                        severity="error")
+
     def action_scroll_down(self) -> None:
         try:
             self.query_one("#bv-preview-text", RichLog).scroll_down()
@@ -358,6 +393,7 @@ class BookViewDialog(ModalScreen[None]):
             "bv-preview-btn": self.action_show_preview,
             "bv-full-btn": self._toggle_full_preview,
             "bv-view-file-btn": self.action_view_file,
+            "bv-browser-btn": self.action_browser_read,
             "bv-close-btn": self.action_close,
         }
         handler = handlers.get(event.button.id)

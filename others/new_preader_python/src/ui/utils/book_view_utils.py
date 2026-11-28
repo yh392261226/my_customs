@@ -75,6 +75,86 @@ def reveal_book_file(screen: Any, file_path: str) -> bool:
         return False
 
 
+def open_book_in_browser(screen: Any, file_path: str,
+                         theme_manager: Optional[ThemeManager] = None) -> bool:
+    """浏览器阅读公共入口：使用系统设置中配置的浏览器打开书籍。
+
+    ``BrowserReader`` 最终通过 ``BrowserManager.open_url`` 启动浏览器，
+    后者从 ``ConfigManager`` 读取 ``browser.default_browser`` 与各浏览器路径，
+    因此这里不需要（也不应该）自行指定浏览器。页面注入了专用回调时优先用回调，
+    否则弹窗统一走本函数。
+    """
+    t = get_global_i18n().t
+    path = os.path.abspath(os.path.expanduser(file_path or ""))
+    if not path or not os.path.isfile(path):
+        screen.notify(t("book_view.file_not_exist"), severity="warning")
+        return False
+
+    # 尽量沿用当前用户的阅读进度（书库页面会注入自己的回调，这里服务其他页面）
+    user_id = None
+    try:
+        bookshelf = getattr(screen.app, "bookshelf", None) or getattr(screen, "bookshelf", None)
+        user_id = getattr(bookshelf, "current_user_id", None)
+    except Exception:
+        user_id = None
+
+    def on_progress_save(progress: float, scroll_top: int, scroll_height: int,
+                         current_page: Optional[int] = None,
+                         total_pages: Optional[int] = None,
+                         word_count: Optional[int] = None) -> None:
+        try:
+            from src.core.bookmark import BookmarkManager
+            pages = total_pages or max(1, int(scroll_height / 1000))
+            page = current_page if current_page is not None else int(progress * pages)
+            BookmarkManager().save_reading_info(
+                path,
+                current_page=page,
+                total_pages=pages,
+                reading_progress=progress,
+                scroll_top=scroll_top,
+                scroll_height=scroll_height,
+                word_count=word_count,
+                user_id=user_id,
+            )
+        except Exception as e:
+            logger.debug(f"浏览器阅读进度保存失败: {e}")
+
+    def on_progress_load(book_id: str = "") -> Optional[Dict[str, Any]]:
+        try:
+            from src.core.bookmark import BookmarkManager
+            info = BookmarkManager().get_reading_info(path, user_id=user_id)
+            if info and info.get("progress", 0) > 0:
+                return {
+                    "progress": info["progress"],
+                    "scrollTop": info.get("scrollTop", 0),
+                    "scrollHeight": info.get("scrollHeight", 0) or 10000,
+                }
+        except Exception as e:
+            logger.debug(f"浏览器阅读进度加载失败: {e}")
+        return None
+
+    try:
+        from src.utils.browser_reader import BrowserReader
+        theme = ""
+        if theme_manager is not None:
+            try:
+                theme = theme_manager.get_current_theme_name()
+            except Exception:
+                theme = ""
+        success, message = BrowserReader.open_book_in_browser(
+            path,
+            theme=theme,
+            on_progress_save=on_progress_save,
+            on_progress_load=on_progress_load,
+        )
+        screen.notify(message, severity="information" if success else "error")
+        return success
+    except Exception as e:
+        logger.error(f"浏览器阅读失败: {path}: {e}")
+        screen.notify(f"{t('common.action_failed')}: {e}", severity="error")
+        return False
+
+
 def clean_preview_text(text: str) -> str:
     """清洗预览文本，移除可能破坏 Textual 渲染的控制/格式字符与乱码。"""
     if not text:

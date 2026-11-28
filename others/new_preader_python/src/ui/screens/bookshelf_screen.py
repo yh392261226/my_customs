@@ -1921,13 +1921,24 @@ class BookshelfScreen(Screen[None]):
         return get_global_i18n().t("book_details.local_import")
 
     def _build_book_view_data(self, book_path: str):
-        """组装书库书籍的统一视图数据（详情 / 预览 / 查看文件共用）。"""
+        """组装书库书籍的统一视图数据（详情 / 预览 / 查看文件 / 浏览器阅读共用）。"""
         from src.ui.utils.book_view_utils import build_view_data
-        return build_view_data(
+
+        data = build_view_data(
             book_path,
             bookshelf=self.bookshelf,
             source_getter=self._get_book_source,
         )
+
+        def browser_read() -> None:
+            # 与书库表格的「浏览器阅读」按钮走同一入口（含权限与进度同步）
+            if getattr(self.app, "has_permission", lambda k: True)("bookshelf.read"):
+                self._open_book_in_browser(book_path)
+            else:
+                self.notify(get_global_i18n().t("bookshelf.np_read"), severity="warning")
+
+        data.browser_read_callback = browser_read
+        return data
 
     def _view_book_details(self, book_path: str) -> None:
         """打开统一书籍视图的详情（弹窗内可直接预览 / 查看文件）。"""

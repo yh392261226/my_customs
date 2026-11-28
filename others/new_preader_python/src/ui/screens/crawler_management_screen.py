@@ -3161,7 +3161,7 @@ class CrawlerManagementScreen(Screen[None]):
         return ''
 
     def _build_history_view_data(self, history_item: Dict[str, Any]):
-        """构建爬取记录的统一视图数据（详情 + 预览 + 文件定位共用一份）。"""
+        """构建爬取记录的统一视图数据（详情 + 预览 + 文件定位 + 浏览器阅读共用一份）。"""
         from src.ui.utils.book_view_utils import read_preview_content
         from src.ui.widgets.book_view_dialog import BookViewData
         from src.utils.file_utils import FileUtils
@@ -3208,10 +3208,13 @@ class CrawlerManagementScreen(Screen[None]):
             metadata=metadata,
             allow_preview=bool(content),
             allow_full_preview=bool(content),
+            # 弹窗内的「浏览器阅读」复用表格按钮的同一入口，确保使用
+            # 系统设置里的浏览器类型/路径与浏览器阅读服务配置。
+            browser_read_callback=lambda: self._read_book_in_browser(history_item),
         )
 
     def _view_book_details(self, row_key: str) -> None:
-        """打开爬取记录的统一详情视图（弹窗内可直接预览 / 查看文件）。"""
+        """打开爬取记录的统一详情视图（弹窗内可直接预览 / 查看文件 / 浏览器阅读）。"""
         try:
             dialog = self._build_book_details_dialog(row_key)
             if dialog is None:
